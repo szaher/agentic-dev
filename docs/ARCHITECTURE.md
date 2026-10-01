@@ -155,3 +155,30 @@ repository signals + optional task text
 Skills are local/untracked by default so initializing an upstream repository does not pollute a pull request. Shared mode is explicit for teams that want to version the workflow.
 
 The recommender is registry-driven rather than embedding skill-specific conditionals in the Bash bootstrap.
+
+
+## Optional capability layer
+
+Not every useful agent tool belongs in the default workstation.
+
+Capabilities that are security-sensitive, expensive, overlapping, or task-specific are opt-in:
+
+```text
+repo + task context
+       |
+       v
+capability suggestion
+       |
+       v
+explicit user enable
+       |
+       +-- browser-automation -> Playwright MCP
+       +-- browser-debug      -> Chrome DevTools MCP
+       +-- browser-agent      -> Browser Use
+```
+
+This differs from core tools such as `rg` or `git`: repo detection may recommend an optional capability, but it never enables one.
+
+Browser is the first pack because it has a meaningful security boundary. Existing-browser mode may expose authenticated sessions, cookies, internal pages, and actions available to the browser session.
+
+Future packs can use the same abstraction for databases, Kubernetes clusters, cloud accounts, observability systems, or desktop automation.
