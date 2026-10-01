@@ -61,7 +61,7 @@ pkg_install() {
   case "$PKG" in
     apt)
       sudo apt-get update -qq
-      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"
+      sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"
       ;;
     dnf) sudo dnf install -y "${packages[@]}" ;;
     pacman) sudo pacman -Sy --needed --noconfirm "${packages[@]}" ;;
@@ -162,7 +162,11 @@ install_language_support() {
       ;;
     rust)
       if ! have rustup; then
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y || true
+        tmp="$(mktemp)"
+        if curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o "$tmp"; then
+          sh "$tmp" -y || true
+        fi
+        rm -f "$tmp"
         export PATH="$HOME/.cargo/bin:$PATH"
       fi
       have rustup && rustup component add rust-analyzer rustfmt clippy || true
