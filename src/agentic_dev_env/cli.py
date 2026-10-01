@@ -176,9 +176,26 @@ def cmd_setup(args: argparse.Namespace) -> int:
 
 
 def cmd_repo_init(args: argparse.Namespace) -> int:
-    argv = [args.path, *args.args]
+    argv = [args.path]
+    flag_map = [
+        ("check", "--check"),
+        ("no_codegraph", "--no-codegraph"),
+        ("no_serena", "--no-serena"),
+        ("no_instructions", "--no-instructions"),
+        ("no_install_language_deps", "--no-install-language-deps"),
+        ("no_runtime_install", "--no-runtime-install"),
+        ("install_project_deps", "--install-project-deps"),
+        ("no_skills", "--no-skills"),
+        ("skills_yes", "--skills-yes"),
+        ("skills_shared", "--skills-shared"),
+    ]
+    for attr, flag in flag_map:
+        if getattr(args, attr):
+            argv.append(flag)
     if args.task:
         argv += ["--task", args.task]
+    if args.skills_target:
+        argv += ["--skills-target", args.skills_target]
     return _exec_script("saad-tool-repo-init.sh", argv)
 
 
@@ -215,7 +232,17 @@ def build_parser() -> argparse.ArgumentParser:
     init = repo_sub.add_parser("init", help="Initialize/check a repository")
     init.add_argument("path", nargs="?", default=".")
     init.add_argument("--task", default="")
-    init.add_argument("args", nargs=argparse.REMAINDER)
+    init.add_argument("--check", action="store_true")
+    init.add_argument("--no-codegraph", action="store_true")
+    init.add_argument("--no-serena", action="store_true")
+    init.add_argument("--no-instructions", action="store_true")
+    init.add_argument("--no-install-language-deps", action="store_true")
+    init.add_argument("--no-runtime-install", action="store_true")
+    init.add_argument("--install-project-deps", action="store_true")
+    init.add_argument("--no-skills", action="store_true")
+    init.add_argument("--skills-yes", action="store_true")
+    init.add_argument("--skills-shared", action="store_true")
+    init.add_argument("--skills-target", choices=["both", "claude", "codex"], default="both")
     init.set_defaults(func=cmd_repo_init)
 
     skills = sub.add_parser("skills", help="Context-aware Agent Skills")
