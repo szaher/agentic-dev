@@ -88,6 +88,21 @@ line-length = 100
         caps = {item.get("capability") for item in result["checks"] if item["kind"] == "security"}
         self.assertEqual(caps, {"secret-scan", "sast"})
 
+    @patch("agentic_dev_env.verification._codegraph_affected")
+    @patch("agentic_dev_env.verification.shutil.which", return_value=None)
+    def test_codegraph_affected_test_is_preserved_as_evidence(self, which, affected):
+        affected.return_value = {
+            "available": True,
+            "tests": ["tests/test_main.py"],
+            "raw": {"tests": ["tests/test_main.py"]},
+        }
+        root = self.repo()
+        (root / "main.py").write_text("value = 4\n")
+        result = plan(root)
+        evidence = [x for x in result["checks"] if x["kind"] == "affected-test"]
+        self.assertEqual(evidence[0]["test_file"], "tests/test_main.py")
+        self.assertIsNone(evidence[0]["command"])
+
     def test_execute_is_fail_fast_by_default(self):
         root = self.repo()
         verification_plan = {
