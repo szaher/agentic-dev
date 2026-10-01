@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 if [[ "$(uname -s)" == "Linux" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-  exec "$SCRIPT_DIR/setup-linux-agent-env.sh" "$@"
+  exec bash "$SCRIPT_DIR/setup-linux-agent-env.sh" "$@"
 fi
 
 # One-time macOS bootstrap for a high-quality local coding-agent workstation.
