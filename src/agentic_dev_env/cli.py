@@ -28,6 +28,7 @@ from .providers import (
     migrate as migrate_provider, remove_provider, update_all as update_all_providers,
     update_provider, verify_provider,
 )
+from .remote import add as add_remote, get as get_remote, list_profiles as list_remotes, remove as remove_remote, status as remote_status, test as test_remote
 
 
 def _print_recommendations(path: str, task: str, max_skills: int, as_json: bool):
@@ -857,6 +858,67 @@ def cmd_update(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def cmd_remote_list(args: argparse.Namespace) -> int:
+    data = remote_status()
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(f"ssh available: {data['ssh_available']}")
+        for item in data["remotes"]:
+            target = f"{item.get('user')+'@' if item.get('user') else ''}{item['host']}"
+            port = f":{item['port']}" if item.get("port") else ""
+            print(f"- {item['name']}: {target}{port} workdir={item.get('workdir') or '-'}")
+    return 0
+
+
+def cmd_remote_add(args: argparse.Namespace) -> int:
+    try:
+        data = add_remote(
+            args.name, args.host,
+            user=args.user, port=args.port,
+            identity_file=args.identity_file,
+            workdir=args.workdir,
+        )
+    except ValueError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"✓ remote {args.name} configured")
+    return 0
+
+
+def cmd_remote_show(args: argparse.Namespace) -> int:
+    try:
+        data = get_remote(args.name)
+    except KeyError:
+        print(f"agentic: unknown remote {args.name}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True))
+    return 0
+
+
+def cmd_remote_remove(args: argparse.Namespace) -> int:
+    try:
+        remove_remote(args.name)
+    except KeyError:
+        print(f"agentic: unknown remote {args.name}", file=sys.stderr)
+        return 2
+    print(f"✓ removed remote {args.name}")
+    return 0
+
+
+def cmd_remote_test(args: argparse.Namespace) -> int:
+    try:
+        data = test_remote(args.name)
+    except (KeyError, RuntimeError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else (
+        f"{'✓' if data['success'] else '!'} {args.name}: {data['host']}"
+    ))
+    return 0 if data["success"] else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="agentic", description="Agentic development environment manager")
     p.add_argument("--version", action="version", version=__version__)
@@ -1181,6 +1243,37 @@ def build_parser() -> argparse.ArgumentParser:
     obsstatus.add_argument("--json", action="store_true")
     obsstatus.set_defaults(func=cmd_infra_observability_status)
 
+
+
+    remote = sub.add_parser("remote", help="SSH development profiles")
+    rsub = remote.add_subparsers(dest="remote_command", required=True)
+
+    rlist = rsub.add_parser("list", help="List SSH development profiles")
+    rlist.add_argument("--json", action="store_true")
+    rlist.set_defaults(func=cmd_remote_list)
+
+    radd = rsub.add_parser("add", help="Add or update an SSH development profile")
+    radd.add_argument("name")
+    radd.add_argument("host")
+    radd.add_argument("--user", default=None)
+    radd.add_argument("--port", type=int, default=None)
+    radd.add_argument("--identity-file", default=None)
+    radd.add_argument("--workdir", default=None)
+    radd.add_argument("--json", action="store_true")
+    radd.set_defaults(func=cmd_remote_add)
+
+    rshow = rsub.add_parser("show", help="Show one SSH development profile")
+    rshow.add_argument("name")
+    rshow.set_defaults(func=cmd_remote_show)
+
+    rtest = rsub.add_parser("test", help="Test a profile with non-interactive SSH")
+    rtest.add_argument("name")
+    rtest.add_argument("--json", action="store_true")
+    rtest.set_defaults(func=cmd_remote_test)
+
+    rremove = rsub.add_parser("remove", help="Remove an SSH development profile")
+    rremove.add_argument("name")
+    rremove.set_defaults(func=cmd_remote_remove)
 
     providers = sub.add_parser("providers", help="External skill/capability provider lifecycle")
     psub = providers.add_subparsers(dest="providers_command", required=True)
