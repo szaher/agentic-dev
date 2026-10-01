@@ -39,6 +39,7 @@ BUILTIN_PROFILES: dict[str, TrustProfile] = {
             "database.local", "database.read", "database.write",
             "cluster.read",
             "observability.read",
+            "remote.read",
         }),
     ),
     "production-read": TrustProfile(
@@ -53,6 +54,7 @@ BUILTIN_PROFILES: dict[str, TrustProfile] = {
             "cluster.read",
             "cloud.read",
             "observability.read",
+            "remote.read",
         }),
     ),
 }
