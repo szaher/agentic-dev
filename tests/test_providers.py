@@ -34,8 +34,11 @@ class ProviderEcosystemTests(unittest.TestCase):
         )
         migration = source / "scripts" / "migrate.py"
         migration.write_text(
+            "import os\n"
             "from pathlib import Path\n"
-            "Path('migration-ran.txt').write_text('ok')\n"
+            "state = Path(os.environ['AGENTIC_PROVIDER_STATE_DIR'])\n"
+            "state.mkdir(parents=True, exist_ok=True)\n"
+            "(state / 'migration-ran.txt').write_text('ok')\n"
         )
         manifest = {
             "schema_version": "1",
@@ -112,6 +115,10 @@ class ProviderEcosystemTests(unittest.TestCase):
 
                 migration_results = migrate("demo-provider", yes=True)
                 self.assertEqual(migration_results[0]["returncode"], 0)
+                self.assertTrue(verify_provider("demo-provider")["valid"])
+                self.assertTrue(
+                    (Path(config) / "providers" / "demo-provider" / "state" / "migration-ran.txt").exists()
+                )
 
                 remove_provider("demo-provider")
                 self.assertEqual(installed(), [])
