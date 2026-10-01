@@ -23,6 +23,11 @@ from .skills import activate, context_and_recommendations, get_skill, installed_
 from .trust import define_profile, document as trust_document, get_profile, set_current
 from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
 from .verification import execute as execute_verification, plan as verification_plan
+from .providers import (
+    add_provider, doctor as provider_doctor, installed as installed_providers,
+    migrate as migrate_provider, remove_provider, update_all as update_all_providers,
+    update_provider, verify_provider,
+)
 
 
 def _print_recommendations(path: str, task: str, max_skills: int, as_json: bool):
@@ -731,6 +736,127 @@ def cmd_capabilities_status(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def cmd_providers_list(args: argparse.Namespace) -> int:
+    data = {
+        "schema_version": "1",
+        "document_type": "agentic.providers",
+        "providers": installed_providers(),
+    }
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        if not data["providers"]:
+            print("No external providers installed.")
+        for item in data["providers"]:
+            mark = "✓" if item.get("verified") and item.get("compatible") else "!"
+            source = item.get("commit_sha") or item.get("content_digest", "")[:12]
+            print(f"{mark} {item['name']:<24} {item.get('version','?'):<10} {source}")
+    return 0
+
+
+def cmd_providers_add(args: argparse.Namespace) -> int:
+    try:
+        data = add_provider(
+            args.source,
+            ref=args.ref,
+            expected_sha256=args.sha256,
+            require_signed_commit=args.require_signed_commit,
+        )
+    except (ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"✓ installed provider {data['name']} {data['version']}")
+    return 0
+
+
+def cmd_providers_verify(args: argparse.Namespace) -> int:
+    try:
+        data = verify_provider(args.name)
+    except (KeyError, ValueError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else (
+        f"{'✓' if data['valid'] else '!'} {data['name']} " + ("verified" if data["valid"] else "; ".join(data["reasons"]))
+    ))
+    return 0 if data["valid"] else 1
+
+
+def cmd_providers_remove(args: argparse.Namespace) -> int:
+    if not args.yes:
+        print("agentic: provider removal requires --yes", file=sys.stderr)
+        return 2
+    try:
+        remove_provider(args.name)
+    except KeyError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(f"✓ removed provider {args.name}")
+    return 0
+
+
+def cmd_providers_update(args: argparse.Namespace) -> int:
+    try:
+        if args.name == "all":
+            data = update_all_providers(yes=args.yes)
+        else:
+            data = [update_provider(
+                args.name,
+                yes=args.yes,
+                require_signed_commit=args.require_signed_commit,
+            )]
+    except (KeyError, ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else "\n".join(
+        f"✓ {item['name']} {item.get('previous_version','?')} -> {item['version']} changed={item.get('changed', False)}"
+        for item in data
+    ))
+    return 0
+
+
+def cmd_providers_migrate(args: argparse.Namespace) -> int:
+    try:
+        data = migrate_provider(args.name, yes=args.yes)
+    except (KeyError, ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else (
+        "\n".join(f"{'✓' if x['returncode'] == 0 else '!'} migration {x['version']}" for x in data)
+        or "No pending migrations."
+    ))
+    return 0 if all(x["returncode"] == 0 for x in data) else 1
+
+
+def cmd_providers_doctor(args: argparse.Namespace) -> int:
+    data = provider_doctor()
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(f"platform: {data['platform']} agentic={data['agentic_version']}")
+        for item in data["providers"]:
+            mark = "✓" if item.get("verified") and item.get("requirements_ok") else "!"
+            print(f"{mark} {item['name']:<24} version={item.get('version','?')}")
+            for group, reqs in (item.get("requirements") or {}).items():
+                missing = [name for name, ok in reqs.items() if not ok]
+                if missing:
+                    print(f"    missing {group}: {', '.join(missing)}")
+    return 0
+
+
+def cmd_update(args: argparse.Namespace) -> int:
+    try:
+        data = update_all_providers(yes=args.yes)
+    except (ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else (
+        "\n".join(f"✓ provider {x['name']} changed={x.get('changed', False)}" for x in data)
+        or "No external providers installed."
+    ))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="agentic", description="Agentic development environment manager")
     p.add_argument("--version", action="version", version=__version__)
@@ -1054,6 +1180,54 @@ def build_parser() -> argparse.ArgumentParser:
     obsstatus.add_argument("--profile", default=None)
     obsstatus.add_argument("--json", action="store_true")
     obsstatus.set_defaults(func=cmd_infra_observability_status)
+
+
+    providers = sub.add_parser("providers", help="External skill/capability provider lifecycle")
+    psub = providers.add_subparsers(dest="providers_command", required=True)
+
+    plist = psub.add_parser("list", help="List installed external providers")
+    plist.add_argument("--json", action="store_true")
+    plist.set_defaults(func=cmd_providers_list)
+
+    padd = psub.add_parser("add", help="Install a local or Git provider")
+    padd.add_argument("source")
+    padd.add_argument("--ref", default=None, help="Git branch/tag/ref to clone")
+    padd.add_argument("--sha256", default=None, help="Expected provider tree SHA-256")
+    padd.add_argument("--require-signed-commit", action="store_true")
+    padd.add_argument("--json", action="store_true")
+    padd.set_defaults(func=cmd_providers_add)
+
+    pverify = psub.add_parser("verify", help="Verify installed provider content")
+    pverify.add_argument("name")
+    pverify.add_argument("--json", action="store_true")
+    pverify.set_defaults(func=cmd_providers_verify)
+
+    pupdate = psub.add_parser("update", help="Update one provider or all providers")
+    pupdate.add_argument("name", nargs="?", default="all")
+    pupdate.add_argument("--yes", action="store_true", help="Required to modify provider source")
+    pupdate.add_argument("--require-signed-commit", action="store_true")
+    pupdate.add_argument("--json", action="store_true")
+    pupdate.set_defaults(func=cmd_providers_update)
+
+    pmigrate = psub.add_parser("migrate", help="Run explicit provider migration hooks")
+    pmigrate.add_argument("name")
+    pmigrate.add_argument("--yes", action="store_true", help="Required to execute provider hooks")
+    pmigrate.add_argument("--json", action="store_true")
+    pmigrate.set_defaults(func=cmd_providers_migrate)
+
+    premove = psub.add_parser("remove", help="Remove an external provider")
+    premove.add_argument("name")
+    premove.add_argument("--yes", action="store_true")
+    premove.set_defaults(func=cmd_providers_remove)
+
+    pdoctor = psub.add_parser("doctor", help="Check provider integrity, compatibility, and requirements")
+    pdoctor.add_argument("--json", action="store_true")
+    pdoctor.set_defaults(func=cmd_providers_doctor)
+
+    update = sub.add_parser("update", help="Update installed external providers")
+    update.add_argument("--yes", action="store_true", help="Required to change provider source")
+    update.add_argument("--json", action="store_true")
+    update.set_defaults(func=cmd_update)
 
     integrations = sub.add_parser("integrations", help="Native Claude/Codex/Pi integrations")
     isub = integrations.add_subparsers(dest="integrations_command", required=True)
