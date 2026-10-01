@@ -78,7 +78,7 @@ def recommend(context: RepoContext, task: str = "", max_recommended: int = 6) ->
                 reasons.append(ev[0] if ev else signal)
         for keyword in skill.task_keywords:
             if task_l and keyword.lower() in task_l:
-                score += 4
+                score += 5
                 reasons.append(f"task mentions '{keyword}'")
         if reasons:
             result.append(Recommendation(skill=skill, score=score, reasons=reasons))
@@ -133,7 +133,7 @@ def activate(
     if target in {"both", "claude"}:
         roots.append(root / ".claude" / "skills")
     if target in {"both", "codex"}:
-        roots.append(root / ".agents" / "skills")
+        roots.append(root / ".codex" / "skills")
 
     installed: list[Path] = []
     for name in names:
