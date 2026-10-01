@@ -4,6 +4,7 @@ import json
 import shlex
 import shutil
 import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,7 @@ from .capabilities import run_capability, status as capability_status
 from .detect import repo_root
 from .inspection import inspect_repository
 from .execution import run as run_execution
+from .metrics import record as record_metric
 
 
 SOURCE_EXTENSIONS = {
@@ -92,6 +94,27 @@ def _codegraph_affected(root: Path, files: list[str]) -> dict[str, Any]:
                         if candidate:
                             tests.append(str(candidate))
     return {"available": True, "tests": sorted(set(tests)), "raw": payload}
+
+
+def _change_stats(root: Path, base: str | None) -> dict[str, int]:
+    argv = ["git", "diff", "--numstat"]
+    if base:
+        argv.append(f"{base}...HEAD")
+    else:
+        argv.append("HEAD")
+    result = _run(argv, cwd=root)
+    insertions = 0
+    deletions = 0
+    for line in result.stdout.splitlines():
+        parts = line.split("\t")
+        if len(parts) < 3:
+            continue
+        try:
+            insertions += int(parts[0])
+            deletions += int(parts[1])
+        except ValueError:
+            continue
+    return {"insertions": insertions, "deletions": deletions}
 
 
 def _changed_languages(files: list[str]) -> list[str]:
@@ -227,6 +250,7 @@ def plan(
         "base": base,
         "changed_files": files,
         "changed_languages": _changed_languages(files),
+        "change_stats": _change_stats(root, base),
         "checks": selected,
         "skipped_checks": skipped,
         "impact": {
@@ -253,8 +277,33 @@ def execute(
     root = Path(verification_plan["repository"])
     results: list[dict[str, Any]] = []
     success = True
+    verification_started = time.perf_counter()
+
+    stats = verification_plan.get("change_stats") or {}
+    record_metric(
+        "change.measured",
+        {
+            "insertions": int(stats.get("insertions", 0)),
+            "deletions": int(stats.get("deletions", 0)),
+            "changed_files": len(verification_plan.get("changed_files") or []),
+        },
+        repository=root,
+    )
+
+    impact = verification_plan.get("impact") or {}
+    codegraph = impact.get("codegraph") or {}
+    if codegraph.get("available"):
+        record_metric(
+            "context.used",
+            {
+                "source": "codegraph",
+                "useful": bool(codegraph.get("tests") or impact.get("symbols")),
+            },
+            repository=root,
+        )
 
     for check in verification_plan["checks"]:
+        check_started = time.perf_counter()
         if check["kind"] == "affected-test" and not check.get("command"):
             results.append({
                 **check,
@@ -302,17 +351,45 @@ def execute(
                     "error": str(exc),
                 }
 
+        entry["duration_ms"] = (time.perf_counter() - check_started) * 1000
         results.append(entry)
+        record_metric(
+            "verification.check",
+            {
+                "kind": check["kind"],
+                "success": passed,
+                "duration_ms": entry["duration_ms"],
+                "elapsed_from_verification_start_ms": (
+                    time.perf_counter() - verification_started
+                ) * 1000,
+            },
+            repository=root,
+        )
         if not passed:
             success = False
             if not continue_on_failure:
                 break
 
+    duration_ms = (time.perf_counter() - verification_started) * 1000
+    record_metric(
+        "verification.completed",
+        {
+            "success": success,
+            "duration_ms": duration_ms,
+            "checks_total": len(results),
+            "checks_failed": sum(1 for item in results if item.get("success") is False),
+            "changed_files": len(verification_plan.get("changed_files") or []),
+            "codegraph_available": bool(codegraph.get("available")),
+            "serena_available": bool((impact.get("serena") or {}).get("available")),
+        },
+        repository=root,
+    )
     return {
         "schema_version": "1",
         "document_type": "agentic.verification-run",
         "repository": str(root),
         "success": success,
+        "duration_ms": duration_ms,
         "plan": verification_plan,
         "execution": {
             "backend": backend,
