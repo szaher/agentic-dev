@@ -451,6 +451,45 @@ Cluster/cloud write require custom profiles with explicit `cluster.write` or `cl
 
 See [`docs/INFRASTRUCTURE.md`](docs/INFRASTRUCTURE.md).
 
+## External providers and lifecycle
+
+Extend the skill/capability catalog with declarative providers:
+
+```bash
+agentic providers validate ./provider.json --json
+agentic providers add ./provider.json
+agentic providers list
+```
+
+Provider skills join the normal skill catalog; provider capabilities are explicit/trust-gated and never auto-run.
+
+Inspect compatibility and update from the checkout used to install agentic-dev-env:
+
+```bash
+agentic compatibility --json
+agentic update check --fetch --json
+agentic update apply
+```
+
+State migrations are explicit and also run during install:
+
+```bash
+agentic migrate --json
+```
+
+The workstation bootstrap now supports macOS, Linux, and WSL.
+
+Named SSH remotes use key/SSH-agent BatchMode authentication:
+
+```bash
+agentic remote add devbox --host dev.example.com --user saad --path /srv/project
+agentic remote inspect devbox --profile production-read --json
+```
+
+Arbitrary remote execution requires a custom profile granting `remote.exec`.
+
+See [`docs/PROVIDERS.md`](docs/PROVIDERS.md) and [`docs/LIFECYCLE.md`](docs/LIFECYCLE.md).
+
 ## Repository layout
 
 ```text
@@ -478,6 +517,8 @@ agentic-dev-env/
 │   ├── API.md
 │   ├── CAPABILITIES.md
 │   ├── INTEGRATIONS.md
+│   ├── LIFECYCLE.md
+│   ├── PROVIDERS.md
 │   ├── SECURITY.md
 │   ├── SKILLS.md
 │   ├── TRUST.md
