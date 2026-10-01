@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0 - 2026-10-02
+
+Stable machine-readable inspection contract.
+
+- Added `agentic repo inspect [PATH] --json`.
+- Added `agentic doctor --json`.
+- Added schema version 1 for repository and doctor documents.
+- Added repository facts/evidence, package managers, polyglot command discovery, skills, capabilities, and native integration state to inspection output.
+- Replaced the single-command assumption at the API layer with arrays for polyglot install/test/lint/format/typecheck/build workflows.
+- Added JSON Schema documents and schema validation in CI.
+- Added `docs/API.md` and a versioned product roadmap.
+- Kept repository inspection strictly read-only.
+
 ## 0.4.0 - 2026-10-01
 
 Optional capability packs.

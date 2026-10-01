@@ -4,13 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentic-dev-env"
-version = "0.4.0"
+version = "0.5.0"
 description = "Context-aware local environment and repository bootstrap for agentic software development"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [{ name = "Saad Zaher" }]
 dependencies = []
+
+[project.optional-dependencies]
+test = ["jsonschema>=4.23"]
 
 [project.scripts]
 agentic = "agentic_dev_env.cli:main"

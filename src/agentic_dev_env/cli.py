@@ -12,6 +12,7 @@ from . import __version__
 from .capabilities import disable as disable_capability, enable as enable_capability, list_capabilities, status as capability_status, suggest_for_repo
 from .detect import detect_repo, repo_root
 from .integrations import install as install_integration, status as integration_status
+from .inspection import doctor_document, inspect_repository
 from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
 
 
@@ -202,7 +203,33 @@ def cmd_repo_init(args: argparse.Namespace) -> int:
     return _exec_script("saad-tool-repo-init.sh", argv)
 
 
+def cmd_repo_inspect(args: argparse.Namespace) -> int:
+    document = inspect_repository(args.path, task=args.task or "")
+    if args.json:
+        print(json.dumps(document, indent=2, sort_keys=True))
+        return 0
+
+    repo = document["repository"]
+    print(f"Repository: {repo['name']}")
+    print(f"Root: {repo['root']}")
+    print("Facts:")
+    for fact in repo["facts"]:
+        print(f"  - {fact}")
+    print("Commands:")
+    for kind, values in document["commands"].items():
+        print(f"  {kind:<10} " + (", ".join(values) if values else "not detected"))
+    recommended = [x["name"] for x in document["skills"]["recommended"] if x["recommended"]]
+    print("Recommended skills: " + (", ".join(recommended) if recommended else "none"))
+    enabled_caps = [name for name, item in document["capabilities"].items() if item["enabled"]]
+    print("Enabled capabilities: " + (", ".join(enabled_caps) if enabled_caps else "none"))
+    return 0
+
+
 def cmd_doctor(args: argparse.Namespace) -> int:
+    if args.json:
+        print(json.dumps(doctor_document(), indent=2, sort_keys=True))
+        return 0
+
     tools = [
         "git", "gh", "rg", "fd", "ast-grep", "serena", "codegraph",
         "repomix", "mise", "uv", "jq", "yq", "just",
@@ -336,6 +363,12 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--skills-target", choices=["both", "all", "claude", "codex", "pi"], default="both")
     init.set_defaults(func=cmd_repo_init)
 
+    inspect_cmd = repo_sub.add_parser("inspect", help="Inspect repository context without modifying it")
+    inspect_cmd.add_argument("path", nargs="?", default=".")
+    inspect_cmd.add_argument("--task", default="")
+    inspect_cmd.add_argument("--json", action="store_true")
+    inspect_cmd.set_defaults(func=cmd_repo_inspect)
+
     skills = sub.add_parser("skills", help="Context-aware Agent Skills")
     ssub = skills.add_subparsers(dest="skills_command", required=True)
 
@@ -415,6 +448,7 @@ def build_parser() -> argparse.ArgumentParser:
     iinstall.set_defaults(func=cmd_integrations_install)
 
     doctor = sub.add_parser("doctor", help="Check the workstation toolchain and integrations")
+    doctor.add_argument("--json", action="store_true")
     doctor.set_defaults(func=cmd_doctor)
     return p
 

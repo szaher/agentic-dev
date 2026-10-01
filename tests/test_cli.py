@@ -21,6 +21,15 @@ class CliIntegrationTests(unittest.TestCase):
         self.assertEqual(args.skills_target, "pi")
         self.assertTrue(args.check)
 
+    def test_repo_inspect_and_doctor_json_parse(self):
+        parser = build_parser()
+        inspect = parser.parse_args(["repo", "inspect", ".", "--task", "review API", "--json"])
+        self.assertEqual(inspect.repo_command, "inspect")
+        self.assertTrue(inspect.json)
+        self.assertEqual(inspect.task, "review API")
+        doctor = parser.parse_args(["doctor", "--json"])
+        self.assertTrue(doctor.json)
+
     def test_integrations_commands_parse(self):
         parser = build_parser()
         status = parser.parse_args(["integrations", "status"])
