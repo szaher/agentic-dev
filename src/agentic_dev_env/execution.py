@@ -125,24 +125,6 @@ def configure(
     _write(target, data)
     if repo_scope:
         _exclude_local(root)
-    duration_ms = float(getattr(completed, "agentic_duration_ms", 0.0))
-    try:
-        tool = shlex.split(command)[0] if command.strip() else ""
-    except ValueError:
-        tool = ""
-    command_hash = hashlib.sha256(command.encode()).hexdigest()[:16]
-    record_metric(
-        "execution.completed",
-        {
-            "backend": backend,
-            "success": completed.returncode == 0,
-            "returncode": completed.returncode,
-            "duration_ms": duration_ms,
-            "tool": tool,
-            "command_hash": command_hash,
-        },
-        repository=root,
-    )
     return {
         "schema_version": "1",
         "document_type": "agentic.execution-config",
@@ -221,6 +203,24 @@ def _result(
     completed: subprocess.CompletedProcess[str],
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    duration_ms = float(getattr(completed, "agentic_duration_ms", 0.0))
+    try:
+        tool = shlex.split(command)[0] if command.strip() else ""
+    except ValueError:
+        tool = ""
+    command_hash = hashlib.sha256(command.encode()).hexdigest()[:16]
+    record_metric(
+        "execution.completed",
+        {
+            "backend": backend,
+            "success": completed.returncode == 0,
+            "returncode": completed.returncode,
+            "duration_ms": duration_ms,
+            "tool": tool,
+            "command_hash": command_hash,
+        },
+        repository=root,
+    )
     return {
         "schema_version": "1",
         "document_type": "agentic.execution-result",
