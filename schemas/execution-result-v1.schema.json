@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev-env/schemas/execution-result-v1.schema.json",
+  "title": "agentic execution result v1",
+  "type": "object",
+  "required": ["schema_version", "document_type", "backend", "repository", "command", "argv", "success", "returncode", "stdout", "stderr", "metadata"],
+  "properties": {
+    "schema_version": {"const": "1"},
+    "document_type": {"const": "agentic.execution-result"},
+    "backend": {"enum": ["host", "container", "devcontainer", "dagger"]},
+    "repository": {"type": "string"},
+    "command": {"type": "string"},
+    "argv": {"type": "array", "items": {"type": "string"}},
+    "success": {"type": "boolean"},
+    "returncode": {"type": "integer"},
+    "stdout": {"type": "string"},
+    "stderr": {"type": "string"},
+    "metadata": {"type": "object"}
+  }
+}
