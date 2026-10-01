@@ -9,6 +9,7 @@ PYTHON_APP_DIR="$CONFIG_DIR/python"
 mkdir -p "$BIN_DIR" "$CONFIG_DIR/templates" "$PYTHON_APP_DIR"
 
 install -m 0755 "$ROOT/scripts/setup-coding-agent-env.sh" "$BIN_DIR/setup-coding-agent-env.sh"
+install -m 0755 "$ROOT/scripts/setup-linux-agent-env.sh" "$BIN_DIR/setup-linux-agent-env.sh"
 install -m 0755 "$ROOT/scripts/saad-tool-repo-init.sh" "$BIN_DIR/saad-tool-repo-init.sh"
 install -m 0644 "$ROOT/templates/global-agent-policy.md" "$CONFIG_DIR/templates/global-agent-policy.md"
 
@@ -41,11 +42,26 @@ chmod +x "$BIN_DIR/agentic"
 ln -sfn "$BIN_DIR/setup-coding-agent-env.sh" "$BIN_DIR/agentic-dev-setup"
 ln -sfn "$BIN_DIR/saad-tool-repo-init.sh" "$BIN_DIR/agentic-repo-init"
 
-ZSHRC="$HOME/.zshrc"
-touch "$ZSHRC"
-if ! grep -Fq '# agentic-dev-env: local bin' "$ZSHRC"; then
-  printf '\n# agentic-dev-env: local bin\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$ZSHRC"
+SHELL_NAME="$(basename "${SHELL:-sh}")"
+case "$SHELL_NAME" in
+  zsh) SHELL_RC="$HOME/.zshrc" ;;
+  bash) SHELL_RC="$HOME/.bashrc" ;;
+  *) SHELL_RC="$HOME/.profile" ;;
+esac
+touch "$SHELL_RC"
+if ! grep -Fq '# agentic-dev-env: local bin' "$SHELL_RC"; then
+  printf '\n# agentic-dev-env: local bin\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$SHELL_RC"
 fi
+
+VERSION="$(awk -F'"' '/^version = / {print $2; exit}' "$ROOT/pyproject.toml")"
+ROOT_JSON="$(printf '%s' "$ROOT" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+cat > "$CONFIG_DIR/install.json" <<EOF_META
+{
+  "schema_version": "1",
+  "source_root": "$ROOT_JSON",
+  "installed_version": "$VERSION"
+}
+EOF_META
 
 cat <<EOF2
 Installed agentic-dev-env.
@@ -60,7 +76,8 @@ Compatibility commands:
   agentic-repo-init
 
 Next:
-  exec zsh
-  agentic-dev-setup --scan-root ~/saad/projects --configure-agents
+  restart your shell (or source $SHELL_RC)
+  agentic-dev-setup --scan-root ~/projects --configure-agents
   agentic doctor
+  agentic compatibility
 EOF2
