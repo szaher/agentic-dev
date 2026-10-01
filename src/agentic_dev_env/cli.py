@@ -1015,7 +1015,7 @@ def build_parser() -> argparse.ArgumentParser:
     cenable.set_defaults(func=cmd_capabilities_enable)
 
     crun = csub.add_parser("run", help="Run a security capability and emit normalized results")
-    crun.add_argument("name", choices=[c.name for c in list_capabilities() if c.category == "security"])
+    crun.add_argument("name")
     crun.add_argument("path", nargs="?", default=".")
     crun.add_argument("--image", default=None, help="Container image for container-image-scan")
     crun.add_argument("--profile", default=None)
