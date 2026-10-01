@@ -10,7 +10,7 @@ Activated skills use the native project skill directories:
 
 ```text
 Claude Code: .claude/skills/<skill>/SKILL.md
-Codex:       .agents/skills/<skill>/SKILL.md
+Codex:       .codex/skills/<skill>/SKILL.md
 ```
 
 The built-in skills use the portable `SKILL.md` format rather than a custom instruction format.
