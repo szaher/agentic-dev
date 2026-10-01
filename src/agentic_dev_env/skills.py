@@ -80,7 +80,7 @@ def recommend(context: RepoContext, task: str = "", max_recommended: int = 6) ->
             if task_l and keyword.lower() in task_l:
                 score += 4
                 reasons.append(f"task mentions '{keyword}'")
-        if score > skill.priority or skill.priority > 0:
+        if reasons:
             result.append(Recommendation(skill=skill, score=score, reasons=reasons))
 
     result.sort(key=lambda r: (-r.score, -r.skill.priority, r.skill.name))
