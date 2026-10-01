@@ -12,6 +12,11 @@ NO_INSTRUCTIONS=0
 NO_INSTALL_LANGUAGE_DEPS=0
 NO_RUNTIME_INSTALL=0
 INSTALL_PROJECT_DEPS=0
+TASK=""
+NO_SKILLS=0
+SKILLS_YES=0
+SKILLS_SHARED=0
+SKILLS_TARGET="both"
 
 usage() {
   cat <<'USAGE'
@@ -25,6 +30,11 @@ Options:
   --no-install-language-deps  Do not install missing runtime/LSP prerequisites.
   --no-runtime-install        Do not install repo-declared runtime versions.
   --install-project-deps      Run the detected project dependency install command.
+  --task TEXT                 Task context used to rank recommended Agent Skills.
+  --no-skills                 Skip skill recommendation/activation.
+  --skills-yes                Activate recommended skills without prompting.
+  --skills-shared             Make selected skills commit-worthy instead of local-only.
+  --skills-target TARGET      both, claude, or codex (default: both).
   -h, --help                  Show help.
 USAGE
 }
@@ -39,6 +49,11 @@ while [[ $# -gt 0 ]]; do
     --no-install-language-deps) NO_INSTALL_LANGUAGE_DEPS=1 ;;
     --no-runtime-install) NO_RUNTIME_INSTALL=1 ;;
     --install-project-deps) INSTALL_PROJECT_DEPS=1 ;;
+    --task) shift; TASK="${1:-}" ;;
+    --no-skills) NO_SKILLS=1 ;;
+    --skills-yes) SKILLS_YES=1 ;;
+    --skills-shared) SKILLS_SHARED=1 ;;
+    --skills-target) shift; SKILLS_TARGET="${1:-both}" ;;
     -h|--help) usage; exit 0 ;;
     -*) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
     *) [[ "$positional" -eq 0 ]] || { echo "Only one repo path may be supplied." >&2; exit 2; }; TARGET="$1"; positional=1 ;;
@@ -59,6 +74,7 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail "$REPO is not inside
 REPO="$(git rev-parse --show-toplevel)"
 cd "$REPO"
 REPO_NAME="$(basename "$REPO")"
+case "$SKILLS_TARGET" in both|claude|codex) ;; *) fail "--skills-target must be one of: both, claude, codex" ;; esac
 
 LANGUAGES=(); SERENA_LANGUAGES=(); FRAMEWORKS=(); PACKAGE_MANAGERS=(); TOOLS=(); MISSING=()
 add_unique() {
@@ -334,12 +350,28 @@ if [[ "$NO_SERENA" -eq 0 && -f .serena/project.yml ]] && have serena; then
   serena project health-check "$REPO" && success "Serena ready" || warn "Serena health check failed"
 fi
 
+if [[ "$NO_SKILLS" -eq 0 ]]; then
+  info "Context-aware Agent Skills"
+  if have agentic; then
+    skill_args=(skills suggest "$REPO" --target "$SKILLS_TARGET")
+    [[ -n "$TASK" ]] && skill_args+=(--task "$TASK")
+    [[ "$SKILLS_YES" -eq 1 ]] && skill_args+=(--yes)
+    [[ "$SKILLS_SHARED" -eq 1 ]] && skill_args+=(--shared)
+    [[ "$CHECK_ONLY" -eq 1 ]] && skill_args+=(--no-prompt)
+    agentic "${skill_args[@]}" || warn "Skill recommendation reported an issue."
+  else
+    warn "Unified 'agentic' CLI is not installed; rerun ./install.sh to enable skill recommendations."
+  fi
+fi
+
 cat <<EOF2
 
 Repository initialization complete.
 
 Useful commands:
   saad-tool-repo-init.sh . --check
+  agentic skills suggest . --task "describe the work"
+  agentic skills status .
   codegraph status
   serena project health-check "$REPO"
   repomix --compress
