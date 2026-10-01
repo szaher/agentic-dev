@@ -29,8 +29,8 @@ printf '[package]\nname="fixture"\nversion="0.0.0"\nedition="2021"\n' > "$tmp/Ca
 
 output="$($ROOT/scripts/saad-tool-repo-init.sh "$tmp" --check --no-codegraph --no-serena --no-instructions 2>&1)"
 
-grep -q 'Python' <<<"$output"
-grep -q 'Rust' <<<"$output"
+grep -q 'python' <<<"$output"
+grep -q 'rust' <<<"$output"
 grep -q 'cargo test' <<<"$output"
 grep -q 'cargo build' <<<"$output"
 
