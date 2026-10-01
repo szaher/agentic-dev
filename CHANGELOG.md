@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.11.0 - 2026-10-02
+
+Infrastructure capability packs.
+
+- Added database-read/write/local capability packs.
+- Added SQLite/PostgreSQL/MySQL schema inspection and guarded SQL execution.
+- Added detected migration/schema validation for Alembic, Django, and Prisma.
+- Added ephemeral local PostgreSQL/MySQL containers with generated mode-0600 credential state.
+- Added cluster-read/write packs for kubectl/oc with read-verb classification.
+- Added cloud-read identity operations and explicit cloud-write command path.
+- Added provider-neutral OpenTelemetry/observability status with secret-like environment values redacted.
+- No built-in trust profile grants cluster.write or cloud.write.
+- Added infrastructure status to machine-readable inspection/doctor contracts.
+- Added infrastructure status JSON schema and safety regression tests.
+
 ## 0.10.0 - 2026-10-02
 
 Execution backends and sandboxing.
