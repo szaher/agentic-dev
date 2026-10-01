@@ -4,10 +4,12 @@ import json
 import os
 import re
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .detect import repo_root
+from .metrics import record as record_metric
 
 
 def _run(argv: list[str], *, cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -137,8 +139,19 @@ def create_worktree(
         "task": task,
         "repository": str(repo),
         "worktree": str(target),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     _write_session(target, session)
+    record_metric(
+        "session.started",
+        {
+            "agent": agent or "unspecified",
+            "has_task": bool(task),
+            "branch_prefix": branch_name.split("/", 1)[0] if "/" in branch_name else "",
+        },
+        repository=repo,
+        session_id=slug,
+    )
 
     return {
         "schema_version": "1",
@@ -203,6 +216,18 @@ def clean_worktree(
         deleted_branch = result.returncode == 0
 
     _run(["git", "-C", str(repo), "worktree", "prune"], check=False)
+    session = item.get("session") or {}
+    record_metric(
+        "session.ended",
+        {
+            "agent": session.get("agent") or "unspecified",
+            "dirty_before_clean": bool(item.get("dirty")),
+            "forced": force,
+            "deleted_branch": deleted_branch,
+        },
+        repository=repo,
+        session_id=session.get("name"),
+    )
     return {
         "schema_version": "1",
         "document_type": "agentic.worktree-clean",
