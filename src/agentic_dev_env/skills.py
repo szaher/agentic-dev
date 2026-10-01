@@ -129,10 +129,12 @@ def activate(
     force: bool = False,
 ) -> list[Path]:
     roots: list[Path] = []
-    if target in {"both", "claude"}:
+    if target in {"both", "all", "claude"}:
         roots.append(root / ".claude" / "skills")
-    if target in {"both", "codex"}:
+    if target in {"both", "all", "codex"}:
         roots.append(root / ".codex" / "skills")
+    if target in {"all", "pi"}:
+        roots.append(root / ".pi" / "skills")
 
     installed: list[Path] = []
     for name in names:
@@ -166,10 +168,12 @@ def activate(
 
 def remove(root: Path, names: Iterable[str], target: str = "both") -> list[Path]:
     roots: list[Path] = []
-    if target in {"both", "claude"}:
+    if target in {"both", "all", "claude"}:
         roots.append(root / ".claude" / "skills")
-    if target in {"both", "codex"}:
+    if target in {"both", "all", "codex"}:
         roots.append(root / ".codex" / "skills")
+    if target in {"all", "pi"}:
+        roots.append(root / ".pi" / "skills")
 
     removed: list[Path] = []
     for name in names:
@@ -186,10 +190,11 @@ def remove(root: Path, names: Iterable[str], target: str = "both") -> list[Path]
 
 
 def installed_skills(root: Path) -> dict[str, list[str]]:
-    found = {"claude": [], "codex": []}
+    found = {"claude": [], "codex": [], "pi": []}
     for target, base in [
         ("claude", root / ".claude" / "skills"),
         ("codex", root / ".codex" / "skills"),
+        ("pi", root / ".pi" / "skills"),
     ]:
         if base.is_dir():
             found[target] = sorted(p.name for p in base.iterdir() if (p / "SKILL.md").exists())
