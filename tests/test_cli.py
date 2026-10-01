@@ -30,6 +30,22 @@ class CliIntegrationTests(unittest.TestCase):
         doctor = parser.parse_args(["doctor", "--json"])
         self.assertTrue(doctor.json)
 
+    def test_provider_lifecycle_and_remote_commands_parse(self):
+        parser = build_parser()
+        provider = parser.parse_args(["providers", "add", "provider.json", "--json"])
+        self.assertEqual(provider.providers_command, "add")
+        compatibility = parser.parse_args(["compatibility", "--json"])
+        self.assertTrue(compatibility.json)
+        update = parser.parse_args(["update", "check", "--fetch", "--json"])
+        self.assertEqual(update.action, "check")
+        self.assertTrue(update.fetch)
+        remote = parser.parse_args([
+            "remote", "add", "dev", "--host", "example.test",
+            "--user", "saad", "--path", "/srv/repo",
+        ])
+        self.assertEqual(remote.remote_command, "add")
+        self.assertEqual(remote.remote_path, "/srv/repo")
+
     def test_integrations_commands_parse(self):
         parser = build_parser()
         status = parser.parse_args(["integrations", "status"])
