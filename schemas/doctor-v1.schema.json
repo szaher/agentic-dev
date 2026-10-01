@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev-env/schemas/doctor-v1.schema.json",
+  "title": "agentic doctor v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "document_type",
+    "agentic_version",
+    "tools",
+    "integrations",
+    "capabilities"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.doctor"
+    },
+    "agentic_version": {
+      "type": "string"
+    },
+    "tools": {
+      "type": "object"
+    },
+    "integrations": {
+      "type": "array"
+    },
+    "capabilities": {
+      "type": "object"
+    }
+  }
+}
