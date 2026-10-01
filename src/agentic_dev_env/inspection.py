@@ -12,6 +12,8 @@ from .integrations import status as integration_status
 from .execution import status as execution_status
 from .infrastructure import status as infrastructure_status
 from .skills import installed_skills, recommend
+from .providers import doctor as provider_doctor
+from .remote import status as remote_status
 from .trust import document as trust_document
 
 SCHEMA_VERSION = "1"
@@ -181,6 +183,8 @@ def doctor_document() -> dict[str, Any]:
         "trust": trust_document(),
         "execution": execution_status(),
         "infrastructure": infrastructure_status(),
+        "providers": provider_doctor(),
+        "remotes": remote_status(),
     }
 
 
@@ -225,6 +229,8 @@ def inspect_repository(path: str | Path = ".", task: str = "") -> dict[str, Any]
         "trust": trust_document(root),
         "execution": execution_status(root),
         "infrastructure": infrastructure_status(root),
+        "providers": provider_doctor(),
+        "remotes": remote_status(),
         "integrations": [
             {
                 "name": item.name,
