@@ -22,6 +22,8 @@ Without those layers, an agent spends context and tool calls rebuilding informat
                                 |
                     global tool-routing policy
                                 |
+                    context-aware Agent Skills
+                                |
         +-----------------------+-----------------------+
         |                       |                       |
    exact / structural      semantic / graph       external knowledge
@@ -124,3 +126,32 @@ Project dependencies are different. Commands such as `npm install`, `uv sync`, `
 ## Concurrency boundary
 
 Multiple write-capable agents should not share one checkout. Git worktrees provide cheap isolation with one branch and working directory per task while sharing repository objects.
+
+
+## Skills layer
+
+Tools answer what the agent can call. Skills encode how to carry out a recognizable engineering workflow.
+
+The skill system intentionally stays on-demand:
+
+```text
+repository signals + optional task text
+                 |
+                 v
+       deterministic recommendation
+                 |
+                 v
+         explain evidence to user
+                 |
+                 v
+      user selects / accepts / skips
+                 |
+          +------+------+
+          |             |
+          v             v
+ .claude/skills     .codex/skills
+```
+
+Skills are local/untracked by default so initializing an upstream repository does not pollute a pull request. Shared mode is explicit for teams that want to version the workflow.
+
+The recommender is registry-driven rather than embedding skill-specific conditionals in the Bash bootstrap.

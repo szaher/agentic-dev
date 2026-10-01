@@ -1,0 +1,127 @@
+[[skill]]
+name = "python-engineering"
+description = "Python project structure, packaging, typing, testing, and repository conventions."
+category = "language"
+signals = ["language:python"]
+task_keywords = ["python", "pyproject", "typing", "pytest", "package"]
+priority = 1
+
+[[skill]]
+name = "go-engineering"
+description = "Idiomatic Go development, modules, tests, interfaces, error handling, and tooling."
+category = "language"
+signals = ["language:go"]
+task_keywords = ["golang", "go module", "go test"]
+priority = 1
+
+[[skill]]
+name = "rust-engineering"
+description = "Rust/Cargo development with ownership-aware design, testing, clippy, and formatting."
+category = "language"
+signals = ["language:rust"]
+task_keywords = ["rust", "cargo", "borrow", "lifetime"]
+priority = 1
+
+[[skill]]
+name = "typescript-engineering"
+description = "TypeScript/JavaScript project conventions, types, package scripts, and testing."
+category = "language"
+signals = ["language:typescript"]
+task_keywords = ["typescript", "javascript", "node", "frontend"]
+priority = 1
+
+[[skill]]
+name = "kubernetes-development"
+description = "Kubernetes manifests, workloads, RBAC, controllers, kubectl validation, and rollout-safe changes."
+category = "technology"
+signals = ["technology:kubernetes", "technology:helm", "technology:kustomize"]
+task_keywords = ["kubernetes", "k8s", "helm", "kustomize", "deployment", "rbac"]
+priority = 0
+
+[[skill]]
+name = "kubernetes-operator-development"
+description = "Controller-runtime/operator workflows, reconciliation, CRD evolution, RBAC, and controller tests."
+category = "repo-type"
+signals = ["repo-type:kubernetes-operator"]
+task_keywords = ["operator", "controller", "reconcile", "crd", "webhook"]
+priority = 0
+
+[[skill]]
+name = "api-design"
+description = "REST/API contract design, compatibility, validation, error models, and consumer-oriented changes."
+category = "workflow"
+signals = ["repo-type:api", "framework:fastapi", "framework:express", "framework:fastify"]
+task_keywords = ["api", "rest", "endpoint", "contract", "backward compatibility", "versioning"]
+priority = 0
+
+[[skill]]
+name = "database-migrations"
+description = "Safe schema and data migrations, rollback thinking, compatibility windows, and migration testing."
+category = "workflow"
+signals = ["database:migrations", "database:sqlalchemy", "database:postgresql"]
+task_keywords = ["migration", "schema", "database", "alembic", "sqlalchemy", "postgres"]
+priority = 0
+
+[[skill]]
+name = "test-development"
+description = "Test selection, regression coverage, fixtures, failure isolation, and verification strategy."
+category = "workflow"
+signals = ["workflow:testing", "testing:pytest", "testing:javascript"]
+task_keywords = ["test", "regression", "pytest", "coverage", "fixture", "failing test"]
+priority = 1
+
+[[skill]]
+name = "debugging"
+description = "Evidence-driven debugging: reproduce, narrow, instrument, isolate cause, fix, and verify."
+category = "workflow"
+signals = []
+task_keywords = ["debug", "bug", "failure", "failing", "error", "crash", "incident"]
+priority = 0
+
+[[skill]]
+name = "code-review"
+description = "Review changes for correctness, regressions, contracts, tests, maintainability, and unintended scope."
+category = "workflow"
+signals = []
+task_keywords = ["review", "pull request", "pr", "diff", "code review"]
+priority = 0
+
+[[skill]]
+name = "refactoring"
+description = "Behavior-preserving refactoring with dependency analysis, incremental edits, and verification."
+category = "workflow"
+signals = ["repo-type:package"]
+task_keywords = ["refactor", "cleanup", "restructure", "rename", "extract", "simplify"]
+priority = 0
+
+[[skill]]
+name = "performance-analysis"
+description = "Measure-first performance work: profiling, benchmarks, bottleneck isolation, and regression checks."
+category = "workflow"
+signals = []
+task_keywords = ["performance", "latency", "slow", "benchmark", "profile", "optimize", "throughput"]
+priority = 0
+
+[[skill]]
+name = "github-actions"
+description = "GitHub Actions workflow authoring, CI diagnosis, permissions, caching, matrices, and reproducibility."
+category = "technology"
+signals = ["ci:github-actions"]
+task_keywords = ["github actions", "workflow", "ci", "pipeline", "actionlint"]
+priority = 0
+
+[[skill]]
+name = "container-development"
+description = "Docker/Podman build, runtime, image, compose, and container debugging workflows."
+category = "technology"
+signals = ["technology:containers"]
+task_keywords = ["docker", "container", "podman", "image", "compose"]
+priority = 0
+
+[[skill]]
+name = "terraform-development"
+description = "Terraform/OpenTofu modules, plans, state-aware changes, validation, and infrastructure testing."
+category = "technology"
+signals = ["technology:terraform"]
+task_keywords = ["terraform", "opentofu", "infrastructure", "module", "plan"]
+priority = 0

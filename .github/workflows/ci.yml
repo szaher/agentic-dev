@@ -5,9 +5,12 @@ on:
   pull_request:
 
 jobs:
-  shell:
+  test:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Syntax and smoke checks
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Syntax, unit, and smoke checks
         run: make check

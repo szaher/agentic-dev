@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=78"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-dev-env"
+version = "0.2.0"
+description = "Context-aware local environment and repository bootstrap for agentic software development"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Saad Zaher" }]
+dependencies = []
+
+[project.scripts]
+agentic = "agentic_dev_env.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+agentic_dev_env = ["builtin_skills/**/*.md", "builtin_skills/**/*.toml"]
