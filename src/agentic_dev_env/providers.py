@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -51,6 +52,8 @@ def validate_manifest(data: dict[str, Any], *, base_dir: Path | None = None) -> 
     for field in ("schema_version", "name", "version", "description"):
         if not isinstance(data.get(field), str) or not data.get(field):
             errors.append(f"missing/invalid field: {field}")
+    if isinstance(data.get("name"), str) and not re.fullmatch(r"[A-Za-z0-9._-]+", data["name"]):
+        errors.append("provider name may contain only letters, digits, dot, underscore, and dash")
     if data.get("schema_version") != SCHEMA_VERSION:
         errors.append(f"unsupported schema_version: {data.get('schema_version')}")
 
@@ -72,6 +75,9 @@ def validate_manifest(data: dict[str, Any], *, base_dir: Path | None = None) -> 
         path = skill.get("path")
         if not name or not path:
             errors.append("provider skill requires name and path")
+            continue
+        if not re.fullmatch(r"[A-Za-z0-9._-]+", str(name)):
+            errors.append(f"invalid provider skill name: {name}")
             continue
         if name in names:
             errors.append(f"duplicate provider item: {name}")
@@ -95,6 +101,9 @@ def validate_manifest(data: dict[str, Any], *, base_dir: Path | None = None) -> 
         if not name or not isinstance(command, list) or not command:
             errors.append("provider capability requires name and non-empty command array")
             continue
+        if not re.fullmatch(r"[A-Za-z0-9._-]+", str(name)):
+            errors.append(f"invalid provider capability name: {name}")
+            continue
         if name in names:
             errors.append(f"duplicate provider item: {name}")
         names.add(name)
@@ -102,6 +111,21 @@ def validate_manifest(data: dict[str, Any], *, base_dir: Path | None = None) -> 
             errors.append(f"provider capability command must be string argv: {name}")
 
     metadata = data.get("metadata") or {}
+    signature = metadata.get("signature")
+    if signature is not None:
+        if not isinstance(signature, dict) or signature.get("type") != "minisign":
+            errors.append("metadata.signature currently supports only type=minisign")
+        elif not signature.get("public_key") or not signature.get("file"):
+            errors.append("minisign signature requires public_key and file")
+        elif base_dir:
+            sig_path = (base_dir / str(signature["file"])).resolve()
+            try:
+                sig_path.relative_to(base_dir.resolve())
+            except ValueError:
+                errors.append("signature file escapes provider root")
+            else:
+                if not sig_path.is_file():
+                    errors.append(f"signature file not found: {signature['file']}")
     digest = metadata.get("manifest_sha256")
     if digest is not None and (not isinstance(digest, str) or len(digest) != 64):
         errors.append("metadata.manifest_sha256 must be a 64-character SHA-256 hex digest")
@@ -117,8 +141,30 @@ def load_manifest(path: str | Path) -> tuple[dict[str, Any], Path]:
     return data, manifest
 
 
+def _verify_signature(data: dict[str, Any], manifest: Path) -> bool:
+    signature = (data.get("metadata") or {}).get("signature")
+    if not signature:
+        return False
+    minisign = shutil.which("minisign")
+    if not minisign:
+        raise ValueError("provider declares a Minisign signature but minisign is not installed")
+    sig_path = (manifest.parent / signature["file"]).resolve()
+    result = subprocess.run(
+        [
+            minisign, "-Vm", str(manifest),
+            "-P", str(signature["public_key"]),
+            "-x", str(sig_path),
+        ],
+        capture_output=True, text=True, check=False,
+    )
+    if result.returncode != 0:
+        raise ValueError("provider Minisign verification failed: " + (result.stderr or result.stdout).strip())
+    return True
+
+
 def add_provider(path: str | Path) -> dict[str, Any]:
     data, manifest = load_manifest(path)
+    signed = _verify_signature(data, manifest)
     dest = _providers_dir() / data["name"]
     if dest.exists():
         shutil.rmtree(dest)
@@ -138,6 +184,7 @@ def add_provider(path: str | Path) -> dict[str, Any]:
 
     normalized.setdefault("metadata", {})["source_manifest"] = str(manifest)
     normalized["metadata"]["installed_manifest_sha256"] = _sha256(manifest)
+    normalized["metadata"]["signature_verified"] = signed
     (dest / "provider.json").write_text(json.dumps(normalized, indent=2, sort_keys=True) + "\n")
 
     return provider_document(data["name"])
@@ -194,6 +241,7 @@ def provider_document(name: str | None = None) -> dict[str, Any]:
                 for item in data.get("capabilities") or []
             ],
             "manifest": str(manifest),
+            "signed": bool((data.get("metadata") or {}).get("signature_verified")),
         })
     if name and not providers:
         raise KeyError(f"unknown provider: {name}")
