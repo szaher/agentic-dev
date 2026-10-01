@@ -340,6 +340,11 @@ if [[ "$CONFIGURE_AGENTS" -eq 1 ]]; then
   fi
   have codegraph && codegraph install --target=auto --location=global --yes || true
   install_global_agent_policy
+  if have agentic; then
+    agentic integrations install all || warn "One or more native agent integrations need manual attention."
+  else
+    warn "Unified 'agentic' CLI not found; run ./install.sh before configuring native plugins/packages."
+  fi
   warn "Context7 remains interactive: npx ctx7 setup --claude / --codex"
 fi
 
@@ -360,6 +365,7 @@ Typical next steps:
   codegraph install
   npx ctx7 setup --claude
   npx ctx7 setup --codex
+  agentic integrations status
 
 Then, for each repository:
   saad-tool-repo-init.sh .

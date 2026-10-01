@@ -103,3 +103,18 @@ The global policy still tells the agent when to prefer them.
 `saad-tool-repo-init.sh` creates local `AGENTS.md` and `CLAUDE.md` only when those files do not already exist. The generated content is repository-specific: detected languages, package managers, tools, and commands.
 
 Those locally generated files are excluded through `.git/info/exclude`. If a repository already maintains tracked agent instructions, the initializer leaves them alone.
+
+
+## Pi
+
+Pi is supported through its native package system instead of a global instruction file managed by this project.
+
+Install the package:
+
+```bash
+pi install git:github.com/szaher/agentic-dev-env
+```
+
+The package exposes a small orchestration skill plus interactive commands. Repo/task-specific engineering skills can be installed into `.pi/skills/<name>/SKILL.md` through `agentic skills suggest ... --target pi`.
+
+See [`INTEGRATIONS.md`](INTEGRATIONS.md) for the full native-integration model.

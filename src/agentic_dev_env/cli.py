@@ -10,6 +10,7 @@ from pathlib import Path
 
 from . import __version__
 from .detect import detect_repo, repo_root
+from .integrations import install as install_integration, status as integration_status
 from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
 
 
@@ -160,6 +161,7 @@ def cmd_skills_status(args: argparse.Namespace) -> int:
     print(f"Repository: {root}")
     print("Claude: " + (", ".join(found["claude"]) or "none"))
     print("Codex:  " + (", ".join(found["codex"]) or "none"))
+    print("Pi:     " + (", ".join(found["pi"]) or "none"))
     return 0
 
 
@@ -215,7 +217,23 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             bad += 1
     print(f"  {'✓' if shutil.which('claude') else '!'} {'claude':<14} {shutil.which('claude') or 'not installed'}")
     print(f"  {'✓' if shutil.which('codex') else '!'} {'codex':<14} {shutil.which('codex') or 'not installed'}")
+    print(f"  {'✓' if shutil.which('pi') else '!'} {'pi':<14} {shutil.which('pi') or 'not installed'}")
+    print("\nNative integrations:")
+    for item in integration_status():
+        mark = "✓" if item.configured else ("·" if not item.available else "!")
+        print(f"  {mark} {item.name:<14} {item.detail}")
     return 1 if bad else 0
+
+
+def cmd_integrations_status(args: argparse.Namespace) -> int:
+    for item in integration_status():
+        mark = "✓" if item.configured else ("·" if not item.available else "!")
+        print(f"{mark} {item.name:<8} {item.detail}")
+    return 0
+
+
+def cmd_integrations_install(args: argparse.Namespace) -> int:
+    return install_integration(args.target)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -242,7 +260,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--no-skills", action="store_true")
     init.add_argument("--skills-yes", action="store_true")
     init.add_argument("--skills-shared", action="store_true")
-    init.add_argument("--skills-target", choices=["both", "claude", "codex"], default="both")
+    init.add_argument("--skills-target", choices=["both", "all", "claude", "codex", "pi"], default="both")
     init.set_defaults(func=cmd_repo_init)
 
     skills = sub.add_parser("skills", help="Context-aware Agent Skills")
@@ -255,7 +273,7 @@ def build_parser() -> argparse.ArgumentParser:
     suggest.add_argument("--yes", action="store_true", help="Activate recommended skills without prompting")
     suggest.add_argument("--no-prompt", action="store_true")
     suggest.add_argument("--shared", action="store_true", help="Make activated skills commit-worthy instead of local-only")
-    suggest.add_argument("--target", choices=["both", "claude", "codex"], default="both")
+    suggest.add_argument("--target", choices=["both", "all", "claude", "codex", "pi"], default="both")
     suggest.add_argument("--force", action="store_true")
     suggest.add_argument("--json", action="store_true")
     suggest.set_defaults(func=cmd_skills_suggest)
@@ -273,21 +291,31 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("names", nargs="+")
     add.add_argument("--path", default=".")
     add.add_argument("--shared", action="store_true")
-    add.add_argument("--target", choices=["both", "claude", "codex"], default="both")
+    add.add_argument("--target", choices=["both", "all", "claude", "codex", "pi"], default="both")
     add.add_argument("--force", action="store_true")
     add.set_defaults(func=cmd_skills_add)
 
     rm = ssub.add_parser("remove", help="Remove agentic-dev-env managed skills")
     rm.add_argument("names", nargs="+")
     rm.add_argument("--path", default=".")
-    rm.add_argument("--target", choices=["both", "claude", "codex"], default="both")
+    rm.add_argument("--target", choices=["both", "all", "claude", "codex", "pi"], default="both")
     rm.set_defaults(func=cmd_skills_remove)
 
     status = ssub.add_parser("status", help="Show active project skills")
     status.add_argument("path", nargs="?", default=".")
     status.set_defaults(func=cmd_skills_status)
 
-    doctor = sub.add_parser("doctor", help="Check the workstation toolchain")
+    integrations = sub.add_parser("integrations", help="Native Claude/Codex/Pi integrations")
+    isub = integrations.add_subparsers(dest="integrations_command", required=True)
+
+    istatus = isub.add_parser("status", help="Show native integration status")
+    istatus.set_defaults(func=cmd_integrations_status)
+
+    iinstall = isub.add_parser("install", help="Install/configure a native integration")
+    iinstall.add_argument("target", choices=["all", "claude", "codex", "pi"])
+    iinstall.set_defaults(func=cmd_integrations_install)
+
+    doctor = sub.add_parser("doctor", help="Check the workstation toolchain and integrations")
     doctor.set_defaults(func=cmd_doctor)
     return p
 

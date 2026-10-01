@@ -1,0 +1,20 @@
+{
+  "name": "agentic-dev-env",
+  "interface": {
+    "displayName": "Agentic Dev Env"
+  },
+  "plugins": [
+    {
+      "name": "agentic-dev-env",
+      "source": {
+        "source": "local",
+        "path": "./integrations/codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

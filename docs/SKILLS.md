@@ -11,6 +11,7 @@ Activated skills use the native project skill directories:
 ```text
 Claude Code: .claude/skills/<skill>/SKILL.md
 Codex:       .codex/skills/<skill>/SKILL.md
+Pi:          .pi/skills/<skill>/SKILL.md
 ```
 
 The built-in skills use the portable `SKILL.md` format rather than a custom instruction format.
@@ -71,7 +72,7 @@ The default activation mode is local:
 agentic skills suggest .
 ```
 
-Selected skills are copied into the native Claude/Codex project skill directories and those specific generated directories are added to `.git/info/exclude`.
+Selected skills are copied into the selected Claude/Codex/Pi project skill directories and those specific generated directories are added to `.git/info/exclude`.
 
 This is appropriate when:
 - you are initializing an upstream repository;
