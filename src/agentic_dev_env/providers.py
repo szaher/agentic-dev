@@ -89,6 +89,8 @@ def validate_manifest(data: dict[str, Any], *, base_dir: Path | None = None) -> 
             except ValueError:
                 errors.append(f"skill path escapes provider root: {path}")
                 continue
+            if target.name != "SKILL.md":
+                errors.append(f"provider skill path must point to SKILL.md: {path}")
             if not target.is_file():
                 errors.append(f"skill file not found: {path}")
             expected = skill.get("sha256")
@@ -175,10 +177,11 @@ def add_provider(path: str | Path) -> dict[str, Any]:
     normalized = dict(data)
     for skill in normalized.get("skills") or []:
         source = (manifest.parent / skill["path"]).resolve()
-        relative = Path("skills") / skill["name"] / "SKILL.md"
-        target = dest / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, target)
+        relative_dir = Path("skills") / skill["name"]
+        target_dir = dest / relative_dir
+        shutil.copytree(source.parent, target_dir)
+        target = target_dir / "SKILL.md"
+        relative = relative_dir / "SKILL.md"
         skill["path"] = relative.as_posix()
         skill["sha256"] = _sha256(target)
 
