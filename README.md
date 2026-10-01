@@ -517,3 +517,44 @@ The CI workflow performs syntax checks and a read-only repository smoke test on 
 ## License
 
 MIT. See [`LICENSE`](LICENSE).
+
+
+## External providers
+
+Extend the environment without patching core:
+
+```bash
+agentic providers add ./my-provider
+agentic providers list
+agentic providers verify my-provider
+agentic providers doctor --json
+
+# explicit updates only
+agentic providers update my-provider --yes
+agentic update --yes
+```
+
+Providers can contribute Agent Skills and trust-gated command capabilities through the versioned `agentic-provider.json` protocol. Git providers record their resolved commit SHA and can require a Git-verified signed commit. Installed content is SHA-256 checked before it is loaded.
+
+See [`docs/PROVIDERS.md`](docs/PROVIDERS.md).
+
+## Linux / WSL and remote development
+
+The workstation bootstrap now dispatches natively on macOS or Linux/WSL:
+
+```bash
+setup-coding-agent-env.sh --configure-agents
+```
+
+SSH development profiles describe remote machines without storing passwords or private-key contents:
+
+```bash
+agentic remote add gpu-lab gpu.example.com \
+  --user saad \
+  --identity-file ~/.ssh/id_ed25519 \
+  --workdir /srv/project
+
+agentic remote test gpu-lab --json
+```
+
+See [`docs/REMOTE.md`](docs/REMOTE.md).
