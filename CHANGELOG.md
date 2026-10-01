@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 - 2026-10-01
+
+Native agent integrations.
+
+- Added a Claude Code marketplace/plugin with a lightweight repo orchestration skill.
+- Added a Codex repo marketplace plus portable and compatibility plugin manifests.
+- Added a Pi package with an orchestration skill and interactive commands.
+- Added `agentic integrations install/status`.
+- Added Pi as a project skill target under `.pi/skills`.
+- Added `all` skill targeting across Claude, Codex, and Pi while keeping `both` as Claude+Codex compatibility behavior.
+- Integrated native setup into `--configure-agents`.
+- Added manifest/package regression tests and integration documentation.
+
 ## 0.2.0 - 2026-10-01
 
 Context-aware Agent Skills.
