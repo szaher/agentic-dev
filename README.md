@@ -367,17 +367,21 @@ The full catalog, including language servers and auxiliary tools installed on de
 
 ## Worktrees for concurrent agents
 
-Do not run several write-capable agents in the same working tree. Give each task an isolated worktree:
+Do not run several write-capable agents in the same working tree. Use the built-in manager:
 
 ```bash
-mkdir -p "$HOME/Developer/worktrees/my-project"
+agentic worktree create feature-a \
+  --agent codex \
+  --task "implement feature A"
 
-git worktree add \
-  "$HOME/Developer/worktrees/my-project/feature-a" \
-  -b feature/feature-a
+agentic worktree list
+agentic worktree status feature-a
+agentic worktree clean feature-a --delete-branch
 ```
 
-One worktree per agent keeps branches, uncommitted changes, and experiments isolated while sharing the same Git object store.
+Dirty worktrees are refused unless `--force` is explicit. Agent/task metadata is stored locally and is not added to repository changes.
+
+See [`docs/WORKTREES.md`](docs/WORKTREES.md).
 
 ## Repository layout
 

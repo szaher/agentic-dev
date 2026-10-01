@@ -15,6 +15,7 @@ from .integrations import install as install_integration, status as integration_
 from .inspection import doctor_document, inspect_repository
 from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
 from .trust import define_profile, document as trust_document, get_profile, set_current
+from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
 
 
 def _print_recommendations(path: str, task: str, max_skills: int, as_json: bool):
@@ -256,6 +257,76 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         mark = "✓" if item["enabled"] else "·"
         print(f"  {mark} {name:<22} {item['provider']}")
     return 1 if bad else 0
+
+
+def cmd_worktree_create(args: argparse.Namespace) -> int:
+    try:
+        data = create_worktree(
+            args.name, args.path,
+            branch=args.branch, base=args.base,
+            agent=args.agent, task=args.task,
+            worktree_root=args.root,
+        )
+    except (ValueError, FileExistsError, subprocess.CalledProcessError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(f"✓ worktree: {data['worktree']}")
+        print(f"  branch: {data['branch']}")
+        if data["session"].get("agent"):
+            print(f"  agent: {data['session']['agent']}")
+        if data["session"].get("task"):
+            print(f"  task: {data['session']['task']}")
+    return 0
+
+
+def cmd_worktree_list(args: argparse.Namespace) -> int:
+    data = list_worktrees(args.path)
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return 0
+    for item in data["worktrees"]:
+        session = item.get("session") or {}
+        mark = "*" if Path(item["worktree"]).resolve() == Path(data["repository"]).resolve() else " "
+        dirty = " dirty" if item.get("dirty") else ""
+        print(f"{mark} {item['worktree']} [{item.get('branch', 'detached')}]{dirty}")
+        if session.get("agent") or session.get("task"):
+            print(f"    agent={session.get('agent') or '-'} task={session.get('task') or '-'}")
+    return 0
+
+
+def cmd_worktree_status(args: argparse.Namespace) -> int:
+    try:
+        data = worktree_status(args.name, args.path)
+    except KeyError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(json.dumps(data, indent=2))
+    return 0
+
+
+def cmd_worktree_clean(args: argparse.Namespace) -> int:
+    try:
+        data = clean_worktree(
+            args.name, args.path,
+            force=args.force,
+            delete_branch=args.delete_branch,
+        )
+    except (KeyError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(f"✓ removed {data['worktree']}")
+        if args.delete_branch:
+            print(f"  branch deleted: {data['deleted_branch']}")
+    return 0
 
 
 def cmd_integrations_status(args: argparse.Namespace) -> int:
@@ -557,6 +628,39 @@ def build_parser() -> argparse.ArgumentParser:
     tdef.add_argument("--permission", action="append", required=True)
     tdef.add_argument("--description", default="")
     tdef.set_defaults(func=cmd_trust_define)
+
+    worktree = sub.add_parser("worktree", help="Isolated Git worktrees for parallel agents")
+    wsub = worktree.add_subparsers(dest="worktree_command", required=True)
+
+    wcreate = wsub.add_parser("create", help="Create an isolated agent worktree")
+    wcreate.add_argument("name")
+    wcreate.add_argument("--path", default=".")
+    wcreate.add_argument("--branch", default=None)
+    wcreate.add_argument("--base", default="HEAD")
+    wcreate.add_argument("--agent", default=None)
+    wcreate.add_argument("--task", default=None)
+    wcreate.add_argument("--root", default=None)
+    wcreate.add_argument("--json", action="store_true")
+    wcreate.set_defaults(func=cmd_worktree_create)
+
+    wlist = wsub.add_parser("list", help="List worktrees and session metadata")
+    wlist.add_argument("--path", default=".")
+    wlist.add_argument("--json", action="store_true")
+    wlist.set_defaults(func=cmd_worktree_list)
+
+    wstatus = wsub.add_parser("status", help="Show one worktree/session")
+    wstatus.add_argument("name")
+    wstatus.add_argument("--path", default=".")
+    wstatus.add_argument("--json", action="store_true")
+    wstatus.set_defaults(func=cmd_worktree_status)
+
+    wclean = wsub.add_parser("clean", help="Safely remove an agent worktree")
+    wclean.add_argument("name")
+    wclean.add_argument("--path", default=".")
+    wclean.add_argument("--force", action="store_true")
+    wclean.add_argument("--delete-branch", action="store_true")
+    wclean.add_argument("--json", action="store_true")
+    wclean.set_defaults(func=cmd_worktree_clean)
 
     integrations = sub.add_parser("integrations", help="Native Claude/Codex/Pi integrations")
     isub = integrations.add_subparsers(dest="integrations_command", required=True)
