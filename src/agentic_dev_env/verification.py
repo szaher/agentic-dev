@@ -10,6 +10,7 @@ from typing import Any
 from .capabilities import run_capability, status as capability_status
 from .detect import repo_root
 from .inspection import inspect_repository
+from .execution import run as run_execution
 
 
 SOURCE_EXTENSIONS = {
@@ -244,6 +245,10 @@ def execute(
     verification_plan: dict[str, Any],
     *,
     continue_on_failure: bool = False,
+    backend: str | None = None,
+    image: str | None = None,
+    network: str | None = None,
+    profile: str | None = None,
 ) -> dict[str, Any]:
     root = Path(verification_plan["repository"])
     results: list[dict[str, Any]] = []
@@ -269,23 +274,33 @@ def execute(
                 entry = {**check, "executed": True, "success": False, "error": str(exc)}
         else:
             command = check["command"]
-            proc = subprocess.run(
-                command,
-                cwd=root,
-                shell=True,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            passed = proc.returncode == 0
-            entry = {
-                **check,
-                "executed": True,
-                "success": passed,
-                "returncode": proc.returncode,
-                "stdout": proc.stdout,
-                "stderr": proc.stderr,
-            }
+            try:
+                execution = run_execution(
+                    command,
+                    root,
+                    backend=backend,
+                    image=image,
+                    network=network,
+                    profile=profile,
+                )
+                passed = bool(execution["success"])
+                entry = {
+                    **check,
+                    "executed": True,
+                    "success": passed,
+                    "execution": execution,
+                    "returncode": execution["returncode"],
+                    "stdout": execution["stdout"],
+                    "stderr": execution["stderr"],
+                }
+            except Exception as exc:
+                passed = False
+                entry = {
+                    **check,
+                    "executed": True,
+                    "success": False,
+                    "error": str(exc),
+                }
 
         results.append(entry)
         if not passed:
@@ -299,5 +314,11 @@ def execute(
         "repository": str(root),
         "success": success,
         "plan": verification_plan,
+        "execution": {
+            "backend": backend,
+            "image": image,
+            "network": network,
+            "profile": profile,
+        },
         "results": results,
     }
