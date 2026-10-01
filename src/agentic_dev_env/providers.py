@@ -184,7 +184,7 @@ def _prepare_source(source: str, ref: str | None) -> tuple[Path, dict[str, Any]]
         "source": source,
         "ref": ref,
         "commit_sha": commit,
-        "signed_commit": signature in {"G", "U", "X", "Y", "R"},
+        "signed_commit": signature in {"G", "U"},
         "signature_status": signature,
     }
 
