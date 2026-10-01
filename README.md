@@ -171,6 +171,46 @@ The adapters stay intentionally small. They expose the `agentic` control plane; 
 
 See [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md).
 
+### 6. Add optional capabilities only when needed
+
+Browser access is intentionally **not** part of the default install.
+
+Preview capability recommendations:
+
+```bash
+agentic capabilities suggest . \
+  --task "verify the checkout flow in the browser"
+```
+
+Then explicitly enable only the capability you want:
+
+```bash
+# Recommended default for UI automation/testing
+agentic capabilities enable browser-automation --target both --mode isolated
+
+# Frontend console/network/performance debugging
+agentic capabilities enable browser-debug --target both --mode isolated
+
+# Advanced autonomous browser workflows
+agentic capabilities enable browser-agent
+```
+
+The browser providers are:
+
+- **Playwright MCP** for structured deterministic UI automation;
+- **Chrome DevTools MCP** for network, console, tracing, and frontend diagnostics;
+- **Browser Use** for broader autonomous browser workflows.
+
+Authenticated/existing-browser access is an explicit mode rather than a default:
+
+```bash
+agentic capabilities enable browser-automation \
+  --target claude \
+  --mode existing-browser
+```
+
+See [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) for the security model and provider details.
+
 ## Agent configuration
 
 `--configure-agents` configures the tools that can be configured non-interactively and writes a managed tool-routing block into the user-level instruction files when the corresponding agent is installed:
@@ -298,6 +338,7 @@ agentic-dev-env/
 ├── pyproject.toml
 ├── src/agentic_dev_env/
 │   ├── cli.py
+│   ├── capabilities.py
 │   ├── detect.py
 │   ├── skills.py
 │   └── builtin_skills/
@@ -313,6 +354,7 @@ agentic-dev-env/
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── AGENT_CONFIGURATION.md
+│   ├── CAPABILITIES.md
 │   ├── INTEGRATIONS.md
 │   ├── SKILLS.md
 │   └── TOOLS.md
@@ -329,6 +371,8 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the problem model, archit
 See [`docs/AGENT_CONFIGURATION.md`](docs/AGENT_CONFIGURATION.md) for global instruction hierarchy and MCP/tool setup.
 
 See [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) for Claude Code plugins, Codex plugins/marketplaces, and the Pi package.
+
+See [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) for optional browser automation/debugging and the capability-pack model.
 
 ## Development
 
