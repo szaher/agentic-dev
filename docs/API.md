@@ -167,3 +167,27 @@ schemas/infrastructure-status-v1.schema.json
 ```
 
 Infrastructure operation results are normalized JSON documents specific to database, cluster, cloud, and observability operations.
+
+
+## Provider lifecycle
+
+```bash
+agentic providers doctor --json
+```
+
+Provider manifests use:
+
+```text
+schemas/provider-manifest-v1.schema.json
+```
+
+Installed providers may contribute skills and command-backed capabilities only when their recorded content digest still matches. Provider Git sources retain the resolved commit SHA and signature status.
+
+## Remote development profiles
+
+```bash
+agentic remote list --json
+agentic remote test <name> --json
+```
+
+Remote state is local user configuration and contains connection metadata only. Passwords and private-key contents are not stored.
