@@ -75,6 +75,12 @@ After workstation setup, verify the environment:
 agentic doctor
 ```
 
+Machine-readable form for AgentFlow/automation:
+
+```bash
+agentic doctor --json
+```
+
 ### 2. Bootstrap the Mac once
 
 Recommended for a workstation that already contains multiple repositories:
@@ -115,6 +121,15 @@ Read-only inspection first:
 ```bash
 agentic-repo-init . --check
 ```
+
+Stable machine-readable repository inspection:
+
+```bash
+agentic repo inspect . --json
+agentic repo inspect . --task "review API compatibility" --json
+```
+
+This reports repository facts/evidence, package managers, polyglot build/test/lint/typecheck commands, skills, capabilities, and native agent integrations without modifying the repository.
 
 Project dependency installation is deliberately opt-in:
 
@@ -354,6 +369,7 @@ agentic-dev-env/
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── AGENT_CONFIGURATION.md
+│   ├── API.md
 │   ├── CAPABILITIES.md
 │   ├── INTEGRATIONS.md
 │   ├── SKILLS.md
@@ -368,11 +384,15 @@ agentic-dev-env/
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the problem model, architecture, and why machine setup and repository setup are separate concerns.
 
+See [`docs/API.md`](docs/API.md) for the stable JSON contracts intended for AgentFlow, CI, plugins, and other automation.
+
 See [`docs/AGENT_CONFIGURATION.md`](docs/AGENT_CONFIGURATION.md) for global instruction hierarchy and MCP/tool setup.
 
 See [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) for Claude Code plugins, Codex plugins/marketplaces, and the Pi package.
 
 See [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) for optional browser automation/debugging and the capability-pack model.
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the implementation sequence beyond v0.5.
 
 ## Development
 
