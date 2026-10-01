@@ -383,6 +383,27 @@ Dirty worktrees are refused unless `--force` is explicit. Agent/task metadata is
 
 See [`docs/WORKTREES.md`](docs/WORKTREES.md).
 
+## Change-aware verification
+
+Plan the smallest relevant verification set from the current diff:
+
+```bash
+agentic verify
+agentic verify --json
+agentic verify plan --base main --symbol TrainingReconciler --json
+```
+
+Run the selected checks:
+
+```bash
+agentic verify run
+agentic verify run --continue-on-failure --json
+```
+
+When available, CodeGraph contributes affected-test and symbol-impact evidence. Enabled security capabilities are folded into the plan when relevant.
+
+See [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
+
 ## Repository layout
 
 ```text

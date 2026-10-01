@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.0 - 2026-10-02
+
+Change-aware verification planner.
+
+- Added `agentic verify`, `agentic verify plan`, and `agentic verify run`.
+- Plans from Git changed/untracked files plus the v1 repository inspection contract.
+- Selects repository-native lint, typecheck, test, and build commands based on changed source/configuration.
+- Skips code checks for documentation-only changes.
+- Integrates CodeGraph affected tests and optional symbol impact when indexed.
+- Records Serena availability without inventing unsupported batch-reference CLI behavior.
+- Adds enabled security capabilities as relevant verification checks.
+- Executes deterministically with fail-fast or continue-on-failure modes.
+- Added verification-plan JSON schema and regression tests.
+
 ## 0.8.0 - 2026-10-02
 
 Worktree and agent session manager.

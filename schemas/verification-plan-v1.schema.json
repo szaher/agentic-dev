@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev-env/schemas/verification-plan-v1.schema.json",
+  "title": "agentic verification plan v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "document_type",
+    "repository",
+    "changed_files",
+    "changed_languages",
+    "checks",
+    "skipped_checks",
+    "impact"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.verification-plan"
+    },
+    "repository": {
+      "type": "string"
+    },
+    "base": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "changed_languages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "reason"
+        ]
+      }
+    },
+    "skipped_checks": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "impact": {
+      "type": "object"
+    }
+  }
+}
