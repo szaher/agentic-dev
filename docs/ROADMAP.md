@@ -53,7 +53,7 @@ AgentFlow
 
 ---
 
-## Milestone 2 — Security capability pack (v0.6)
+## Milestone 2 — Security capability pack (v0.6) ✅
 
 **Goal:** make security verification a first-class optional capability.
 
@@ -81,7 +81,7 @@ Candidate providers:
 
 ---
 
-## Milestone 3 — Trust and permission profiles (v0.7)
+## Milestone 3 — Trust and permission profiles (v0.7) ✅
 
 **Goal:** make capability access explicit and composable.
 

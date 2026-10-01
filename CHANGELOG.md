@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.0 - 2026-10-02
+
+Security capability pack and trust profiles (roadmap v0.6 + v0.7).
+
+- Added secret, dependency vulnerability, SAST, IaC misconfiguration, container-image, and SBOM capabilities.
+- Added Trivy and Semgrep Community Edition provider adapters.
+- Added normalized machine-readable security scan result envelopes.
+- Added built-in safe, development, and production-read trust profiles.
+- Added custom user trust profiles and repo-scoped profile selection.
+- Capability enable/run now enforces declared permissions before provider invocation.
+- Authenticated/persistent browser modes and network/container-sensitive scans require stronger permissions.
+- Repo-scoped trust state remains local via .git/info/exclude.
+- Inspection/doctor documents now expose trust state.
+- Added security/trust regression tests and documentation.
+
 ## 0.5.0 - 2026-10-02
 
 Stable machine-readable inspection contract.

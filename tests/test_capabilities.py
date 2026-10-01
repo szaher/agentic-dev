@@ -70,7 +70,7 @@ class BrowserCapabilityTests(unittest.TestCase):
         which.side_effect = lambda name: "/bin/claude" if name == "claude" else None
         with tempfile.TemporaryDirectory() as config:
             with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
-                self.assertEqual(enable("browser-automation", target="claude", mode="existing-browser"), 0)
+                self.assertEqual(enable("browser-automation", target="claude", mode="existing-browser", profile="development"), 0)
                 self.assertIn(
                     ["/bin/claude", "mcp", "add", "playwright", "npx", "@playwright/mcp@latest", "--extension"],
                     [call.args[0] for call in run.call_args_list],

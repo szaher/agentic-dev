@@ -9,11 +9,12 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from .capabilities import disable as disable_capability, enable as enable_capability, list_capabilities, status as capability_status, suggest_for_repo
+from .capabilities import disable as disable_capability, enable as enable_capability, list_capabilities, run_capability, status as capability_status, suggest_for_repo
 from .detect import detect_repo, repo_root
 from .integrations import install as install_integration, status as integration_status
 from .inspection import doctor_document, inspect_repository
 from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
+from .trust import define_profile, document as trust_document, get_profile, set_current
 
 
 def _print_recommendations(path: str, task: str, max_skills: int, as_json: bool):
@@ -271,8 +272,9 @@ def cmd_integrations_install(args: argparse.Namespace) -> int:
 def cmd_capabilities_list(args: argparse.Namespace) -> int:
     for item in list_capabilities():
         targets = ",".join(item.targets)
-        print(f"{item.name:<22} provider={item.provider:<16} targets={targets}")
+        print(f"{item.name:<24} category={item.category:<10} provider={item.provider:<16} targets={targets}")
         print(f"  {item.description}")
+        print(f"  permissions: {', '.join(item.required_permissions) or 'none'}")
         print(f"  risk: {item.risk}")
     return 0
 
@@ -297,7 +299,7 @@ def cmd_capabilities_suggest(args: argparse.Namespace) -> int:
         return 0
     print(f"Repository: {context.root}")
     if not recs:
-        print("No optional browser capability strongly recommended.")
+        print("No optional capability strongly recommended.")
         return 0
     for r in recs:
         print(f"✓ {r.name} via {r.provider}")
@@ -309,10 +311,39 @@ def cmd_capabilities_suggest(args: argparse.Namespace) -> int:
 
 def cmd_capabilities_enable(args: argparse.Namespace) -> int:
     try:
-        return enable_capability(args.name, target=args.target, mode=args.mode)
+        return enable_capability(
+            args.name,
+            target=args.target,
+            mode=args.mode,
+            profile=args.profile,
+            path=args.path,
+        )
     except (KeyError, ValueError) as exc:
         print(f"agentic: {exc}", file=sys.stderr)
         return 2
+
+
+def cmd_capabilities_run(args: argparse.Namespace) -> int:
+    try:
+        result = run_capability(
+            args.name,
+            args.path,
+            image=args.image,
+            profile=args.profile,
+        )
+    except (KeyError, ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        print(f"{result['capability']} via {result['provider']}")
+        print(f"success: {result['success']}")
+        if result.get("finding_count") is not None:
+            print(f"findings/components: {result['finding_count']}")
+        if result.get("stderr"):
+            print(result["stderr"])
+    return 0 if result["success"] else 1
 
 
 def cmd_capabilities_disable(args: argparse.Namespace) -> int:
@@ -321,6 +352,60 @@ def cmd_capabilities_disable(args: argparse.Namespace) -> int:
     except (KeyError, ValueError) as exc:
         print(f"agentic: {exc}", file=sys.stderr)
         return 2
+
+
+def cmd_trust_list(args: argparse.Namespace) -> int:
+    data = trust_document(args.path)
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return 0
+    for name, item in data["profiles"].items():
+        mark = "*" if item["selected"] else " "
+        print(f"{mark} {name:<18} {item['description']}")
+        print("    " + ", ".join(item["permissions"]))
+    return 0
+
+
+def cmd_trust_show(args: argparse.Namespace) -> int:
+    try:
+        if args.name:
+            p = get_profile(args.name)
+            data = {
+                "name": p.name,
+                "description": p.description,
+                "permissions": sorted(p.permissions),
+            }
+        else:
+            data = trust_document(args.path)
+    except KeyError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(json.dumps(data, indent=2))
+    return 0
+
+
+def cmd_trust_set(args: argparse.Namespace) -> int:
+    try:
+        set_current(args.name, root=args.path if args.repo else None)
+    except KeyError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    scope = f"repo {Path(args.path).resolve()}" if args.repo else "user"
+    print(f"✓ trust profile '{args.name}' selected for {scope}")
+    return 0
+
+
+def cmd_trust_define(args: argparse.Namespace) -> int:
+    try:
+        define_profile(args.name, args.permission, args.description)
+    except ValueError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(f"✓ defined trust profile '{args.name}'")
+    return 0
 
 
 def cmd_capabilities_status(args: argparse.Namespace) -> int:
@@ -427,7 +512,17 @@ def build_parser() -> argparse.ArgumentParser:
     cenable.add_argument("name", choices=[c.name for c in list_capabilities()])
     cenable.add_argument("--target", choices=["claude", "codex", "both"], default="both")
     cenable.add_argument("--mode", choices=["isolated", "persistent", "existing-browser", "headless"], default="isolated")
+    cenable.add_argument("--profile", default=None, help="Override the selected trust profile for this enable operation")
+    cenable.add_argument("--path", default=".", help="Repository used for repo-scoped trust profile lookup")
     cenable.set_defaults(func=cmd_capabilities_enable)
+
+    crun = csub.add_parser("run", help="Run a security capability and emit normalized results")
+    crun.add_argument("name", choices=[c.name for c in list_capabilities() if c.category == "security"])
+    crun.add_argument("path", nargs="?", default=".")
+    crun.add_argument("--image", default=None, help="Container image for container-image-scan")
+    crun.add_argument("--profile", default=None)
+    crun.add_argument("--json", action="store_true")
+    crun.set_defaults(func=cmd_capabilities_run)
 
     cdisable = csub.add_parser("disable", help="Disable a managed optional capability")
     cdisable.add_argument("name", choices=[c.name for c in list_capabilities()])
@@ -436,6 +531,32 @@ def build_parser() -> argparse.ArgumentParser:
     cstatus = csub.add_parser("status", help="Show optional capability state")
     cstatus.add_argument("--json", action="store_true")
     cstatus.set_defaults(func=cmd_capabilities_status)
+
+    trust = sub.add_parser("trust", help="Trust and permission profiles")
+    tsub = trust.add_subparsers(dest="trust_command", required=True)
+
+    tlist = tsub.add_parser("list", help="List trust profiles")
+    tlist.add_argument("--path", default=".")
+    tlist.add_argument("--json", action="store_true")
+    tlist.set_defaults(func=cmd_trust_list)
+
+    tshow = tsub.add_parser("show", help="Show a trust profile or current trust document")
+    tshow.add_argument("name", nargs="?", default=None)
+    tshow.add_argument("--path", default=".")
+    tshow.add_argument("--json", action="store_true")
+    tshow.set_defaults(func=cmd_trust_show)
+
+    tset = tsub.add_parser("set", help="Select a trust profile")
+    tset.add_argument("name")
+    tset.add_argument("--repo", action="store_true", help="Set for this repository instead of user default")
+    tset.add_argument("--path", default=".")
+    tset.set_defaults(func=cmd_trust_set)
+
+    tdef = tsub.add_parser("define", help="Define a custom user trust profile")
+    tdef.add_argument("name")
+    tdef.add_argument("--permission", action="append", required=True)
+    tdef.add_argument("--description", default="")
+    tdef.set_defaults(func=cmd_trust_define)
 
     integrations = sub.add_parser("integrations", help="Native Claude/Codex/Pi integrations")
     isub = integrations.add_subparsers(dest="integrations_command", required=True)

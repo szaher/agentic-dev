@@ -224,7 +224,41 @@ agentic capabilities enable browser-automation \
   --mode existing-browser
 ```
 
-See [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) for the security model and provider details.
+See [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) for the capability model and browser provider details.
+
+### 7. Add security checks under explicit trust profiles
+
+Security scans are optional capabilities:
+
+```bash
+agentic capabilities suggest . --task "security review before merge"
+
+agentic capabilities enable secret-scan
+agentic capabilities enable dependency-vulnerability
+agentic capabilities enable iac-misconfiguration
+agentic capabilities enable sbom
+
+agentic capabilities enable sast --profile development
+```
+
+Run them with normalized JSON output:
+
+```bash
+agentic capabilities run secret-scan . --json
+agentic capabilities run dependency-vulnerability . --json
+agentic capabilities run sast . --profile development --json
+```
+
+Trust profiles make higher-risk modes explicit:
+
+```bash
+agentic trust list
+agentic trust show safe
+agentic trust set development
+agentic trust set production-read --repo --path .
+```
+
+See [`docs/SECURITY.md`](docs/SECURITY.md) and [`docs/TRUST.md`](docs/TRUST.md).
 
 ## Agent configuration
 
@@ -372,7 +406,9 @@ agentic-dev-env/
 │   ├── API.md
 │   ├── CAPABILITIES.md
 │   ├── INTEGRATIONS.md
+│   ├── SECURITY.md
 │   ├── SKILLS.md
+│   ├── TRUST.md
 │   └── TOOLS.md
 ├── tests/
 │   └── smoke.sh
@@ -390,7 +426,9 @@ See [`docs/AGENT_CONFIGURATION.md`](docs/AGENT_CONFIGURATION.md) for global inst
 
 See [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) for Claude Code plugins, Codex plugins/marketplaces, and the Pi package.
 
-See [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) for optional browser automation/debugging and the capability-pack model.
+See [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) for optional capability packs.
+See [`docs/SECURITY.md`](docs/SECURITY.md) for local security scanning.
+See [`docs/TRUST.md`](docs/TRUST.md) for trust and permission profiles.
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the implementation sequence beyond v0.5.
 

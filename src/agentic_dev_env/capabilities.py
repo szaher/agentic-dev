@@ -4,19 +4,24 @@ import json
 import os
 import shutil
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from .detect import RepoContext, detect_repo
+from .trust import check as trust_check
 
 
 @dataclass(frozen=True)
 class Capability:
     name: str
+    category: str
     provider: str
     description: str
     risk: str
     targets: tuple[str, ...]
+    required_permissions: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -30,25 +35,58 @@ class CapabilityRecommendation:
 
 CAPABILITIES = (
     Capability(
-        "browser-automation",
-        "playwright",
+        "browser-automation", "browser", "playwright",
         "Structured browser navigation and UI automation through Playwright MCP.",
         "Browser content and actions become accessible to the configured agent.",
-        ("claude", "codex"),
+        ("claude", "codex"), ("browser.isolated",),
     ),
     Capability(
-        "browser-debug",
-        "chrome-devtools",
+        "browser-debug", "browser", "chrome-devtools",
         "Browser debugging, console/network inspection, tracing, and frontend performance analysis.",
         "The configured agent can inspect and control a Chrome session.",
-        ("claude", "codex"),
+        ("claude", "codex"), ("browser.isolated",),
     ),
     Capability(
-        "browser-agent",
-        "browser-use",
+        "browser-agent", "browser", "browser-use",
         "Advanced autonomous browser workflows through the Browser Use CLI and skill.",
         "May interact with authenticated browser state; configure browser/profile access deliberately.",
-        ("all",),
+        ("all",), ("browser.isolated", "network.general"),
+    ),
+    Capability(
+        "secret-scan", "security", "trivy",
+        "Scan repository files for exposed secrets using Trivy.",
+        "Reads repository files locally and may download/update Trivy rule/database metadata.",
+        ("local",), ("repo.read", "secret.scan", "security.scan"),
+    ),
+    Capability(
+        "dependency-vulnerability", "security", "trivy",
+        "Scan dependency lockfiles and package metadata for known vulnerabilities.",
+        "Reads dependency metadata locally and downloads vulnerability databases.",
+        ("local",), ("repo.read", "security.scan"),
+    ),
+    Capability(
+        "sast", "security", "semgrep",
+        "Run source-level static analysis using Semgrep Community Edition.",
+        "Reads source locally and downloads selected rule packs; no login is required for Community Edition.",
+        ("local",), ("repo.read", "security.scan", "network.general"),
+    ),
+    Capability(
+        "iac-misconfiguration", "security", "trivy",
+        "Scan Terraform, Kubernetes, Docker and related configuration for misconfigurations.",
+        "Reads infrastructure/configuration files locally and downloads Trivy checks.",
+        ("local",), ("repo.read", "security.scan"),
+    ),
+    Capability(
+        "container-image-scan", "security", "trivy",
+        "Scan a container image for vulnerabilities, secrets and configuration findings.",
+        "May pull image metadata/layers and vulnerability databases.",
+        ("local",), ("security.scan", "network.general", "container.run"),
+    ),
+    Capability(
+        "sbom", "security", "trivy",
+        "Generate a CycloneDX software bill of materials from a repository filesystem.",
+        "Reads package metadata and emits dependency inventory.",
+        ("local",), ("repo.read", "security.scan"),
     ),
 )
 
@@ -88,56 +126,106 @@ def get_capability(name: str) -> Capability:
     raise KeyError(name)
 
 
+def required_permissions(name: str, mode: str = "isolated") -> tuple[str, ...]:
+    cap = get_capability(name)
+    perms = list(cap.required_permissions)
+    if name in {"browser-automation", "browser-debug"}:
+        perms = [p for p in perms if not p.startswith("browser.")]
+        if mode == "existing-browser":
+            perms.append("browser.authenticated")
+        elif mode == "persistent":
+            perms.append("browser.persistent")
+        else:
+            perms.append("browser.isolated")
+    return tuple(sorted(set(perms)))
+
+
 def suggest(context: RepoContext, task: str = "") -> list[CapabilityRecommendation]:
     task_l = task.lower()
     result: list[CapabilityRecommendation] = []
 
+    def add(name: str, reasons: list[str], base: int = 6) -> None:
+        if not reasons:
+            return
+        cap = get_capability(name)
+        result.append(CapabilityRecommendation(
+            name, cap.provider, cap.description,
+            tuple(dict.fromkeys(reasons)), base + len(reasons),
+        ))
+
     web_signals = {
-        "repo-type:web-app",
-        "framework:react",
-        "framework:nextjs",
-        "framework:vue",
-        "framework:svelte",
-        "framework:angular",
+        "repo-type:web-app", "framework:react", "framework:nextjs",
+        "framework:vue", "framework:svelte", "framework:angular",
         "testing:browser",
     }
-    automation_reasons = []
+    reasons = []
     if context.facts & web_signals:
-        automation_reasons.append("web application or browser-test signals detected")
+        reasons.append("web application or browser-test signals detected")
     for word in ("browser", "ui", "e2e", "end-to-end", "website", "form", "playwright"):
         if word in task_l:
-            automation_reasons.append(f"task mentions '{word}'")
-    if automation_reasons:
-        result.append(CapabilityRecommendation(
-            "browser-automation", "playwright",
-            get_capability("browser-automation").description,
-            tuple(dict.fromkeys(automation_reasons)),
-            6 + len(automation_reasons),
-        ))
+            reasons.append(f"task mentions '{word}'")
+    add("browser-automation", reasons)
 
-    debug_reasons = []
-    for word in ("performance", "network", "console", "trace", "frontend latency", "page load"):
-        if word in task_l:
-            debug_reasons.append(f"task mentions '{word}'")
-    if debug_reasons:
-        result.append(CapabilityRecommendation(
-            "browser-debug", "chrome-devtools",
-            get_capability("browser-debug").description,
-            tuple(debug_reasons),
-            7 + len(debug_reasons),
-        ))
+    reasons = [f"task mentions '{word}'" for word in (
+        "performance", "network", "console", "trace", "frontend latency", "page load"
+    ) if word in task_l]
+    add("browser-debug", reasons, 7)
 
-    agent_reasons = []
-    for word in ("research the web", "portal", "browse sites", "multi-step browser", "scrape", "web research"):
-        if word in task_l:
-            agent_reasons.append(f"task mentions '{word}'")
-    if agent_reasons:
-        result.append(CapabilityRecommendation(
-            "browser-agent", "browser-use",
-            get_capability("browser-agent").description,
-            tuple(agent_reasons),
-            7 + len(agent_reasons),
-        ))
+    reasons = [f"task mentions '{word}'" for word in (
+        "research the web", "portal", "browse sites", "multi-step browser", "scrape", "web research"
+    ) if word in task_l]
+    add("browser-agent", reasons, 7)
+
+    has_source = any(f.startswith("language:") for f in context.facts)
+    has_packages = any(f.startswith("language:") for f in context.facts) or any(
+        f.startswith("repo-type:package") for f in context.facts
+    )
+    has_iac = bool(context.facts & {
+        "technology:terraform", "technology:kubernetes", "technology:helm",
+        "technology:kustomize", "technology:containers",
+    })
+
+    reasons = []
+    if has_source:
+        reasons.append("source code detected")
+    if any(word in task_l for word in ("security", "secret", "credential", "review", "pre-merge")):
+        reasons.append("task requests security/secret-sensitive review")
+    add("secret-scan", reasons, 5)
+
+    reasons = []
+    if has_packages:
+        reasons.append("package/dependency metadata detected")
+    if any(word in task_l for word in ("dependency", "vulnerability", "cve", "security", "supply chain")):
+        reasons.append("task mentions dependency/security risk")
+    add("dependency-vulnerability", reasons, 5)
+
+    reasons = []
+    if has_source:
+        reasons.append("source code detected")
+    if any(word in task_l for word in ("sast", "security", "injection", "xss", "sql injection")):
+        reasons.append("task requests source security analysis")
+    add("sast", reasons, 5)
+
+    reasons = []
+    if has_iac:
+        reasons.append("infrastructure/container configuration detected")
+    if any(word in task_l for word in ("terraform", "kubernetes", "docker", "misconfig", "hardening")):
+        reasons.append("task mentions infrastructure configuration")
+    add("iac-misconfiguration", reasons, 6)
+
+    reasons = []
+    if "technology:containers" in context.facts:
+        reasons.append("container build/runtime files detected")
+    if any(word in task_l for word in ("container image", "image scan", "docker image")):
+        reasons.append("task mentions container image")
+    add("container-image-scan", reasons, 5)
+
+    reasons = []
+    if has_packages:
+        reasons.append("software package metadata detected")
+    if any(word in task_l for word in ("sbom", "bill of materials", "supply chain")):
+        reasons.append("task requests software inventory")
+    add("sbom", reasons, 4)
 
     return sorted(result, key=lambda item: (-item.score, item.name))
 
@@ -147,9 +235,13 @@ def suggest_for_repo(path: str | Path = ".", task: str = ""):
     return context, suggest(context, task)
 
 
-def _run(argv: list[str]) -> int:
+def _run(argv: list[str], *, cwd: Path | None = None) -> int:
     print("$ " + " ".join(argv))
-    return subprocess.run(argv, check=False).returncode
+    return subprocess.run(argv, cwd=cwd, check=False).returncode
+
+
+def _capture(argv: list[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(argv, cwd=cwd, capture_output=True, text=True, check=False)
 
 
 def _mcp_args(provider: str, mode: str) -> tuple[str, list[str]]:
@@ -184,8 +276,36 @@ def _targets(target: str) -> list[str]:
     raise ValueError("MCP browser target must be claude, codex, or both")
 
 
-def enable(name: str, *, target: str = "both", mode: str = "isolated") -> int:
+def _ensure_security_provider(provider: str) -> int:
+    if shutil.which(provider):
+        return 0
+    brew = shutil.which("brew")
+    if brew:
+        return _run([brew, "install", provider])
+    if provider == "semgrep" and shutil.which("uv"):
+        return _run(["uv", "tool", "install", "--upgrade", "semgrep"])
+    print(f"! {provider} is required. Install it and retry.")
+    return 2
+
+
+def enable(
+    name: str,
+    *,
+    target: str = "both",
+    mode: str = "isolated",
+    profile: str | None = None,
+    path: str | Path | None = None,
+) -> int:
     cap = get_capability(name)
+    allowed, missing, selected = trust_check(
+        required_permissions(name, mode),
+        profile_name=profile,
+        root=path,
+    )
+    if not allowed:
+        print(f"! trust profile '{selected.name}' does not allow {name}.")
+        print("  missing permissions: " + ", ".join(missing))
+        return 3
 
     if cap.provider == "browser-use":
         if not shutil.which("uv"):
@@ -198,27 +318,32 @@ def enable(name: str, *, target: str = "both", mode: str = "isolated") -> int:
                 rc = _run([browser_use, "skill", "install"])
         if rc != 0:
             return rc
-    else:
+    elif cap.category == "browser":
         server, command = _mcp_args(cap.provider, mode)
         for agent in _targets(target):
             binary = shutil.which(agent)
             if not binary:
                 print(f"· {agent} not installed; skipping.")
                 continue
-            # Make reruns idempotent where the client supports remove.
             subprocess.run([binary, "mcp", "remove", server], capture_output=True, text=True, check=False)
             rc = _run([binary, "mcp", "add", server, *command])
             if rc != 0:
                 return rc
+    elif cap.category == "security":
+        rc = _ensure_security_provider(cap.provider)
+        if rc != 0:
+            return rc
 
     state = _load_state()
     state.setdefault("enabled", {})[name] = {
+        "category": cap.category,
         "provider": cap.provider,
         "target": target,
         "mode": mode,
+        "trust_profile": selected.name,
     }
     _save_state(state)
-    print(f"✓ enabled {name} via {cap.provider}")
+    print(f"✓ enabled {name} via {cap.provider} under trust profile {selected.name}")
     return 0
 
 
@@ -236,6 +361,8 @@ def disable(name: str) -> int:
                 subprocess.run([binary, "mcp", "remove", server], check=False)
     elif cap.provider == "browser-use":
         print("· Browser Use remains installed as a CLI; capability state is being disabled only.")
+    elif cap.category == "security":
+        print(f"· {cap.provider} remains installed; capability state is being disabled only.")
 
     state.setdefault("enabled", {}).pop(name, None)
     _save_state(state)
@@ -243,15 +370,102 @@ def disable(name: str) -> int:
     return 0
 
 
+def _security_command(name: str, root: Path, image: str | None = None) -> list[str]:
+    if name == "secret-scan":
+        return ["trivy", "fs", "--scanners", "secret", "--format", "json", str(root)]
+    if name == "dependency-vulnerability":
+        return ["trivy", "fs", "--scanners", "vuln", "--format", "json", str(root)]
+    if name == "iac-misconfiguration":
+        return ["trivy", "fs", "--scanners", "misconfig", "--format", "json", str(root)]
+    if name == "sast":
+        return ["semgrep", "--config=auto", "--json", str(root)]
+    if name == "container-image-scan":
+        if not image:
+            raise ValueError("container-image-scan requires --image")
+        return ["trivy", "image", "--format", "json", image]
+    if name == "sbom":
+        return ["trivy", "fs", "--format", "cyclonedx", str(root)]
+    raise ValueError(f"{name} is not a runnable security capability")
+
+
+def _finding_count(name: str, payload: Any) -> int | None:
+    if name == "sast" and isinstance(payload, dict):
+        return len(payload.get("results") or [])
+    if name == "sbom" and isinstance(payload, dict):
+        return len(payload.get("components") or [])
+    if isinstance(payload, dict):
+        total = 0
+        seen = False
+        for result in payload.get("Results") or []:
+            for key in ("Vulnerabilities", "Misconfigurations", "Secrets"):
+                values = result.get(key)
+                if isinstance(values, list):
+                    total += len(values)
+                    seen = True
+        return total if seen else 0
+    return None
+
+
+def run_capability(
+    name: str,
+    path: str | Path = ".",
+    *,
+    image: str | None = None,
+    profile: str | None = None,
+) -> dict[str, Any]:
+    cap = get_capability(name)
+    if cap.category != "security":
+        raise ValueError("capability run currently supports security capabilities")
+    allowed, missing, selected = trust_check(
+        required_permissions(name),
+        profile_name=profile,
+        root=path,
+    )
+    if not allowed:
+        raise PermissionError(
+            f"trust profile '{selected.name}' missing permissions: {', '.join(missing)}"
+        )
+    if not shutil.which(cap.provider):
+        raise RuntimeError(f"{cap.provider} is not installed; enable {name} first")
+
+    root = Path(path).resolve()
+    command = _security_command(name, root, image=image)
+    result = _capture(command, cwd=root)
+    payload: Any = None
+    parse_error: str | None = None
+    try:
+        payload = json.loads(result.stdout) if result.stdout.strip() else None
+    except json.JSONDecodeError as exc:
+        parse_error = str(exc)
+
+    return {
+        "schema_version": "1",
+        "document_type": "agentic.capability-result",
+        "capability": name,
+        "category": cap.category,
+        "provider": cap.provider,
+        "trust_profile": selected.name,
+        "command": command,
+        "returncode": result.returncode,
+        "success": result.returncode == 0,
+        "finding_count": _finding_count(name, payload),
+        "result": payload,
+        "stderr": result.stderr.strip(),
+        "parse_error": parse_error,
+    }
+
+
 def status() -> dict:
     state = _load_state()
     enabled = state.get("enabled", {})
     return {
         capability.name: {
+            "category": capability.category,
             "provider": capability.provider,
             "enabled": capability.name in enabled,
             "configuration": enabled.get(capability.name),
             "risk": capability.risk,
+            "required_permissions": list(capability.required_permissions),
         }
         for capability in CAPABILITIES
     }

@@ -10,6 +10,7 @@ from .capabilities import status as capability_status
 from .detect import RepoContext, detect_repo
 from .integrations import status as integration_status
 from .skills import installed_skills, recommend
+from .trust import document as trust_document
 
 SCHEMA_VERSION = "1"
 
@@ -175,6 +176,7 @@ def doctor_document() -> dict[str, Any]:
         "tools": tools,
         "integrations": integrations,
         "capabilities": capability_status(),
+        "trust": trust_document(),
     }
 
 
@@ -216,6 +218,7 @@ def inspect_repository(path: str | Path = ".", task: str = "") -> dict[str, Any]
             ],
         },
         "capabilities": cap_state,
+        "trust": trust_document(root),
         "integrations": [
             {
                 "name": item.name,
