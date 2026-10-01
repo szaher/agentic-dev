@@ -167,3 +167,47 @@ schemas/infrastructure-status-v1.schema.json
 ```
 
 Infrastructure operation results are normalized JSON documents specific to database, cluster, cloud, and observability operations.
+
+
+## Provider manifest
+
+Schema:
+
+```text
+schemas/provider-manifest-v1.schema.json
+```
+
+External providers are declarative and versioned. Provider capabilities execute only through `agentic providers run` after trust checks; provider Python code is not loaded.
+
+## Compatibility
+
+```bash
+agentic compatibility --json
+```
+
+Document type:
+
+```text
+agentic.compatibility
+```
+
+## Update status
+
+```bash
+agentic update check --json
+```
+
+Document type:
+
+```text
+agentic.update-status
+```
+
+## Remote profiles
+
+```bash
+agentic remote list --json
+agentic remote inspect NAME --json
+```
+
+Remote execution has the separate document type `agentic.remote-execution` and requires `remote.exec`.
