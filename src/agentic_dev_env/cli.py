@@ -223,6 +223,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     for item in integration_status():
         mark = "✓" if item.configured else ("·" if not item.available else "!")
         print(f"  {mark} {item.name:<14} {item.detail}")
+    print("\nOptional capabilities:")
+    for name, item in capability_status().items():
+        mark = "✓" if item["enabled"] else "·"
+        print(f"  {mark} {name:<22} {item['provider']}")
     return 1 if bad else 0
 
 
