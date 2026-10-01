@@ -272,8 +272,9 @@ def cmd_integrations_install(args: argparse.Namespace) -> int:
 def cmd_capabilities_list(args: argparse.Namespace) -> int:
     for item in list_capabilities():
         targets = ",".join(item.targets)
-        print(f"{item.name:<22} provider={item.provider:<16} targets={targets}")
+        print(f"{item.name:<24} category={item.category:<10} provider={item.provider:<16} targets={targets}")
         print(f"  {item.description}")
+        print(f"  permissions: {', '.join(item.required_permissions) or 'none'}")
         print(f"  risk: {item.risk}")
     return 0
 
@@ -298,7 +299,7 @@ def cmd_capabilities_suggest(args: argparse.Namespace) -> int:
         return 0
     print(f"Repository: {context.root}")
     if not recs:
-        print("No optional browser capability strongly recommended.")
+        print("No optional capability strongly recommended.")
         return 0
     for r in recs:
         print(f"✓ {r.name} via {r.provider}")
