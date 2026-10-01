@@ -53,7 +53,7 @@ version = "0.1.0"
         root = self.make_repo()
         activate(root, ["python-engineering"], shared=False, target="both")
         self.assertTrue((root / ".claude/skills/python-engineering/SKILL.md").exists())
-        self.assertTrue((root / ".agents/skills/python-engineering/SKILL.md").exists())
+        self.assertTrue((root / ".codex/skills/python-engineering/SKILL.md").exists())
         status = installed_skills(root)
         self.assertEqual(status["claude"], ["python-engineering"])
         self.assertEqual(status["codex"], ["python-engineering"])
@@ -66,7 +66,7 @@ version = "0.1.0"
             exclude_path = root / exclude_path
         text = exclude_path.read_text()
         self.assertIn("/.claude/skills/python-engineering/", text)
-        self.assertIn("/.agents/skills/python-engineering/", text)
+        self.assertIn("/.codex/skills/python-engineering/", text)
         self.assertIn("/.agentic/", text)
 
     def test_shared_activation_is_not_added_to_local_exclude(self):
