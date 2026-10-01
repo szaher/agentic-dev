@@ -94,3 +94,28 @@ AgentFlow
 ```
 
 This keeps AgentFlow independent of the implementation details of repository detection.
+
+
+## Verification plan
+
+```bash
+agentic verify --json
+agentic verify plan --path . --base main --json
+```
+
+Document type:
+
+```json
+{
+  "schema_version": "1",
+  "document_type": "agentic.verification-plan"
+}
+```
+
+Schema:
+
+```text
+schemas/verification-plan-v1.schema.json
+```
+
+The plan is advisory to orchestration layers: AgentFlow may make any subset of checks mandatory or add policy-specific gates.
