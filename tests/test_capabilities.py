@@ -48,9 +48,10 @@ class BrowserCapabilityTests(unittest.TestCase):
         names = [r.name for r in recs]
         self.assertIn("browser-agent", names)
 
+    @patch("agentic_dev_env.capabilities.subprocess.run")
     @patch("agentic_dev_env.capabilities._run", return_value=0)
     @patch("agentic_dev_env.capabilities.shutil.which")
-    def test_enable_playwright_registers_isolated_mcp_and_records_state(self, which, run):
+    def test_enable_playwright_registers_isolated_mcp_and_records_state(self, which, run, subrun):
         which.side_effect = lambda name: f"/bin/{name}" if name in {"claude", "codex"} else None
         with tempfile.TemporaryDirectory() as config:
             with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
@@ -62,9 +63,10 @@ class BrowserCapabilityTests(unittest.TestCase):
                 self.assertTrue(item["enabled"])
                 self.assertEqual(item["configuration"]["mode"], "isolated")
 
+    @patch("agentic_dev_env.capabilities.subprocess.run")
     @patch("agentic_dev_env.capabilities._run", return_value=0)
     @patch("agentic_dev_env.capabilities.shutil.which")
-    def test_existing_browser_playwright_uses_extension(self, which, run):
+    def test_existing_browser_playwright_uses_extension(self, which, run, subrun):
         which.side_effect = lambda name: "/bin/claude" if name == "claude" else None
         with tempfile.TemporaryDirectory() as config:
             with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
