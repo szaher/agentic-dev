@@ -13,6 +13,17 @@ from .capabilities import disable as disable_capability, enable as enable_capabi
 from .detect import detect_repo, repo_root
 from .integrations import install as install_integration, status as integration_status
 from .inspection import doctor_document, inspect_repository
+from .compatibility import document as compatibility_document
+from .lifecycle import apply_update, update_status
+from .migrations import migrate as migrate_state
+from .providers import (
+    add_provider, load_manifest, provider_document, remove_provider,
+    run_provider_capability, validate_manifest,
+)
+from .remotes import (
+    add as add_remote, document as remote_document, execute as execute_remote,
+    inspect as inspect_remote, remove as remove_remote,
+)
 from .infrastructure import (
     cloud_identity, cloud_write, cluster_run, database_exec, database_local_list,
     database_local_show, database_local_start, database_local_stop,
@@ -568,6 +579,173 @@ def cmd_infra_observability_status(args: argparse.Namespace) -> int:
     return _print_json_or_summary(data, args.json)
 
 
+def cmd_providers_list(args: argparse.Namespace) -> int:
+    data = provider_document()
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        if not data["providers"]:
+            print("No external providers installed.")
+        for item in data["providers"]:
+            print(f"{item['name']} {item['version']} — {item['description']}")
+            for skill in item["skills"]:
+                print(f"  skill: {skill['name']}")
+            for capability in item["capabilities"]:
+                print(f"  capability: {capability['name']}")
+    return 0
+
+
+def cmd_providers_add(args: argparse.Namespace) -> int:
+    try:
+        data = add_provider(args.manifest)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"✓ installed provider {data['providers'][0]['name']}")
+    return 0
+
+
+def cmd_providers_validate(args: argparse.Namespace) -> int:
+    try:
+        data, manifest = load_manifest(args.manifest)
+        errors = validate_manifest(data, base_dir=manifest.parent)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    result = {
+        "schema_version": "1",
+        "document_type": "agentic.provider-validation",
+        "manifest": str(manifest),
+        "valid": not errors,
+        "errors": errors,
+    }
+    print(json.dumps(result, indent=2, sort_keys=True) if args.json else ("valid" if not errors else "\n".join(errors)))
+    return 0 if not errors else 1
+
+
+def cmd_providers_remove(args: argparse.Namespace) -> int:
+    try:
+        remove_provider(args.name)
+    except KeyError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(f"✓ removed provider {args.name}")
+    return 0
+
+
+def cmd_providers_run(args: argparse.Namespace) -> int:
+    try:
+        data = run_provider_capability(
+            args.provider, args.capability, args.args,
+            path=args.path, profile=args.profile,
+        )
+    except (KeyError, ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        if data["stdout"]:
+            print(data["stdout"], end="" if data["stdout"].endswith("\n") else "\n")
+        if data["stderr"]:
+            print(data["stderr"], file=sys.stderr, end="" if data["stderr"].endswith("\n") else "\n")
+    return 0 if data["success"] else data["returncode"] or 1
+
+
+def cmd_compatibility(args: argparse.Namespace) -> int:
+    data = compatibility_document()
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        p = data["platform"]
+        print(f"agentic-dev-env {data['agentic_version']}")
+        print(f"platform: {p['system']} {p['release']} {p['machine']} python={p['python']} wsl={p['wsl']}")
+        for name, item in data["tools"].items():
+            mark = "✓" if item["available"] else "·"
+            print(f"{mark} {name:<14} {item['version'] or 'not installed'}")
+        print(f"providers: {len(data['providers'])}")
+    return 0
+
+
+def cmd_update(args: argparse.Namespace) -> int:
+    try:
+        if args.action == "apply":
+            data = apply_update()
+        else:
+            data = update_status(fetch=args.fetch)
+    except RuntimeError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        if args.action == "apply":
+            print("✓ agentic-dev-env updated from source checkout")
+        else:
+            print(f"installed: {data['installed_version']}")
+            print(f"source: {data.get('source_root') or 'unknown'}")
+            print(f"update available: {data.get('update_available')}")
+            if data.get("fetch_error"):
+                print(f"fetch error: {data['fetch_error']}")
+    return 0
+
+
+def cmd_migrate(args: argparse.Namespace) -> int:
+    data = migrate_state()
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"state schema: {data['schema_version']} (applied: {data['applied']})")
+    return 0
+
+
+def cmd_remote_list(args: argparse.Namespace) -> int:
+    data = remote_document()
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        for item in data["remotes"]:
+            target = f"{item.get('user') + '@' if item.get('user') else ''}{item['host']}"
+            suffix = f":{item['port']}" if item.get("port") else ""
+            print(f"{item['name']:<18} {target}{suffix} path={item.get('path') or '.'}")
+    return 0
+
+
+def cmd_remote_add(args: argparse.Namespace) -> int:
+    try:
+        data = add_remote(args.name, args.host, user=args.user, port=args.port, path=args.remote_path)
+    except ValueError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"✓ remote {args.name} added")
+    return 0
+
+
+def cmd_remote_remove(args: argparse.Namespace) -> int:
+    try:
+        remove_remote(args.name)
+    except KeyError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(f"✓ remote {args.name} removed")
+    return 0
+
+
+def cmd_remote_inspect(args: argparse.Namespace) -> int:
+    try:
+        data = inspect_remote(args.name, profile=args.profile)
+    except (KeyError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    return _print_json_or_summary(data, args.json)
+
+
+def cmd_remote_exec(args: argparse.Namespace) -> int:
+    try:
+        data = execute_remote(args.name, args.command, profile=args.profile)
+    except (KeyError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    return _print_json_or_summary(data, args.json)
+
+
 def cmd_integrations_status(args: argparse.Namespace) -> int:
     for item in integration_status():
         mark = "✓" if item.configured else ("·" if not item.available else "!")
@@ -1054,6 +1232,83 @@ def build_parser() -> argparse.ArgumentParser:
     obsstatus.add_argument("--profile", default=None)
     obsstatus.add_argument("--json", action="store_true")
     obsstatus.set_defaults(func=cmd_infra_observability_status)
+
+    providers = sub.add_parser("providers", help="Declarative external skill/capability providers")
+    psub = providers.add_subparsers(dest="providers_command", required=True)
+
+    plist = psub.add_parser("list")
+    plist.add_argument("--json", action="store_true")
+    plist.set_defaults(func=cmd_providers_list)
+
+    padd = psub.add_parser("add")
+    padd.add_argument("manifest")
+    padd.add_argument("--json", action="store_true")
+    padd.set_defaults(func=cmd_providers_add)
+
+    pvalidate = psub.add_parser("validate")
+    pvalidate.add_argument("manifest")
+    pvalidate.add_argument("--json", action="store_true")
+    pvalidate.set_defaults(func=cmd_providers_validate)
+
+    premove = psub.add_parser("remove")
+    premove.add_argument("name")
+    premove.set_defaults(func=cmd_providers_remove)
+
+    prun = psub.add_parser("run", help="Explicitly run a declared provider capability")
+    prun.add_argument("provider")
+    prun.add_argument("capability")
+    prun.add_argument("--path", default=".")
+    prun.add_argument("--profile", default=None)
+    prun.add_argument("--json", action="store_true")
+    prun.add_argument("args", nargs=argparse.REMAINDER)
+    prun.set_defaults(func=cmd_providers_run)
+
+    compatibility = sub.add_parser("compatibility", help="Show platform, agent, tool, and provider compatibility")
+    compatibility.add_argument("--json", action="store_true")
+    compatibility.set_defaults(func=cmd_compatibility)
+
+    update = sub.add_parser("update", help="Check or apply an update from the recorded source checkout")
+    update.add_argument("action", nargs="?", choices=["check", "apply"], default="check")
+    update.add_argument("--fetch", action="store_true", help="Fetch origin before checking")
+    update.add_argument("--json", action="store_true")
+    update.set_defaults(func=cmd_update)
+
+    migrate = sub.add_parser("migrate", help="Apply local agentic-dev-env state migrations")
+    migrate.add_argument("--json", action="store_true")
+    migrate.set_defaults(func=cmd_migrate)
+
+    remote = sub.add_parser("remote", help="Named SSH development profiles")
+    rsub = remote.add_subparsers(dest="remote_command", required=True)
+
+    rlist = rsub.add_parser("list")
+    rlist.add_argument("--json", action="store_true")
+    rlist.set_defaults(func=cmd_remote_list)
+
+    radd = rsub.add_parser("add")
+    radd.add_argument("name")
+    radd.add_argument("--host", required=True)
+    radd.add_argument("--user", default=None)
+    radd.add_argument("--port", type=int, default=None)
+    radd.add_argument("--path", dest="remote_path", default=None)
+    radd.add_argument("--json", action="store_true")
+    radd.set_defaults(func=cmd_remote_add)
+
+    rremove = rsub.add_parser("remove")
+    rremove.add_argument("name")
+    rremove.set_defaults(func=cmd_remote_remove)
+
+    rinspect = rsub.add_parser("inspect")
+    rinspect.add_argument("name")
+    rinspect.add_argument("--profile", default=None)
+    rinspect.add_argument("--json", action="store_true")
+    rinspect.set_defaults(func=cmd_remote_inspect)
+
+    rexec = rsub.add_parser("exec")
+    rexec.add_argument("name")
+    rexec.add_argument("command")
+    rexec.add_argument("--profile", default=None)
+    rexec.add_argument("--json", action="store_true")
+    rexec.set_defaults(func=cmd_remote_exec)
 
     integrations = sub.add_parser("integrations", help="Native Claude/Codex/Pi integrations")
     isub = integrations.add_subparsers(dest="integrations_command", required=True)
