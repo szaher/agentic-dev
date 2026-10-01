@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -122,6 +123,26 @@ def current_profile(root: str | Path | None = None) -> TrustProfile:
     return get_profile(current_profile_name(root))
 
 
+def _exclude_local(root: Path, entry: str) -> None:
+    try:
+        raw = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--git-path", "info/exclude"],
+            check=True, capture_output=True, text=True,
+        ).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return
+    path = Path(raw)
+    if not path.is_absolute():
+        path = root / path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = path.read_text().splitlines() if path.exists() else []
+    if entry not in lines:
+        with path.open("a") as handle:
+            if lines:
+                handle.write("\n")
+            handle.write(entry + "\n")
+
+
 def set_current(name: str, root: str | Path | None = None) -> None:
     get_profile(name)
     if root is None:
@@ -129,10 +150,12 @@ def set_current(name: str, root: str | Path | None = None) -> None:
         data["current_profile"] = name
         _save_json(_user_file(), data)
         return
-    path = _repo_file(Path(root).resolve())
+    repo_root = Path(root).resolve()
+    path = _repo_file(repo_root)
     data = _load_json(path)
     data["profile"] = name
     _save_json(path, data)
+    _exclude_local(repo_root, "/.agentic/")
 
 
 def define_profile(name: str, permissions: Iterable[str], description: str = "") -> None:
