@@ -119,3 +119,27 @@ schemas/verification-plan-v1.schema.json
 ```
 
 The plan is advisory to orchestration layers: AgentFlow may make any subset of checks mandatory or add policy-specific gates.
+
+
+## Execution result
+
+```bash
+agentic execution run "pytest -q" --json
+```
+
+Document type:
+
+```json
+{
+  "schema_version": "1",
+  "document_type": "agentic.execution-result"
+}
+```
+
+Schema:
+
+```text
+schemas/execution-result-v1.schema.json
+```
+
+Execution results include backend, exact argv, normalized stdout/stderr/return code, and backend metadata.

@@ -13,6 +13,7 @@ from .capabilities import disable as disable_capability, enable as enable_capabi
 from .detect import detect_repo, repo_root
 from .integrations import install as install_integration, status as integration_status
 from .inspection import doctor_document, inspect_repository
+from .execution import configure as configure_execution, run as run_execution, status as execution_status
 from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
 from .trust import define_profile, document as trust_document, get_profile, set_current
 from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
@@ -368,6 +369,10 @@ def cmd_verify_run(args: argparse.Namespace) -> int:
     data = execute_verification(
         plan,
         continue_on_failure=getattr(args, "continue_on_failure", False),
+        backend=getattr(args, "backend", None),
+        image=getattr(args, "image", None),
+        network=getattr(args, "network", None),
+        profile=getattr(args, "profile", None),
     )
     if getattr(args, "json", False):
         print(json.dumps(data, indent=2, sort_keys=True))
@@ -378,6 +383,60 @@ def cmd_verify_run(args: argparse.Namespace) -> int:
             print(f"{mark} {result['kind']}: {label}")
         print("verification: " + ("passed" if data["success"] else "failed"))
     return 0 if data["success"] else 1
+
+
+def cmd_execution_status(args: argparse.Namespace) -> int:
+    data = execution_status(args.path)
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        selected = data["selected"]
+        print(f"backend: {selected['backend']}")
+        print(f"image: {selected.get('image') or '-'}")
+        print(f"network: {selected.get('network') or 'none'}")
+        for name, item in data["backends"].items():
+            mark = "✓" if item["available"] else "·"
+            print(f"{mark} {name:<14} {item.get('binary') or 'built-in'}")
+    return 0
+
+
+def cmd_execution_configure(args: argparse.Namespace) -> int:
+    try:
+        data = configure_execution(
+            backend=args.backend,
+            path=args.path,
+            image=args.image,
+            network=args.network,
+            repo_scope=args.repo,
+        )
+    except ValueError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"✓ {data['scope']} backend={data['backend']}")
+    return 0
+
+
+def cmd_execution_run(args: argparse.Namespace) -> int:
+    try:
+        data = run_execution(
+            args.command,
+            args.path,
+            backend=args.backend,
+            image=args.image,
+            network=args.network,
+            profile=args.profile,
+        )
+    except (ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        if data["stdout"]:
+            print(data["stdout"], end="" if data["stdout"].endswith("\n") else "\n")
+        if data["stderr"]:
+            print(data["stderr"], file=sys.stderr, end="" if data["stderr"].endswith("\n") else "\n")
+    return 0 if data["success"] else data["returncode"] or 1
 
 
 def cmd_integrations_status(args: argparse.Namespace) -> int:
@@ -733,8 +792,39 @@ def build_parser() -> argparse.ArgumentParser:
     vrun.add_argument("--base", default=None)
     vrun.add_argument("--symbol", action="append", default=None)
     vrun.add_argument("--continue-on-failure", action="store_true")
+    vrun.add_argument("--backend", choices=["host", "container", "devcontainer", "dagger"], default=None)
+    vrun.add_argument("--image", default=None)
+    vrun.add_argument("--network", choices=["none", "default"], default=None)
+    vrun.add_argument("--profile", default=None)
     vrun.add_argument("--json", action="store_true")
     vrun.set_defaults(func=cmd_verify_run)
+
+    execution = sub.add_parser("execution", help="Execution backends and sandbox configuration")
+    esub = execution.add_subparsers(dest="execution_command", required=True)
+
+    estatus = esub.add_parser("status", help="Show backend availability and selected configuration")
+    estatus.add_argument("--path", default=".")
+    estatus.add_argument("--json", action="store_true")
+    estatus.set_defaults(func=cmd_execution_status)
+
+    econfig = esub.add_parser("configure", help="Configure the default execution backend")
+    econfig.add_argument("backend", choices=["host", "container", "devcontainer", "dagger"])
+    econfig.add_argument("--path", default=".")
+    econfig.add_argument("--image", default=None)
+    econfig.add_argument("--network", choices=["none", "default"], default="none")
+    econfig.add_argument("--repo", action="store_true")
+    econfig.add_argument("--json", action="store_true")
+    econfig.set_defaults(func=cmd_execution_configure)
+
+    erun = esub.add_parser("run", help="Run one command through a selected execution backend")
+    erun.add_argument("command")
+    erun.add_argument("--path", default=".")
+    erun.add_argument("--backend", choices=["host", "container", "devcontainer", "dagger"], default=None)
+    erun.add_argument("--image", default=None)
+    erun.add_argument("--network", choices=["none", "default"], default=None)
+    erun.add_argument("--profile", default=None)
+    erun.add_argument("--json", action="store_true")
+    erun.set_defaults(func=cmd_execution_run)
 
     integrations = sub.add_parser("integrations", help="Native Claude/Codex/Pi integrations")
     isub = integrations.add_subparsers(dest="integrations_command", required=True)

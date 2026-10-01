@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.0 - 2026-10-02
+
+Execution backends and sandboxing.
+
+- Added host, Docker/Podman container, Dev Container, and Dagger execution backends.
+- Added `agentic execution status/configure/run`.
+- Generic containers default to no network and require explicit images.
+- Dev Container execution uses the repo's own configuration.
+- Dagger execution uses Workspace `exec --no-apply`.
+- Added trust enforcement for container/network execution.
+- Routed normal verification commands through the execution backend abstraction.
+- Added normalized execution-result JSON schema and backend regression tests.
+- Inspection/doctor documents now expose execution backend state.
+
 ## 0.9.0 - 2026-10-02
 
 Change-aware verification planner.

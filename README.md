@@ -404,6 +404,29 @@ When available, CodeGraph contributes affected-test and symbol-impact evidence. 
 
 See [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
 
+## Execution backends
+
+The default remains direct host execution, but verification can run through isolated environments:
+
+```bash
+agentic execution status
+
+agentic execution configure container \
+  --image python:3.13 \
+  --network none \
+  --repo
+
+agentic verify run \
+  --backend container \
+  --image python:3.13 \
+  --profile development \
+  --json
+```
+
+Supported backends are host, Docker/Podman containers, Dev Containers, and Dagger Workspace execution.
+
+See [`docs/EXECUTION.md`](docs/EXECUTION.md).
+
 ## Repository layout
 
 ```text
