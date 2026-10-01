@@ -94,7 +94,7 @@ def apply_update() -> dict[str, Any]:
     install = source / "install.sh"
     if not install.is_file():
         raise RuntimeError("install.sh not found in installation source")
-    proc = subprocess.run([str(install)], cwd=source, capture_output=True, text=True, check=False)
+    proc = subprocess.run(["bash", str(install)], cwd=source, capture_output=True, text=True, check=False)
     if proc.returncode != 0:
         raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or "install.sh failed")
     return {
