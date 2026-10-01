@@ -168,7 +168,7 @@ AgentFlow should consume the plan but retain authority over which gates are mand
 
 ---
 
-## Milestone 6 — Execution backends and sandboxing (v0.10)
+## Milestone 6 — Execution backends and sandboxing (v0.10) ✅
 
 **Goal:** stop assuming every agent command should execute directly on the host.
 
