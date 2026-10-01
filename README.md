@@ -1,6 +1,6 @@
 # agentic-dev-env
 
-A macOS bootstrap and repository initializer for coding agents.
+A macOS bootstrap, repository initializer, skill manager, and native integration layer for coding agents.
 
 The goal is simple: make Claude Code, Codex, and similar agents spend less time rediscovering a repository and more time making correct changes with the right local tools.
 
@@ -39,7 +39,7 @@ Two scripts form the core workflow:
 
 - `setup-coding-agent-env.sh` — run once per Mac. Installs the common workstation foundation, optional language/toolchain support, and can wire supported tools into Claude Code and Codex.
 - `saad-tool-repo-init.sh` — run per repository. Detects the languages, frameworks, package managers, runtime declarations, build/test commands, code-intelligence prerequisites, and relevant Agent Skills.
-- `agentic` — unified CLI for skill recommendation/activation, environment checks, and repo workflows.
+- `agentic` — unified CLI for skill recommendation/activation, environment checks, repo workflows, and native Claude Code/Codex/Pi integrations.
 
 The repository initializer follows this rule:
 
@@ -149,6 +149,27 @@ agentic skills status .
 The CLI explains *why* a skill matched and lets you accept the recommended set, choose specific entries, select all, or select none. Skills are local/untracked by default; use `--shared` or `--skills-shared` only when the team intentionally wants to commit them.
 
 See [`docs/SKILLS.md`](docs/SKILLS.md).
+
+### 5. Install native agent integrations
+
+The same repo acts as a Claude Code marketplace, Codex marketplace/plugin, and Pi package:
+
+```bash
+agentic integrations install all
+agentic integrations status
+```
+
+You can install individually:
+
+```bash
+agentic integrations install claude
+agentic integrations install codex
+agentic integrations install pi
+```
+
+The adapters stay intentionally small. They expose the `agentic` control plane; repo/task-specific engineering skills are still selected on demand rather than permanently loading the whole catalog.
+
+See [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md).
 
 ## Agent configuration
 
@@ -280,6 +301,10 @@ agentic-dev-env/
 │   ├── detect.py
 │   ├── skills.py
 │   └── builtin_skills/
+├── integrations/
+│   ├── claude/
+│   ├── codex/
+│   └── pi/
 ├── scripts/
 │   ├── setup-coding-agent-env.sh
 │   └── saad-tool-repo-init.sh
@@ -288,6 +313,7 @@ agentic-dev-env/
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── AGENT_CONFIGURATION.md
+│   ├── INTEGRATIONS.md
 │   ├── SKILLS.md
 │   └── TOOLS.md
 ├── tests/
@@ -300,7 +326,9 @@ agentic-dev-env/
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the problem model, architecture, and why machine setup and repository setup are separate concerns.
 
-See [`docs/AGENT_CONFIGURATION.md`](docs/AGENT_CONFIGURATION.md) for Claude Code/Codex instruction hierarchy and MCP/tool setup.
+See [`docs/AGENT_CONFIGURATION.md`](docs/AGENT_CONFIGURATION.md) for global instruction hierarchy and MCP/tool setup.
+
+See [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) for Claude Code plugins, Codex plugins/marketplaces, and the Pi package.
 
 ## Development
 
