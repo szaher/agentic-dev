@@ -16,6 +16,7 @@ from .inspection import doctor_document, inspect_repository
 from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
 from .trust import define_profile, document as trust_document, get_profile, set_current
 from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
+from .verification import execute as execute_verification, plan as verification_plan
 
 
 def _print_recommendations(path: str, task: str, max_skills: int, as_json: bool):
@@ -327,6 +328,56 @@ def cmd_worktree_clean(args: argparse.Namespace) -> int:
         if args.delete_branch:
             print(f"  branch deleted: {data['deleted_branch']}")
     return 0
+
+
+def _verification_args(args: argparse.Namespace) -> tuple[str, str | None, list[str] | None]:
+    return (
+        getattr(args, "path", "."),
+        getattr(args, "base", None),
+        getattr(args, "symbol", None),
+    )
+
+
+def cmd_verify_plan(args: argparse.Namespace) -> int:
+    path, base, symbols = _verification_args(args)
+    data = verification_plan(path, base=base, symbols=symbols)
+    if getattr(args, "json", False):
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return 0
+    print(f"Repository: {data['repository']}")
+    print("Changed files:")
+    for file in data["changed_files"]:
+        print(f"  - {file}")
+    print("Verification checks:")
+    if not data["checks"]:
+        print("  none")
+    for check in data["checks"]:
+        command = check.get("command") or check.get("test_file") or "-"
+        print(f"  - [{check['kind']}] {command}")
+        print(f"      {check['reason']}")
+    if data["skipped_checks"]:
+        print("Skipped:")
+        for check in data["skipped_checks"]:
+            print(f"  - [{check['kind']}] {check['command']} — {check['reason']}")
+    return 0
+
+
+def cmd_verify_run(args: argparse.Namespace) -> int:
+    path, base, symbols = _verification_args(args)
+    plan = verification_plan(path, base=base, symbols=symbols)
+    data = execute_verification(
+        plan,
+        continue_on_failure=getattr(args, "continue_on_failure", False),
+    )
+    if getattr(args, "json", False):
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        for result in data["results"]:
+            mark = "✓" if result.get("success") is True else ("·" if result.get("success") is None else "!")
+            label = result.get("command") or result.get("test_file") or result.get("capability")
+            print(f"{mark} {result['kind']}: {label}")
+        print("verification: " + ("passed" if data["success"] else "failed"))
+    return 0 if data["success"] else 1
 
 
 def cmd_integrations_status(args: argparse.Namespace) -> int:
@@ -661,6 +712,29 @@ def build_parser() -> argparse.ArgumentParser:
     wclean.add_argument("--delete-branch", action="store_true")
     wclean.add_argument("--json", action="store_true")
     wclean.set_defaults(func=cmd_worktree_clean)
+
+    verify = sub.add_parser("verify", help="Plan or run change-aware verification")
+    verify.add_argument("--path", default=".")
+    verify.add_argument("--base", default=None)
+    verify.add_argument("--symbol", action="append", default=None)
+    verify.add_argument("--json", action="store_true")
+    verify.set_defaults(func=cmd_verify_plan)
+    vsub = verify.add_subparsers(dest="verify_command")
+
+    vplan = vsub.add_parser("plan", help="Create a verification plan")
+    vplan.add_argument("--path", default=".")
+    vplan.add_argument("--base", default=None)
+    vplan.add_argument("--symbol", action="append", default=None)
+    vplan.add_argument("--json", action="store_true")
+    vplan.set_defaults(func=cmd_verify_plan)
+
+    vrun = vsub.add_parser("run", help="Execute the selected verification checks")
+    vrun.add_argument("--path", default=".")
+    vrun.add_argument("--base", default=None)
+    vrun.add_argument("--symbol", action="append", default=None)
+    vrun.add_argument("--continue-on-failure", action="store_true")
+    vrun.add_argument("--json", action="store_true")
+    vrun.set_defaults(func=cmd_verify_run)
 
     integrations = sub.add_parser("integrations", help="Native Claude/Codex/Pi integrations")
     isub = integrations.add_subparsers(dest="integrations_command", required=True)
