@@ -112,7 +112,7 @@ Permission vocabulary:
 
 ---
 
-## Milestone 4 — Worktree and session manager (v0.8)
+## Milestone 4 — Worktree and session manager (v0.8) ✅
 
 **Goal:** make parallel agent work safe by default.
 
