@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Iterable
 
 from .detect import RepoContext, detect_repo
+from .providers import external_skills, find_external_skill
 
 
 MANAGED_MARKER = "<!-- managed-by: agentic-dev-env -->"
@@ -40,7 +41,7 @@ def skills_root():
 def load_registry() -> list[Skill]:
     raw = skills_root().joinpath("registry.toml").read_bytes()
     data = tomllib.loads(raw.decode())
-    return [
+    skills = [
         Skill(
             name=item["name"],
             description=item["description"],
@@ -51,6 +52,19 @@ def load_registry() -> list[Skill]:
         )
         for item in data["skill"]
     ]
+    builtin_names = {skill.name for skill in skills}
+    for item in external_skills():
+        if item["name"] in builtin_names:
+            continue
+        skills.append(Skill(
+            name=item["name"],
+            description=item.get("description") or f"External skill from {item['provider_name']}",
+            category=item.get("category", "external"),
+            signals=tuple(item.get("signals") or []),
+            task_keywords=tuple(item.get("task_keywords") or []),
+            priority=int(item.get("priority", 0)),
+        ))
+    return skills
 
 
 def get_skill(name: str) -> Skill:
@@ -61,7 +75,13 @@ def get_skill(name: str) -> Skill:
 
 
 def skill_content(name: str) -> str:
-    return skills_root().joinpath(name, "SKILL.md").read_text()
+    builtin = skills_root().joinpath(name, "SKILL.md")
+    if builtin.is_file():
+        return builtin.read_text()
+    external = find_external_skill(name)
+    if external:
+        return Path(external["absolute_path"]).read_text()
+    raise KeyError(name)
 
 
 def recommend(context: RepoContext, task: str = "", max_recommended: int = 6) -> list[Recommendation]:
