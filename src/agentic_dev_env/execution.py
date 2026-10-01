@@ -308,7 +308,7 @@ def run(
             f"--from={selected_image}",
             "--", "sh", "-lc", command,
         ]
-        completed = subprocess.run(argv, capture_output=True, text=True, check=False)
+        completed = _invoke(argv)
         return _result(
             backend=selected, command=command, root=root,
             argv=argv, completed=completed,
