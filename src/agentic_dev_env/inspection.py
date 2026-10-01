@@ -11,6 +11,9 @@ from .detect import RepoContext, detect_repo
 from .integrations import status as integration_status
 from .execution import status as execution_status
 from .infrastructure import status as infrastructure_status
+from .compatibility import document as compatibility_document
+from .providers import provider_document
+from .remotes import document as remote_document
 from .skills import installed_skills, recommend
 from .trust import document as trust_document
 
@@ -181,6 +184,9 @@ def doctor_document() -> dict[str, Any]:
         "trust": trust_document(),
         "execution": execution_status(),
         "infrastructure": infrastructure_status(),
+        "compatibility": compatibility_document(),
+        "providers": provider_document(),
+        "remotes": remote_document(),
     }
 
 
@@ -225,6 +231,8 @@ def inspect_repository(path: str | Path = ".", task: str = "") -> dict[str, Any]
         "trust": trust_document(root),
         "execution": execution_status(root),
         "infrastructure": infrastructure_status(root),
+        "providers": provider_document(),
+        "remotes": remote_document(),
         "integrations": [
             {
                 "name": item.name,
