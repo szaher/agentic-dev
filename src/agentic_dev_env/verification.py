@@ -48,11 +48,12 @@ def _run(argv: list[str], *, cwd: Path, check: bool = False) -> subprocess.Compl
 
 def changed_files(path: str | Path = ".", base: str | None = None) -> list[str]:
     root = repo_root(path)
+    files: set[str] = set()
     if base:
         diff = _run(["git", "diff", "--name-only", f"{base}...HEAD"], cwd=root)
-    else:
-        diff = _run(["git", "diff", "--name-only", "HEAD"], cwd=root)
-    files = {line.strip() for line in diff.stdout.splitlines() if line.strip()}
+        files.update(line.strip() for line in diff.stdout.splitlines() if line.strip())
+    working = _run(["git", "diff", "--name-only", "HEAD"], cwd=root)
+    files.update(line.strip() for line in working.stdout.splitlines() if line.strip())
     untracked = _run(["git", "ls-files", "--others", "--exclude-standard"], cwd=root)
     files.update(line.strip() for line in untracked.stdout.splitlines() if line.strip())
     return sorted(files)
