@@ -185,6 +185,13 @@ def add_provider(path: str | Path) -> dict[str, Any]:
     normalized.setdefault("metadata", {})["source_manifest"] = str(manifest)
     normalized["metadata"]["installed_manifest_sha256"] = _sha256(manifest)
     normalized["metadata"]["signature_verified"] = signed
+    signature = normalized["metadata"].get("signature")
+    if signed and signature:
+        source_sig = (manifest.parent / signature["file"]).resolve()
+        target_sig = dest / "provenance" / "source-manifest.minisig"
+        target_sig.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_sig, target_sig)
+        signature["file"] = "provenance/source-manifest.minisig"
     (dest / "provider.json").write_text(json.dumps(normalized, indent=2, sort_keys=True) + "\n")
 
     return provider_document(data["name"])
