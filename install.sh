@@ -63,6 +63,8 @@ cat > "$CONFIG_DIR/install.json" <<EOF_META
 }
 EOF_META
 
+"$BIN_DIR/agentic" migrate --json >/dev/null 2>&1 || true
+
 cat <<EOF2
 Installed agentic-dev-env.
 
