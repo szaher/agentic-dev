@@ -232,7 +232,7 @@ Add only as optional capability packs.
 
 ---
 
-## Milestone 8 — Provider ecosystem and lifecycle
+## Milestone 8 — Provider ecosystem and lifecycle ✅
 
 **Goal:** make capabilities and skills extensible without hard-coding everything into the main repository.
 
@@ -275,14 +275,8 @@ Telemetry should be local/off by default unless the user explicitly enables expo
 
 ## Immediate execution order
 
-The next implementation sequence is:
+Milestones 1–8 are complete. The remaining roadmap item is:
 
-1. **v0.5 inspection contract**
-2. security capability pack
-3. trust profiles
-4. worktree/session manager
-5. verification planner
-6. sandbox/execution backends
-7. database / cluster / cloud / observability packs
+1. **Measurement and evaluation**
 
-This order is intentional. The inspection contract becomes the API every later feature and AgentFlow integration can build on.
+The inspection contract remains the API every higher-level AgentFlow integration can build on.
