@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.12.0 - 2026-10-02
+
+Provider ecosystem and lifecycle.
+
+- Added declarative external provider manifests for skills and explicitly invoked capabilities.
+- External skills participate in the normal recommendation/activation catalog.
+- Provider skill artifacts are SHA-256 pinned; path traversal and unsafe names are rejected.
+- Added optional Minisign verification with retained source-signature provenance.
+- Added provider compatibility constraints for agentic-dev-env version and platform.
+- Added compatibility diagnostics for OS/WSL, agents, code tools, runtimes, infrastructure CLIs, and providers.
+- Added source-checkout-aware update check/apply with clean-tree and fast-forward safeguards.
+- Added versioned state migration hooks and automatic migration during install.
+- Added Linux/WSL bootstrap support for apt/dnf/pacman families.
+- Made install shell configuration work with zsh, bash, or profile fallback.
+- Added named SSH remote profiles with BatchMode authentication, read inspection, and separately permissioned remote execution.
+- No built-in trust profile grants remote.exec.
+- Added provider manifest schema and lifecycle/provider regression tests.
+
 ## 0.11.0 - 2026-10-02
 
 Infrastructure capability packs.
