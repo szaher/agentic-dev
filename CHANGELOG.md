@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.0 - 2026-10-02
+
+Worktree and agent session manager.
+
+- Added `agentic worktree create/list/status/clean`.
+- Added predictable per-repository worktree roots with an environment override.
+- Added per-worktree agent/task session metadata.
+- Added dirty-worktree protection and explicit force removal.
+- Added optional branch deletion and collision detection.
+- Prevented primary-worktree removal.
+- Kept session metadata local through Git exclude.
+- Added machine-readable JSON output and real-Git regression tests.
+
 ## 0.7.0 - 2026-10-02
 
 Security capability pack and trust profiles (roadmap v0.6 + v0.7).
