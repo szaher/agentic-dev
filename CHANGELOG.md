@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0 - 2026-10-01
+
+Optional capability packs.
+
+- Added `agentic capabilities list/suggest/enable/disable/status`.
+- Added browser as the first optional capability pack.
+- Added Playwright MCP as the default browser-automation provider.
+- Added Chrome DevTools MCP for browser-debug and frontend performance workflows.
+- Added Browser Use for advanced autonomous browser workflows.
+- Added isolated/persistent/existing-browser Playwright modes and isolated/headless Chrome DevTools modes.
+- Browser recommendations are repo/task-aware but never auto-enable access.
+- Added web-app and Playwright repository detection.
+- Added capability state reporting to `agentic doctor`.
+- Added browser security guidance and regression tests.
+
 ## 0.3.0 - 2026-10-01
 
 Native agent integrations.

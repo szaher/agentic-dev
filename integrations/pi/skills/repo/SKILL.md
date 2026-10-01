@@ -15,3 +15,14 @@ Useful Pi commands:
 - `/agentic-status` shows active project skills.
 
 Prefer a small skill set. Do not activate every matching skill. Do not install project dependencies unless the user explicitly asks.
+
+
+## Optional capabilities
+
+Do not assume browser or other sensitive capabilities are installed. When browser interaction would materially help, preview the recommendation first:
+
+```bash
+agentic capabilities suggest . --task "<task>"
+```
+
+Only enable a capability when the user explicitly wants browser/tool access. Prefer isolated browser mode for routine UI testing.

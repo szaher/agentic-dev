@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from .capabilities import disable as disable_capability, enable as enable_capability, list_capabilities, status as capability_status, suggest_for_repo
 from .detect import detect_repo, repo_root
 from .integrations import install as install_integration, status as integration_status
 from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
@@ -222,6 +223,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     for item in integration_status():
         mark = "✓" if item.configured else ("·" if not item.available else "!")
         print(f"  {mark} {item.name:<14} {item.detail}")
+    print("\nOptional capabilities:")
+    for name, item in capability_status().items():
+        mark = "✓" if item["enabled"] else "·"
+        print(f"  {mark} {name:<22} {item['provider']}")
     return 1 if bad else 0
 
 
@@ -234,6 +239,74 @@ def cmd_integrations_status(args: argparse.Namespace) -> int:
 
 def cmd_integrations_install(args: argparse.Namespace) -> int:
     return install_integration(args.target)
+
+
+def cmd_capabilities_list(args: argparse.Namespace) -> int:
+    for item in list_capabilities():
+        targets = ",".join(item.targets)
+        print(f"{item.name:<22} provider={item.provider:<16} targets={targets}")
+        print(f"  {item.description}")
+        print(f"  risk: {item.risk}")
+    return 0
+
+
+def cmd_capabilities_suggest(args: argparse.Namespace) -> int:
+    context, recs = suggest_for_repo(args.path, args.task or "")
+    if args.json:
+        print(json.dumps({
+            "root": str(context.root),
+            "facts": sorted(context.facts),
+            "recommendations": [
+                {
+                    "name": r.name,
+                    "provider": r.provider,
+                    "description": r.description,
+                    "reasons": list(r.reasons),
+                    "score": r.score,
+                }
+                for r in recs
+            ],
+        }, indent=2))
+        return 0
+    print(f"Repository: {context.root}")
+    if not recs:
+        print("No optional browser capability strongly recommended.")
+        return 0
+    for r in recs:
+        print(f"✓ {r.name} via {r.provider}")
+        print(f"  {r.description}")
+        print(f"  why: {'; '.join(r.reasons)}")
+    print("\nNothing was enabled. Use 'agentic capabilities enable <name>' explicitly.")
+    return 0
+
+
+def cmd_capabilities_enable(args: argparse.Namespace) -> int:
+    try:
+        return enable_capability(args.name, target=args.target, mode=args.mode)
+    except (KeyError, ValueError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+
+
+def cmd_capabilities_disable(args: argparse.Namespace) -> int:
+    try:
+        return disable_capability(args.name)
+    except (KeyError, ValueError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+
+
+def cmd_capabilities_status(args: argparse.Namespace) -> int:
+    data = capability_status()
+    if args.json:
+        print(json.dumps(data, indent=2))
+        return 0
+    for name, item in data.items():
+        mark = "✓" if item["enabled"] else "·"
+        detail = item["configuration"] or {}
+        suffix = f" ({detail.get('target')}, {detail.get('mode')})" if detail else ""
+        print(f"{mark} {name:<22} {item['provider']}{suffix}")
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -304,6 +377,32 @@ def build_parser() -> argparse.ArgumentParser:
     status = ssub.add_parser("status", help="Show active project skills")
     status.add_argument("path", nargs="?", default=".")
     status.set_defaults(func=cmd_skills_status)
+
+    capabilities = sub.add_parser("capabilities", help="Optional capability packs such as browser automation")
+    csub = capabilities.add_subparsers(dest="capabilities_command", required=True)
+
+    clist = csub.add_parser("list", help="List optional capabilities")
+    clist.set_defaults(func=cmd_capabilities_list)
+
+    csuggest = csub.add_parser("suggest", help="Recommend optional capabilities from repo/task context")
+    csuggest.add_argument("path", nargs="?", default=".")
+    csuggest.add_argument("--task", default="")
+    csuggest.add_argument("--json", action="store_true")
+    csuggest.set_defaults(func=cmd_capabilities_suggest)
+
+    cenable = csub.add_parser("enable", help="Explicitly enable an optional capability")
+    cenable.add_argument("name", choices=[c.name for c in list_capabilities()])
+    cenable.add_argument("--target", choices=["claude", "codex", "both"], default="both")
+    cenable.add_argument("--mode", choices=["isolated", "persistent", "existing-browser", "headless"], default="isolated")
+    cenable.set_defaults(func=cmd_capabilities_enable)
+
+    cdisable = csub.add_parser("disable", help="Disable a managed optional capability")
+    cdisable.add_argument("name", choices=[c.name for c in list_capabilities()])
+    cdisable.set_defaults(func=cmd_capabilities_disable)
+
+    cstatus = csub.add_parser("status", help="Show optional capability state")
+    cstatus.add_argument("--json", action="store_true")
+    cstatus.set_defaults(func=cmd_capabilities_status)
 
     integrations = sub.add_parser("integrations", help="Native Claude/Codex/Pi integrations")
     isub = integrations.add_subparsers(dest="integrations_command", required=True)
