@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev-env/schemas/provider-manifest-v1.schema.json",
+  "title": "agentic-dev-env provider manifest v1",
+  "type": "object",
+  "required": ["schema_version", "name", "version", "description"],
+  "properties": {
+    "schema_version": {"const": "1"},
+    "name": {"type": "string", "pattern": "^[A-Za-z0-9._-]+$"},
+    "version": {"type": "string", "minLength": 1},
+    "description": {"type": "string", "minLength": 1},
+    "compatibility": {
+      "type": "object",
+      "properties": {
+        "agentic_min": {"type": "string"},
+        "agentic_max": {"type": "string"},
+        "platforms": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "path"],
+        "properties": {
+          "name": {"type": "string", "pattern": "^[A-Za-z0-9._-]+$"},
+          "path": {"type": "string"},
+          "description": {"type": "string"},
+          "category": {"type": "string"},
+          "signals": {"type": "array", "items": {"type": "string"}},
+          "task_keywords": {"type": "array", "items": {"type": "string"}},
+          "priority": {"type": "integer"},
+          "sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"}
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "command"],
+        "properties": {
+          "name": {"type": "string", "pattern": "^[A-Za-z0-9._-]+$"},
+          "description": {"type": "string"},
+          "category": {"type": "string"},
+          "required_permissions": {"type": "array", "items": {"type": "string"}},
+          "command": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "manifest_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+        "signature": {
+          "type": "object",
+          "required": ["type", "public_key", "file"],
+          "properties": {
+            "type": {"const": "minisign"},
+            "public_key": {"type": "string"},
+            "file": {"type": "string"}
+          }
+        }
+      }
+    }
+  }
+}
