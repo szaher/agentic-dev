@@ -172,6 +172,22 @@ def _resolve(
     return selected, selected_image, selected_network
 
 
+def _invoke(
+    argv: str | list[str],
+    *,
+    cwd: Path | None = None,
+    shell: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        argv,
+        cwd=cwd,
+        shell=shell,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
 def _result(
     *,
     backend: str,
@@ -220,14 +236,7 @@ def run(
         )
 
     if selected == "host":
-        completed = subprocess.run(
-            command,
-            cwd=root,
-            shell=True,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        completed = _invoke(command, cwd=root, shell=True)
         return _result(
             backend=selected, command=command, root=root,
             argv=["sh", "-lc", command], completed=completed,
@@ -246,7 +255,7 @@ def run(
         if selected_network == "none":
             argv += ["--network", "none"]
         argv += [str(selected_image), "sh", "-lc", command]
-        completed = subprocess.run(argv, capture_output=True, text=True, check=False)
+        completed = _invoke(argv)
         return _result(
             backend=selected, command=command, root=root,
             argv=argv, completed=completed,
@@ -265,7 +274,7 @@ def run(
         if not (root / ".devcontainer").exists() and not (root / ".devcontainer.json").exists():
             raise RuntimeError("no devcontainer configuration detected")
         up = [binary, "up", "--workspace-folder", str(root)]
-        up_result = subprocess.run(up, capture_output=True, text=True, check=False)
+        up_result = _invoke(up)
         if up_result.returncode != 0:
             return _result(
                 backend=selected, command=command, root=root,
@@ -276,7 +285,7 @@ def run(
             binary, "exec", "--workspace-folder", str(root),
             "sh", "-lc", command,
         ]
-        completed = subprocess.run(argv, capture_output=True, text=True, check=False)
+        completed = _invoke(argv)
         return _result(
             backend=selected, command=command, root=root,
             argv=argv, completed=completed,
