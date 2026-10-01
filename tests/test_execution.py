@@ -69,7 +69,7 @@ class ExecutionBackendTests(unittest.TestCase):
     def test_dagger_uses_no_apply_and_explicit_image(self, which, invoke):
         root = self.repo()
         which.side_effect = lambda name: "/usr/bin/dagger" if name == "dagger" else None
-        subrun.return_value = subprocess.CompletedProcess(args=[], returncode=0, stdout="ok", stderr="")
+        invoke.return_value = subprocess.CompletedProcess(args=[], returncode=0, stdout="ok", stderr="")
         result = run(
             "go test ./...", root,
             backend="dagger", image="golang:1.26",
