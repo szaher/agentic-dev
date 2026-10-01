@@ -117,6 +117,11 @@ def detect_repo(path: str | Path = ".") -> RepoContext:
                 c.add(fact, f"{dep} dependency detected")
         if "test" in scripts:
             c.add("testing:javascript", "package.json test script detected")
+        if {"framework:react", "framework:nextjs", "framework:vue", "framework:svelte", "framework:angular"} & c.facts:
+            c.add("repo-type:web-app", "frontend web framework detected")
+        if "@playwright/test" in deps or "playwright" in deps:
+            c.add("testing:browser", "Playwright dependency detected")
+            c.add("repo-type:web-app", "browser automation dependency detected")
 
     if any((root / name).exists() for name in ["pom.xml", "build.gradle", "build.gradle.kts", "gradlew", "mvnw"]):
         c.add("language:jvm", "JVM build metadata detected")
@@ -162,6 +167,10 @@ def detect_repo(path: str | Path = ".") -> RepoContext:
 
     if (root / "tests").is_dir() or (root / "test").is_dir():
         c.add("workflow:testing", "tests/test directory detected")
+
+    if any((root / name).exists() for name in ["playwright.config.ts", "playwright.config.js", "playwright.config.mjs"]):
+        c.add("testing:browser", "Playwright configuration detected")
+        c.add("repo-type:web-app", "browser test configuration detected")
 
     migration_dirs = [root / "migrations", root / "alembic", root / "db" / "migrations"]
     if any(p.exists() for p in migration_dirs):
