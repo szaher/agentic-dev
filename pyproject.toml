@@ -12,6 +12,9 @@ license = "MIT"
 authors = [{ name = "Saad Zaher" }]
 dependencies = []
 
+[project.optional-dependencies]
+test = ["jsonschema>=4.23"]
+
 [project.scripts]
 agentic = "agentic_dev_env.cli:main"
 
