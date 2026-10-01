@@ -134,7 +134,7 @@ Features:
 
 ---
 
-## Milestone 5 — Verification planner (v0.9)
+## Milestone 5 — Verification planner (v0.9) ✅
 
 **Goal:** choose the smallest defensible verification plan for a change.
 
