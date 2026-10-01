@@ -1,0 +1,18 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "agentic-dev-env",
+  "version": "0.3.0",
+  "description": "Repository-aware skill selection and local coding-agent environment management.",
+  "author": {
+    "name": "Saad Zaher",
+    "url": "https://github.com/szaher"
+  },
+  "homepage": "https://github.com/szaher/agentic-dev-env",
+  "repository": "https://github.com/szaher/agentic-dev-env",
+  "license": "MIT",
+  "keywords": [
+    "coding-agents",
+    "developer-tools",
+    "agent-skills"
+  ]
+}
