@@ -28,45 +28,45 @@ class ExecutionBackendTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             run("true", root, backend="container", image="alpine:3.22")
 
-    @patch("agentic_dev_env.execution.subprocess.run")
+    @patch("agentic_dev_env.execution._invoke")
     @patch("agentic_dev_env.execution.shutil.which")
-    def test_container_defaults_to_no_network(self, which, subrun):
+    def test_container_defaults_to_no_network(self, which, invoke):
         root = self.repo()
         which.side_effect = lambda name: "/usr/bin/docker" if name == "docker" else None
-        subrun.return_value = subprocess.CompletedProcess(args=[], returncode=0, stdout="ok", stderr="")
+        invoke.return_value = subprocess.CompletedProcess(args=[], returncode=0, stdout="ok", stderr="")
         result = run(
             "pytest -q", root,
             backend="container", image="python:3.13",
             profile="development",
         )
-        argv = subrun.call_args.args[0]
+        argv = invoke.call_args.args[0]
         self.assertIn("--network", argv)
         self.assertIn("none", argv)
         self.assertIn(f"{root}:/workspace", argv)
         self.assertEqual(result["metadata"]["image"], "python:3.13")
 
-    @patch("agentic_dev_env.execution.subprocess.run")
+    @patch("agentic_dev_env.execution._invoke")
     @patch("agentic_dev_env.execution.shutil.which")
-    def test_devcontainer_up_then_exec(self, which, subrun):
+    def test_devcontainer_up_then_exec(self, which, invoke):
         root = self.repo()
         (root / ".devcontainer").mkdir()
         (root / ".devcontainer/devcontainer.json").write_text('{"image":"ubuntu:24.04"}\n')
         which.side_effect = lambda name: "/usr/bin/devcontainer" if name == "devcontainer" else None
-        subrun.side_effect = [
+        invoke.side_effect = [
             subprocess.CompletedProcess(args=[], returncode=0, stdout='{"outcome":"success"}', stderr=""),
             subprocess.CompletedProcess(args=[], returncode=0, stdout="done", stderr=""),
         ]
         result = run("make test", root, backend="devcontainer", profile="development")
         self.assertTrue(result["success"])
-        first = subrun.call_args_list[0].args[0]
-        second = subrun.call_args_list[1].args[0]
+        first = invoke.call_args_list[0].args[0]
+        second = invoke.call_args_list[1].args[0]
         self.assertEqual(first[:2], ["/usr/bin/devcontainer", "up"])
         self.assertEqual(second[:2], ["/usr/bin/devcontainer", "exec"])
         self.assertIn("--workspace-folder", second)
 
-    @patch("agentic_dev_env.execution.subprocess.run")
+    @patch("agentic_dev_env.execution._invoke")
     @patch("agentic_dev_env.execution.shutil.which")
-    def test_dagger_uses_no_apply_and_explicit_image(self, which, subrun):
+    def test_dagger_uses_no_apply_and_explicit_image(self, which, invoke):
         root = self.repo()
         which.side_effect = lambda name: "/usr/bin/dagger" if name == "dagger" else None
         subrun.return_value = subprocess.CompletedProcess(args=[], returncode=0, stdout="ok", stderr="")
@@ -75,7 +75,7 @@ class ExecutionBackendTests(unittest.TestCase):
             backend="dagger", image="golang:1.26",
             profile="development",
         )
-        argv = subrun.call_args.args[0]
+        argv = invoke.call_args.args[0]
         self.assertIn("workspace", argv)
         self.assertIn("exec", argv)
         self.assertIn("--no-apply", argv)
