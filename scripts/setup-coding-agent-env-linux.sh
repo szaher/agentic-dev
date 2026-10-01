@@ -146,11 +146,32 @@ if have git; then
   git config --global merge.conflictstyle zdiff3
 fi
 
+install_policy_file() {
+  target="$1"
+  policy="$2"
+  start='<!-- agentic-dev-env:start -->'
+  end='<!-- agentic-dev-env:end -->'
+  mkdir -p "$(dirname "$target")"
+  touch "$target"
+  tmp=$(mktemp)
+  awk -v start="$start" -v end="$end" '
+    $0 == start {skip=1; next}
+    $0 == end {skip=0; next}
+    !skip {print}
+  ' "$target" > "$tmp"
+  mv "$tmp" "$target"
+  {
+    printf '\n%s\n' "$start"
+    cat "$policy"
+    printf '%s\n' "$end"
+  } >> "$target"
+}
+
 if [ "$NO_GLOBAL_INSTRUCTIONS" -eq 0 ]; then
   policy="$HOME/.config/agentic-dev-env/templates/global-agent-policy.md"
   if [ -f "$policy" ]; then
-    if have claude; then mkdir -p "$HOME/.claude"; cat "$policy" >> "$HOME/.claude/CLAUDE.md"; fi
-    if have codex; then mkdir -p "$HOME/.codex"; cat "$policy" >> "$HOME/.codex/AGENTS.md"; fi
+    have claude && install_policy_file "$HOME/.claude/CLAUDE.md" "$policy"
+    have codex && install_policy_file "$HOME/.codex/AGENTS.md" "$policy"
   fi
 fi
 
