@@ -31,14 +31,15 @@ verification          -> compiler / linter / tests
 isolation             -> Git worktrees
 ```
 
-The model still reasons. Deterministic tools retrieve and verify.
+The model still reasons. Deterministic tools retrieve and verify. **Agent Skills** add a fourth layer: reusable engineering workflows that are loaded only when the repo or current task makes them useful.
 
 ## What this repo provides
 
 Two scripts form the core workflow:
 
 - `setup-coding-agent-env.sh` — run once per Mac. Installs the common workstation foundation, optional language/toolchain support, and can wire supported tools into Claude Code and Codex.
-- `saad-tool-repo-init.sh` — run per repository. Detects the languages, frameworks, package managers, runtime declarations, build/test commands, and code-intelligence prerequisites actually used by that repo.
+- `saad-tool-repo-init.sh` — run per repository. Detects the languages, frameworks, package managers, runtime declarations, build/test commands, code-intelligence prerequisites, and relevant Agent Skills.
+- `agentic` — unified CLI for skill recommendation/activation, environment checks, and repo workflows.
 
 The repository initializer follows this rule:
 
@@ -67,6 +68,12 @@ agentic-repo-init
 ```
 
 The original script names remain available for compatibility.
+
+After workstation setup, verify the environment:
+
+```bash
+agentic doctor
+```
 
 ### 2. Bootstrap the Mac once
 
@@ -114,6 +121,34 @@ Project dependency installation is deliberately opt-in:
 ```bash
 agentic-repo-init . --install-project-deps
 ```
+
+### 4. Add context-aware Agent Skills
+
+The initializer now recommends a small set of skills after repository discovery:
+
+```bash
+agentic-repo-init .
+```
+
+Add task context to improve the recommendation:
+
+```bash
+agentic-repo-init . \
+  --task "review the API change for backwards compatibility"
+```
+
+Or use the skills CLI directly:
+
+```bash
+agentic skills suggest .
+agentic skills suggest . --task "debug controller reconciliation failures"
+agentic skills list
+agentic skills status .
+```
+
+The CLI explains *why* a skill matched and lets you accept the recommended set, choose specific entries, select all, or select none. Skills are local/untracked by default; use `--shared` or `--skills-shared` only when the team intentionally wants to commit them.
+
+See [`docs/SKILLS.md`](docs/SKILLS.md).
 
 ## Agent configuration
 
@@ -173,6 +208,8 @@ composer.json        pom.xml              gradlew / mvnw
 ```
 
 For polyglot repositories, Serena is configured with the detected language set rather than treating the project as a single-language codebase.
+
+Skill detection uses repository facts plus optional task text. It can recommend language, technology/repository-type, and workflow skills such as Python/Go/Rust/TypeScript engineering, Kubernetes operator development, API design, migrations, testing, debugging, review, refactoring, performance analysis, CI, containers, and Terraform. It does not automatically activate every match.
 
 ## Safety defaults
 
@@ -237,6 +274,12 @@ One worktree per agent keeps branches, uncommitted changes, and experiments isol
 ```text
 agentic-dev-env/
 ├── install.sh
+├── pyproject.toml
+├── src/agentic_dev_env/
+│   ├── cli.py
+│   ├── detect.py
+│   ├── skills.py
+│   └── builtin_skills/
 ├── scripts/
 │   ├── setup-coding-agent-env.sh
 │   └── saad-tool-repo-init.sh
@@ -245,6 +288,7 @@ agentic-dev-env/
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── AGENT_CONFIGURATION.md
+│   ├── SKILLS.md
 │   └── TOOLS.md
 ├── tests/
 │   └── smoke.sh
