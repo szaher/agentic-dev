@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev-env/schemas/repo-inspection-v1.schema.json",
+  "title": "agentic repo inspection v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "document_type",
+    "agentic_version",
+    "repository",
+    "commands",
+    "skills",
+    "capabilities",
+    "integrations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.repo-inspection"
+    },
+    "agentic_version": {
+      "type": "string"
+    },
+    "repository": {
+      "type": "object",
+      "required": [
+        "name",
+        "root",
+        "facts",
+        "facts_by_type",
+        "evidence",
+        "package_managers"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "root": {
+          "type": "string"
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "facts_by_type": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "package_managers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "commands": {
+      "type": "object",
+      "required": [
+        "install",
+        "test",
+        "lint",
+        "format",
+        "typecheck",
+        "build"
+      ],
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "skills": {
+      "type": "object"
+    },
+    "capabilities": {
+      "type": "object"
+    },
+    "integrations": {
+      "type": "array"
+    }
+  }
+}
