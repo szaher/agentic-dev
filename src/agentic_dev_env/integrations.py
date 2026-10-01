@@ -135,6 +135,12 @@ def install(target: str) -> int:
         "codex": install_codex,
         "pi": install_pi,
     }
+    binaries = {"claude": "claude", "codex": "codex", "pi": "pi"}
     targets = ["claude", "codex", "pi"] if target == "all" else [target]
-    codes = [installers[name]() for name in targets]
+    codes: list[int] = []
+    for name in targets:
+        if target == "all" and not shutil.which(binaries[name]):
+            print(f"· {name} not installed; skipping.")
+            continue
+        codes.append(installers[name]())
     return max(codes, default=0)
