@@ -88,6 +88,54 @@ CAPABILITIES = (
         "Reads package metadata and emits dependency inventory.",
         ("local",), ("repo.read", "security.scan"),
     ),
+    Capability(
+        "database-read", "database", "native-db",
+        "Inspect schemas and execute explicitly read-only database queries using native CLIs.",
+        "Uses existing local database credentials/configuration; query output may contain sensitive data.",
+        ("local",), ("database.read",),
+    ),
+    Capability(
+        "database-write", "database", "native-db",
+        "Execute explicitly marked database write statements using native CLIs.",
+        "Can mutate or destroy database state.",
+        ("local",), ("database.write",),
+    ),
+    Capability(
+        "database-local", "database", "container-db",
+        "Run ephemeral local development databases in Docker/Podman.",
+        "Creates local containers and stores generated development credentials in a mode-0600 local state file.",
+        ("local",), ("database.local", "container.run"),
+    ),
+    Capability(
+        "cluster-read", "cluster", "kubectl-oc",
+        "Read Kubernetes/OpenShift resources, logs, events, and API information.",
+        "Uses the selected kubeconfig context and may expose sensitive cluster data.",
+        ("local",), ("cluster.read",),
+    ),
+    Capability(
+        "cluster-write", "cluster", "kubectl-oc",
+        "Perform explicitly selected Kubernetes/OpenShift mutation commands.",
+        "Can change or delete cluster resources.",
+        ("local",), ("cluster.write",),
+    ),
+    Capability(
+        "cloud-read", "cloud", "cloud-cli",
+        "Read cloud account/project identity and metadata through installed AWS/Azure/GCP CLIs.",
+        "Uses existing cloud credentials and can expose account metadata.",
+        ("local",), ("cloud.read",),
+    ),
+    Capability(
+        "cloud-write", "cloud", "cloud-cli",
+        "Run explicitly marked cloud mutation commands.",
+        "Can create, modify, or delete cloud resources and incur cost.",
+        ("local",), ("cloud.write",),
+    ),
+    Capability(
+        "observability-read", "observability", "opentelemetry",
+        "Inspect local OpenTelemetry configuration and observability tooling.",
+        "May expose telemetry endpoints and service metadata.",
+        ("local",), ("observability.read",),
+    ),
 )
 
 
@@ -226,6 +274,31 @@ def suggest(context: RepoContext, task: str = "") -> list[CapabilityRecommendati
     if any(word in task_l for word in ("sbom", "bill of materials", "supply chain")):
         reasons.append("task requests software inventory")
     add("sbom", reasons, 4)
+
+    has_database = any(f.startswith("database:") for f in context.facts)
+    reasons = []
+    if has_database:
+        reasons.append("database or migration signals detected")
+    if any(word in task_l for word in ("database", "schema", "migration", "sql", "postgres", "mysql", "sqlite")):
+        reasons.append("task mentions database work")
+    add("database-read", reasons, 6)
+
+    reasons = []
+    if "technology:kubernetes" in context.facts:
+        reasons.append("Kubernetes/OpenShift configuration detected")
+    if any(word in task_l for word in ("cluster", "kubernetes", "openshift", "kubectl", "oc ", "pod logs")):
+        reasons.append("task mentions cluster operations")
+    add("cluster-read", reasons, 6)
+
+    reasons = []
+    if any(word in task_l for word in ("aws", "azure", "gcp", "cloud account", "cloud project")):
+        reasons.append("task explicitly mentions a cloud provider")
+    add("cloud-read", reasons, 6)
+
+    reasons = []
+    if any(word in task_l for word in ("logs", "metrics", "traces", "opentelemetry", "observability", "otel")):
+        reasons.append("task mentions observability/telemetry")
+    add("observability-read", reasons, 6)
 
     return sorted(result, key=lambda item: (-item.score, item.name))
 

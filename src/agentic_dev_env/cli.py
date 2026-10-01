@@ -13,6 +13,11 @@ from .capabilities import disable as disable_capability, enable as enable_capabi
 from .detect import detect_repo, repo_root
 from .integrations import install as install_integration, status as integration_status
 from .inspection import doctor_document, inspect_repository
+from .infrastructure import (
+    cloud_identity, cloud_write, cluster_run, database_exec, database_local_list,
+    database_local_show, database_local_start, database_local_stop,
+    database_schema, migration_check, observability_status, status as infrastructure_status,
+)
 from .execution import configure as configure_execution, run as run_execution, status as execution_status
 from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
 from .trust import define_profile, document as trust_document, get_profile, set_current
@@ -439,6 +444,130 @@ def cmd_execution_run(args: argparse.Namespace) -> int:
     return 0 if data["success"] else data["returncode"] or 1
 
 
+def _print_json_or_summary(data: dict, as_json: bool) -> int:
+    if as_json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(json.dumps(data, indent=2))
+    success = data.get("success")
+    return 0 if success is not False else 1
+
+
+def cmd_infra_status(args: argparse.Namespace) -> int:
+    return _print_json_or_summary(infrastructure_status(args.path), args.json)
+
+
+def cmd_infra_database_schema(args: argparse.Namespace) -> int:
+    try:
+        data = database_schema(
+            args.engine, path=args.path, database=args.database,
+            sqlite_file=args.sqlite_file, profile=args.profile,
+        )
+    except (ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    return _print_json_or_summary(data, args.json)
+
+
+def cmd_infra_database_exec(args: argparse.Namespace) -> int:
+    try:
+        data = database_exec(
+            args.engine, args.query,
+            path=args.path, database=args.database,
+            sqlite_file=args.sqlite_file, write=args.write,
+            profile=args.profile,
+        )
+    except (ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    return _print_json_or_summary(data, args.json)
+
+
+def cmd_infra_database_migration_check(args: argparse.Namespace) -> int:
+    try:
+        data = migration_check(
+            args.path, profile=args.profile, backend=args.backend,
+        )
+    except (ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    return _print_json_or_summary(data, args.json)
+
+
+def cmd_infra_database_local_start(args: argparse.Namespace) -> int:
+    try:
+        data = database_local_start(
+            args.engine, args.image,
+            name=args.name, profile=args.profile,
+        )
+    except (ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    return _print_json_or_summary(data, args.json)
+
+
+def cmd_infra_database_local_list(args: argparse.Namespace) -> int:
+    return _print_json_or_summary(database_local_list(), args.json)
+
+
+def cmd_infra_database_local_show(args: argparse.Namespace) -> int:
+    try:
+        data = database_local_show(args.name, show_secret=args.show_secret)
+    except KeyError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    return _print_json_or_summary(data, args.json)
+
+
+def cmd_infra_database_local_stop(args: argparse.Namespace) -> int:
+    try:
+        data = database_local_stop(args.name, profile=args.profile)
+    except (KeyError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    return _print_json_or_summary(data, args.json)
+
+
+def cmd_infra_cluster_run(args: argparse.Namespace) -> int:
+    try:
+        data = cluster_run(
+            args.verb, args.args,
+            tool=args.tool, context=args.context,
+            namespace=args.namespace, profile=args.profile,
+        )
+    except (ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    return _print_json_or_summary(data, args.json)
+
+
+def cmd_infra_cloud_identity(args: argparse.Namespace) -> int:
+    try:
+        data = cloud_identity(args.provider, profile=args.profile)
+    except (ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    return _print_json_or_summary(data, args.json)
+
+
+def cmd_infra_cloud_write(args: argparse.Namespace) -> int:
+    try:
+        data = cloud_write(args.provider, args.args, profile=args.profile)
+    except (ValueError, RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    return _print_json_or_summary(data, args.json)
+
+
+def cmd_infra_observability_status(args: argparse.Namespace) -> int:
+    try:
+        data = observability_status(args.path, profile=args.profile)
+    except (RuntimeError, PermissionError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    return _print_json_or_summary(data, args.json)
+
+
 def cmd_integrations_status(args: argparse.Namespace) -> int:
     for item in integration_status():
         mark = "✓" if item.configured else ("·" if not item.available else "!")
@@ -825,6 +954,106 @@ def build_parser() -> argparse.ArgumentParser:
     erun.add_argument("--profile", default=None)
     erun.add_argument("--json", action="store_true")
     erun.set_defaults(func=cmd_execution_run)
+
+    infra = sub.add_parser("infra", help="Database, cluster, cloud, and observability capability packs")
+    infrasub = infra.add_subparsers(dest="infra_command", required=True)
+
+    istatus2 = infrasub.add_parser("status", help="Inspect infrastructure tooling without remote mutation")
+    istatus2.add_argument("--path", default=".")
+    istatus2.add_argument("--json", action="store_true")
+    istatus2.set_defaults(func=cmd_infra_status)
+
+    db = infrasub.add_parser("database", help="Database operations")
+    dbsub = db.add_subparsers(dest="database_command", required=True)
+
+    dbschema = dbsub.add_parser("schema", help="Inspect database schema")
+    dbschema.add_argument("engine", choices=["sqlite", "postgres", "mysql"])
+    dbschema.add_argument("--path", default=".")
+    dbschema.add_argument("--database", default=None)
+    dbschema.add_argument("--sqlite-file", default=None)
+    dbschema.add_argument("--profile", default=None)
+    dbschema.add_argument("--json", action="store_true")
+    dbschema.set_defaults(func=cmd_infra_database_schema)
+
+    dbexec = dbsub.add_parser("exec", help="Execute read-only SQL or an explicitly marked write")
+    dbexec.add_argument("engine", choices=["sqlite", "postgres", "mysql"])
+    dbexec.add_argument("query")
+    dbexec.add_argument("--path", default=".")
+    dbexec.add_argument("--database", default=None)
+    dbexec.add_argument("--sqlite-file", default=None)
+    dbexec.add_argument("--write", action="store_true")
+    dbexec.add_argument("--profile", default=None)
+    dbexec.add_argument("--json", action="store_true")
+    dbexec.set_defaults(func=cmd_infra_database_exec)
+
+    dbmig = dbsub.add_parser("migration-check", help="Run a detected migration/schema validation")
+    dbmig.add_argument("--path", default=".")
+    dbmig.add_argument("--backend", choices=["host", "container", "devcontainer", "dagger"], default=None)
+    dbmig.add_argument("--profile", default=None)
+    dbmig.add_argument("--json", action="store_true")
+    dbmig.set_defaults(func=cmd_infra_database_migration_check)
+
+    dblocal = dbsub.add_parser("local", help="Ephemeral local database containers")
+    dblsub = dblocal.add_subparsers(dest="database_local_command", required=True)
+
+    dbstart = dblsub.add_parser("start")
+    dbstart.add_argument("engine", choices=["postgres", "mysql"])
+    dbstart.add_argument("--image", required=True)
+    dbstart.add_argument("--name", default=None)
+    dbstart.add_argument("--profile", default=None)
+    dbstart.add_argument("--json", action="store_true")
+    dbstart.set_defaults(func=cmd_infra_database_local_start)
+
+    dblist = dblsub.add_parser("list")
+    dblist.add_argument("--json", action="store_true")
+    dblist.set_defaults(func=cmd_infra_database_local_list)
+
+    dbshow = dblsub.add_parser("show")
+    dbshow.add_argument("name")
+    dbshow.add_argument("--show-secret", action="store_true")
+    dbshow.add_argument("--json", action="store_true")
+    dbshow.set_defaults(func=cmd_infra_database_local_show)
+
+    dbstop = dblsub.add_parser("stop")
+    dbstop.add_argument("name")
+    dbstop.add_argument("--profile", default=None)
+    dbstop.add_argument("--json", action="store_true")
+    dbstop.set_defaults(func=cmd_infra_database_local_stop)
+
+    cluster = infrasub.add_parser("cluster", help="Kubernetes/OpenShift operations")
+    csub2 = cluster.add_subparsers(dest="cluster_command", required=True)
+    crun2 = csub2.add_parser("run", help="Run a classified kubectl/oc verb")
+    crun2.add_argument("--tool", choices=["auto", "kubectl", "oc"], default="auto")
+    crun2.add_argument("--context", default=None)
+    crun2.add_argument("--namespace", default=None)
+    crun2.add_argument("--profile", default=None)
+    crun2.add_argument("--json", action="store_true")
+    crun2.add_argument("verb")
+    crun2.add_argument("args", nargs=argparse.REMAINDER)
+    crun2.set_defaults(func=cmd_infra_cluster_run)
+
+    cloud = infrasub.add_parser("cloud", help="Cloud account metadata and explicit write commands")
+    cloudsub = cloud.add_subparsers(dest="cloud_command", required=True)
+    cidentity = cloudsub.add_parser("identity")
+    cidentity.add_argument("provider", choices=["aws", "azure", "gcp"])
+    cidentity.add_argument("--profile", default=None)
+    cidentity.add_argument("--json", action="store_true")
+    cidentity.set_defaults(func=cmd_infra_cloud_identity)
+
+    cwrite = cloudsub.add_parser("write", help="Explicit cloud mutation command; requires cloud.write")
+    cwrite.add_argument("provider", choices=["aws", "azure", "gcp"])
+    cwrite.add_argument("--profile", default=None)
+    cwrite.add_argument("--json", action="store_true")
+    cwrite.add_argument("args", nargs=argparse.REMAINDER)
+    cwrite.set_defaults(func=cmd_infra_cloud_write)
+
+    obs = infrasub.add_parser("observability", help="OpenTelemetry/observability status")
+    obssub = obs.add_subparsers(dest="observability_command", required=True)
+    obsstatus = obssub.add_parser("status")
+    obsstatus.add_argument("--path", default=".")
+    obsstatus.add_argument("--profile", default=None)
+    obsstatus.add_argument("--json", action="store_true")
+    obsstatus.set_defaults(func=cmd_infra_observability_status)
 
     integrations = sub.add_parser("integrations", help="Native Claude/Codex/Pi integrations")
     isub = integrations.add_subparsers(dest="integrations_command", required=True)

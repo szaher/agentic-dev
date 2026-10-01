@@ -427,6 +427,30 @@ Supported backends are host, Docker/Podman containers, Dev Containers, and Dagge
 
 See [`docs/EXECUTION.md`](docs/EXECUTION.md).
 
+## Infrastructure capability packs
+
+Database, Kubernetes/OpenShift, cloud, and observability access are opt-in and trust-gated:
+
+```bash
+agentic infra status --json
+
+agentic capabilities enable database-read --profile development
+agentic infra database schema sqlite --sqlite-file ./app.db --profile development --json
+
+agentic capabilities enable cluster-read --profile production-read
+agentic infra cluster run --profile production-read get pods
+
+agentic capabilities enable cloud-read --profile production-read
+agentic infra cloud identity aws --profile production-read --json
+
+agentic capabilities enable observability-read --profile production-read
+agentic infra observability status --profile production-read --json
+```
+
+Cluster/cloud write require custom profiles with explicit `cluster.write` or `cloud.write`; no built-in profile grants them.
+
+See [`docs/INFRASTRUCTURE.md`](docs/INFRASTRUCTURE.md).
+
 ## Repository layout
 
 ```text

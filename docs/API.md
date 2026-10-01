@@ -143,3 +143,27 @@ schemas/execution-result-v1.schema.json
 ```
 
 Execution results include backend, exact argv, normalized stdout/stderr/return code, and backend metadata.
+
+
+## Infrastructure status
+
+```bash
+agentic infra status --json
+```
+
+Document type:
+
+```json
+{
+  "schema_version": "1",
+  "document_type": "agentic.infrastructure-status"
+}
+```
+
+Schema:
+
+```text
+schemas/infrastructure-status-v1.schema.json
+```
+
+Infrastructure operation results are normalized JSON documents specific to database, cluster, cloud, and observability operations.

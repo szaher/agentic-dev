@@ -190,7 +190,7 @@ Features:
 
 ---
 
-## Milestone 7 — Infrastructure capability packs (v0.11+)
+## Milestone 7 — Infrastructure capability packs (v0.11+) ✅
 
 Add only as optional capability packs.
 
