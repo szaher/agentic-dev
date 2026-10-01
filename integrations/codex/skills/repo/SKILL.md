@@ -18,3 +18,14 @@ When the user asks what skills are useful for the current repository or task:
 5. Use `agentic doctor` when the local toolchain or agent integration may be broken.
 
 Do not install project dependencies unless the user explicitly requests it. Do not overwrite unmanaged repository skills or instruction files.
+
+
+## Optional capabilities
+
+Do not assume browser or other sensitive capabilities are installed. When browser interaction would materially help, preview the recommendation first:
+
+```bash
+agentic capabilities suggest . --task "<task>"
+```
+
+Only enable a capability when the user explicitly wants browser/tool access. Prefer isolated browser mode for routine UI testing.
