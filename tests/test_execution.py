@@ -42,7 +42,7 @@ class ExecutionBackendTests(unittest.TestCase):
         argv = invoke.call_args.args[0]
         self.assertIn("--network", argv)
         self.assertIn("none", argv)
-        self.assertIn(f"{root}:/workspace", argv)
+        self.assertIn(f"{root.resolve()}:/workspace", argv)
         self.assertEqual(result["metadata"]["image"], "python:3.13")
 
     @patch("agentic_dev_env.execution._invoke")
