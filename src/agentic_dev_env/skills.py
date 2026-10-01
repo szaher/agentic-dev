@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import shutil
 import sys
@@ -170,7 +169,7 @@ def remove(root: Path, names: Iterable[str], target: str = "both") -> list[Path]
     if target in {"both", "claude"}:
         roots.append(root / ".claude" / "skills")
     if target in {"both", "codex"}:
-        roots.append(root / ".agents" / "skills")
+        roots.append(root / ".codex" / "skills")
 
     removed: list[Path] = []
     for name in names:
@@ -190,7 +189,7 @@ def installed_skills(root: Path) -> dict[str, list[str]]:
     found = {"claude": [], "codex": []}
     for target, base in [
         ("claude", root / ".claude" / "skills"),
-        ("codex", root / ".agents" / "skills"),
+        ("codex", root / ".codex" / "skills"),
     ]:
         if base.is_dir():
             found[target] = sorted(p.name for p in base.iterdir() if (p / "SKILL.md").exists())
