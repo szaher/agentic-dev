@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.12.0 - 2026-10-02
+
+Provider ecosystem, lifecycle, Linux/WSL, and remote development profiles.
+
+- Added versioned external provider manifest protocol and JSON Schema.
+- Added external Agent Skill contributions without allowing built-in skill overrides.
+- Added trust-gated command-backed external capabilities.
+- Added local and Git provider installation with recorded content/manifest digests.
+- Added optional expected SHA-256 pinning and Git signed-commit verification.
+- Added provider verify/doctor/update/remove commands and explicit migration hooks.
+- Added `agentic update --yes` for installed external providers.
+- Added compatibility checks for agentic-dev-env version, host platform, executables, and coding-agent CLIs.
+- Added dedicated Linux/WSL workstation bootstrap while preserving the macOS path.
+- Added SSH development profiles with non-interactive connectivity testing and no secret storage.
+- Added provider/remote state to machine-readable inspection and doctor documents.
+- Added provider, remote, manifest, and Linux shell regression coverage.
+
 ## 0.11.0 - 2026-10-02
 
 Infrastructure capability packs.

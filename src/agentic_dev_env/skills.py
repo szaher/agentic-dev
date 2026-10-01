@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Iterable
 
 from .detect import RepoContext, detect_repo
+from .providers import skill_entries as provider_skill_entries
 
 
 MANAGED_MARKER = "<!-- managed-by: agentic-dev-env -->"
@@ -23,6 +24,7 @@ class Skill:
     signals: tuple[str, ...]
     task_keywords: tuple[str, ...]
     priority: int = 0
+    provider: str = "builtin"
 
 
 @dataclass
@@ -40,7 +42,7 @@ def skills_root():
 def load_registry() -> list[Skill]:
     raw = skills_root().joinpath("registry.toml").read_bytes()
     data = tomllib.loads(raw.decode())
-    return [
+    skills = [
         Skill(
             name=item["name"],
             description=item["description"],
@@ -48,9 +50,26 @@ def load_registry() -> list[Skill]:
             signals=tuple(item.get("signals", [])),
             task_keywords=tuple(item.get("task_keywords", [])),
             priority=int(item.get("priority", 0)),
+            provider="builtin",
         )
         for item in data["skill"]
     ]
+    names = {skill.name for skill in skills}
+    for item, _root, provider in provider_skill_entries():
+        name = item["name"]
+        if name in names:
+            continue
+        skills.append(Skill(
+            name=name,
+            description=item["description"],
+            category=item["category"],
+            signals=tuple(item.get("signals", [])),
+            task_keywords=tuple(item.get("task_keywords", [])),
+            priority=int(item.get("priority", 0)),
+            provider=provider,
+        ))
+        names.add(name)
+    return skills
 
 
 def get_skill(name: str) -> Skill:
@@ -61,7 +80,16 @@ def get_skill(name: str) -> Skill:
 
 
 def skill_content(name: str) -> str:
-    return skills_root().joinpath(name, "SKILL.md").read_text()
+    skill = get_skill(name)
+    if skill.provider == "builtin":
+        return skills_root().joinpath(name, "SKILL.md").read_text()
+    for item, root, provider in provider_skill_entries():
+        if provider == skill.provider and item["name"] == name:
+            path = root / item["path"]
+            if path.is_dir():
+                path = path / "SKILL.md"
+            return path.read_text()
+    raise KeyError(name)
 
 
 def recommend(context: RepoContext, task: str = "", max_recommended: int = 6) -> list[Recommendation]:

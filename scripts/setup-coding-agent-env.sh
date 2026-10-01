@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+if [[ "$(uname -s)" == "Linux" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+  exec /usr/bin/env bash "$SCRIPT_DIR/setup-coding-agent-env-linux.sh" "$@"
+fi
+
 # One-time macOS bootstrap for a high-quality local coding-agent workstation.
 # Safe to rerun. Homebrew must already be installed.
 #

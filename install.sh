@@ -9,6 +9,7 @@ PYTHON_APP_DIR="$CONFIG_DIR/python"
 mkdir -p "$BIN_DIR" "$CONFIG_DIR/templates" "$PYTHON_APP_DIR"
 
 install -m 0755 "$ROOT/scripts/setup-coding-agent-env.sh" "$BIN_DIR/setup-coding-agent-env.sh"
+install -m 0755 "$ROOT/scripts/setup-coding-agent-env-linux.sh" "$BIN_DIR/setup-coding-agent-env-linux.sh"
 install -m 0755 "$ROOT/scripts/saad-tool-repo-init.sh" "$BIN_DIR/saad-tool-repo-init.sh"
 install -m 0644 "$ROOT/templates/global-agent-policy.md" "$CONFIG_DIR/templates/global-agent-policy.md"
 
@@ -41,10 +42,11 @@ chmod +x "$BIN_DIR/agentic"
 ln -sfn "$BIN_DIR/setup-coding-agent-env.sh" "$BIN_DIR/agentic-dev-setup"
 ln -sfn "$BIN_DIR/saad-tool-repo-init.sh" "$BIN_DIR/agentic-repo-init"
 
-ZSHRC="$HOME/.zshrc"
-touch "$ZSHRC"
-if ! grep -Fq '# agentic-dev-env: local bin' "$ZSHRC"; then
-  printf '\n# agentic-dev-env: local bin\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$ZSHRC"
+SHELL_RC="$HOME/.zshrc"
+if [[ "$(uname -s)" == "Linux" && "${SHELL:-}" != *zsh ]]; then SHELL_RC="$HOME/.bashrc"; fi
+touch "$SHELL_RC"
+if ! grep -Fq '# agentic-dev-env: local bin' "$SHELL_RC"; then
+  printf '\n# agentic-dev-env: local bin\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$SHELL_RC"
 fi
 
 cat <<EOF2
@@ -60,7 +62,7 @@ Compatibility commands:
   agentic-repo-init
 
 Next:
-  exec zsh
+  exec "${SHELL:-zsh}"
   agentic-dev-setup --scan-root ~/saad/projects --configure-agents
   agentic doctor
 EOF2
