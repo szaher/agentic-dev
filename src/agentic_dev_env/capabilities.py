@@ -11,6 +11,7 @@ from typing import Any
 
 from .detect import RepoContext, detect_repo
 from .trust import check as trust_check
+from .providers import capability_entries as provider_capability_entries, provider_capability_command
 
 
 @dataclass(frozen=True)
@@ -164,11 +165,27 @@ def _save_state(data: dict) -> None:
 
 
 def list_capabilities() -> tuple[Capability, ...]:
-    return CAPABILITIES
+    result = list(CAPABILITIES)
+    names = {item.name for item in result}
+    for item, _root, provider_name in provider_capability_entries():
+        name = item["name"]
+        if name in names:
+            continue
+        result.append(Capability(
+            name=name,
+            category=item["category"],
+            provider=item.get("provider") or provider_name,
+            description=item["description"],
+            risk=item["risk"],
+            targets=tuple(item.get("targets") or ["local"]),
+            required_permissions=tuple(item.get("required_permissions") or []),
+        ))
+        names.add(name)
+    return tuple(result)
 
 
 def get_capability(name: str) -> Capability:
-    for capability in CAPABILITIES:
+    for capability in list_capabilities():
         if capability.name == name:
             return capability
     raise KeyError(name)
@@ -487,8 +504,49 @@ def run_capability(
     profile: str | None = None,
 ) -> dict[str, Any]:
     cap = get_capability(name)
+    external = provider_capability_command(name)
+    if external is not None:
+        command, provider_root, provider_name = external
+        allowed, missing, selected = trust_check(
+            required_permissions(name),
+            profile_name=profile,
+            root=path,
+        )
+        if not allowed:
+            raise PermissionError(
+                f"trust profile '{selected.name}' missing permissions: {', '.join(missing)}"
+            )
+        state = _load_state().get("enabled", {})
+        if name not in state:
+            raise RuntimeError(f"{name} is not enabled; enable it before running provider commands")
+        root = Path(path).resolve()
+        argv = [part.replace("{repo}", str(root)) for part in command]
+        result = _capture(argv, cwd=provider_root)
+        payload: Any = None
+        parse_error: str | None = None
+        if result.stdout.strip():
+            try:
+                payload = json.loads(result.stdout)
+            except json.JSONDecodeError as exc:
+                parse_error = str(exc)
+                payload = result.stdout
+        return {
+            "schema_version": "1",
+            "document_type": "agentic.capability-result",
+            "capability": name,
+            "category": cap.category,
+            "provider": provider_name,
+            "trust_profile": selected.name,
+            "command": argv,
+            "returncode": result.returncode,
+            "success": result.returncode == 0,
+            "finding_count": None,
+            "result": payload,
+            "stderr": result.stderr.strip(),
+            "parse_error": parse_error,
+        }
     if cap.category != "security":
-        raise ValueError("capability run currently supports security capabilities")
+        raise ValueError("capability run is only implemented for security or command-backed provider capabilities")
     allowed, missing, selected = trust_check(
         required_permissions(name),
         profile_name=profile,
@@ -540,5 +598,5 @@ def status() -> dict:
             "risk": capability.risk,
             "required_permissions": list(capability.required_permissions),
         }
-        for capability in CAPABILITIES
+        for capability in list_capabilities()
     }
