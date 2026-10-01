@@ -232,7 +232,7 @@ Add only as optional capability packs.
 
 ---
 
-## Milestone 8 — Provider ecosystem and lifecycle
+## Milestone 8 — Provider ecosystem and lifecycle ✅
 
 **Goal:** make capabilities and skills extensible without hard-coding everything into the main repository.
 
