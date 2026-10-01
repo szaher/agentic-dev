@@ -353,7 +353,26 @@ def migrate(name: str, *, yes: bool = False) -> list[dict[str, Any]]:
         command = item.get("command")
         if not isinstance(command, list) or not command:
             raise ValueError("provider migration command must be a non-empty argv list")
-        result = _run([str(x) for x in command], cwd=root, check=False)
+        before_digest = _tree_digest(root)
+        state_dir = providers_dir() / name / "state"
+        state_dir.mkdir(parents=True, exist_ok=True)
+        env = os.environ.copy()
+        env["AGENTIC_PROVIDER_ROOT"] = str(root)
+        env["AGENTIC_PROVIDER_STATE_DIR"] = str(state_dir)
+        result = subprocess.run(
+            [str(x) for x in command],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+        )
+        source_changed = _tree_digest(root) != before_digest
+        if source_changed and result.returncode == 0:
+            result = subprocess.CompletedProcess(
+                result.args, 70, result.stdout,
+                result.stderr + "\nprovider migration modified immutable provider source",
+            )
         completed.append({
             "version": str(item["version"]),
             "command": command,
