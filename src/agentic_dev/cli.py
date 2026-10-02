@@ -1228,7 +1228,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     ready = sub.add_parser(
         "ready",
-        help="Assess a repository against the Agent Ready specification (read-only)",
+        help="Assess, remediate, and verify a repository against the Agent Ready specification",
         description=(
             "Evaluate a repository against the pinned Agent Ready Spec. Assessment is "
             "deterministic, uses no LLM, and never modifies the repository."
