@@ -266,6 +266,9 @@ def materialize(name: str, target: Path) -> Path:
     files = SCENARIOS[name]
     target.mkdir(parents=True, exist_ok=True)
     subprocess.run(["git", "init", "-q", str(target)], check=True)
+    # No background maintenance/gc: tests snapshot .git to prove read-only behavior.
+    for key, value in (("maintenance.auto", "false"), ("gc.auto", "0")):
+        subprocess.run(["git", "-C", str(target), "config", key, value], check=True)
     for relative, text in files.items():
         path = target / relative
         path.parent.mkdir(parents=True, exist_ok=True)

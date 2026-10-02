@@ -33,6 +33,8 @@ def write(root: Path, files: dict[str, str]) -> None:
 def git_repo(files: dict[str, str], *, commit: bool = True) -> Path:
     root = Path(tempfile.mkdtemp(prefix="ready-"))
     subprocess.run(["git", "init", "-q", str(root)], check=True)
+    for key, value in (("maintenance.auto", "false"), ("gc.auto", "0")):
+        subprocess.run(["git", "-C", str(root), "config", key, value], check=True)
     write(root, files)
     if commit:
         subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
