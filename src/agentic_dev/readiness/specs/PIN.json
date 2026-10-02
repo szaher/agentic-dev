@@ -3,7 +3,7 @@
   "name": "agent-ready",
   "sha256": "d9c0e83af4caaabb09dbe8130cf04b74917576086e22a7443f0a59d5ff2a16fd",
   "source": {
-    "commit": "db147a8438122ad4789c79eac2dc59ca64f624a6",
+    "commit": "9d8c4f0eefdad38d7891b364dda646c10151187e",
     "path": "spec/dist/agent-ready-spec-1.0.1.json",
     "repository": "https://github.com/szaher/agent-ready"
   },
