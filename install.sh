@@ -2,8 +2,8 @@
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-BIN_DIR="${AGENTIC_DEV_BIN_DIR:-$HOME/.local/bin}"
-CONFIG_DIR="${AGENTIC_DEV_CONFIG_DIR:-$HOME/.config/agentic-dev}"
+BIN_DIR="${AGENTIC_DEV_BIN_DIR:-${AGENTIC_DEV_ENV_BIN_DIR:-$HOME/.local/bin}}"
+CONFIG_DIR="${AGENTIC_DEV_CONFIG_DIR:-${AGENTIC_DEV_ENV_CONFIG_DIR:-$HOME/.config/agentic-dev}}"
 PYTHON_APP_DIR="$CONFIG_DIR/python"
 
 mkdir -p "$BIN_DIR" "$CONFIG_DIR/templates" "$PYTHON_APP_DIR"
@@ -39,6 +39,13 @@ exit 2
 WRAPPER
 chmod +x "$BIN_DIR/agentic"
 
+# One transition release of compatibility aliases for pre-rename source installs.
+ln -sfn "$BIN_DIR/agentic-setup.sh" "$BIN_DIR/setup-coding-agent-env.sh"
+ln -sfn "$BIN_DIR/agentic-setup-linux.sh" "$BIN_DIR/setup-coding-agent-env-linux.sh"
+ln -sfn "$BIN_DIR/agentic-repo-init.sh" "$BIN_DIR/saad-tool-repo-init.sh"
+ln -sfn "$BIN_DIR/agentic-setup.sh" "$BIN_DIR/agentic-dev-setup"
+ln -sfn "$BIN_DIR/agentic-repo-init.sh" "$BIN_DIR/agentic-repo-init"
+
 
 SHELL_RC="$HOME/.zshrc"
 if [[ "$(uname -s)" == "Linux" && "${SHELL:-}" != *zsh ]]; then SHELL_RC="$HOME/.bashrc"; fi
@@ -53,6 +60,10 @@ Installed Agentic Dev.
 Primary CLI:
   agentic
 
+Legacy helper aliases are installed for one transition release.
+Use the canonical commands in new automation:
+  agentic setup
+  agentic repo init
 
 Next:
   exec "${SHELL:-zsh}"
