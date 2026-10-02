@@ -1,13 +1,13 @@
 # Native agent integrations
 
-The core of agentic-dev-env stays vendor-neutral. Claude Code, Codex, and Pi each get a thin native adapter around the same repository detector, skill registry, and `agentic` CLI.
+The core of agentic-dev stays vendor-neutral. Claude Code, Codex, and Pi each get a thin native adapter around the same repository detector, skill registry, and `agentic` CLI.
 
 This avoids maintaining three copies of the engineering skills.
 
 ## Architecture
 
 ```text
-                   agentic-dev-env core
+                   agentic-dev core
           detection + skill registry + CLI
                          |
               +----------+----------+
@@ -28,7 +28,7 @@ agentic integrations install all
 agentic integrations status
 ```
 
-`setup-coding-agent-env.sh --configure-agents` also attempts this for the agent CLIs already installed on the machine.
+`agentic-setup.sh --configure-agents` also attempts this for the agent CLIs already installed on the machine.
 
 Missing agents are skipped when using `all`.
 
@@ -46,8 +46,8 @@ integrations/claude/
 Manual install:
 
 ```bash
-claude plugin marketplace add szaher/agentic-dev-env
-claude plugin install agentic-dev-env@agentic-dev-env
+claude plugin marketplace add szaher/agentic-dev
+claude plugin install agentic-dev@agentic-dev
 ```
 
 The plugin contributes one lightweight `repo` skill that teaches Claude to use the local `agentic` control plane. Repository-specific engineering skills are still selected separately.
@@ -69,10 +69,10 @@ integrations/codex/
 Register the marketplace:
 
 ```bash
-codex plugin marketplace add szaher/agentic-dev-env
+codex plugin marketplace add szaher/agentic-dev
 ```
 
-Then start Codex, run `/plugins`, choose the `agentic-dev-env` marketplace, and install **Agentic Dev Env**. Current Codex CLI marketplace commands manage marketplace sources; plugin installation is completed through the plugin browser/Desktop Plugins Directory.
+Then start Codex, run `/plugins`, choose the `agentic-dev` marketplace, and install **Agentic Dev**. Current Codex CLI marketplace commands manage marketplace sources; plugin installation is completed through the plugin browser/Desktop Plugins Directory.
 
 Official docs: https://developers.openai.com/plugins/build/plugins
 
@@ -83,7 +83,7 @@ The repository root is also a Pi package through `package.json`.
 Install:
 
 ```bash
-pi install git:github.com/szaher/agentic-dev-env
+pi install git:github.com/szaher/agentic-dev
 ```
 
 The package provides:
