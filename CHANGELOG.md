@@ -17,7 +17,7 @@ Local measurement and evaluation.
 - Added per-session/task tool-call summaries.
 - Added explicit local file export only; no network telemetry/export.
 - Added privacy and lifecycle regression tests.
-- Completed the original agentic-dev-env roadmap.
+- Completed the original agentic-dev roadmap.
 
 ## 0.12.0 - 2026-10-02
 
@@ -30,7 +30,7 @@ Provider ecosystem, lifecycle, Linux/WSL, and remote development profiles.
 - Added optional expected SHA-256 pinning and Git signed-commit verification.
 - Added provider verify/doctor/update/remove commands and explicit migration hooks.
 - Added `agentic update --yes` for installed external providers.
-- Added compatibility checks for agentic-dev-env version, host platform, executables, and coding-agent CLIs.
+- Added compatibility checks for agentic-dev version, host platform, executables, and coding-agent CLIs.
 - Added dedicated Linux/WSL workstation bootstrap while preserving the macOS path.
 - Added SSH development profiles with non-interactive connectivity testing and no secret storage.
 - Added provider/remote state to machine-readable inspection and doctor documents.
