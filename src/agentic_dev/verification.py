@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .capabilities import run_capability, status as capability_status
+from .commands import discover_in
 from .detect import repo_root
 from .inspection import inspect_repository
 from .execution import run as run_execution
@@ -43,6 +44,11 @@ CONFIG_NAMES = {
 }
 
 IAC_EXTENSIONS = {".tf", ".tfvars", ".yaml", ".yml"}
+
+# Kinds full verification can run. ``format`` rewrites files and ``install``
+# prepares an environment, so neither is a verification check.
+FULL_KINDS = ("build", "test", "lint", "typecheck")
+STATUSES = ("passed", "failed", "no-checks")
 
 
 def _run(argv: list[str], *, cwd: Path, check: bool = False) -> subprocess.CompletedProcess[str]:
@@ -246,6 +252,7 @@ def plan(
     return {
         "schema_version": "1",
         "document_type": "agentic.verification-plan",
+        "mode": "change-aware",
         "repository": str(root),
         "base": base,
         "changed_files": files,
@@ -262,6 +269,70 @@ def plan(
                 "reason": "Serena reference navigation is exposed through agent/MCP workflows; the CLI planner does not invent a batch-reference API.",
             },
         },
+    }
+
+
+def full_plan(
+    path: str | Path = ".",
+    *,
+    kinds: list[str] | tuple[str, ...] = (),
+    commands: list[str] | tuple[str, ...] = (),
+    include_changed: bool = False,
+    base: str | None = None,
+    symbols: list[str] | None = None,
+) -> dict[str, Any]:
+    """Full-project verification: every discovered command of each requested kind.
+
+    Explicit commands run as ``custom`` checks. With ``include_changed`` the
+    change-aware plan can only *add* checks; it never removes a required one.
+    A requested kind with no discovered command is reported in ``missing_kinds``.
+    """
+
+    unknown = sorted(set(kinds) - set(FULL_KINDS))
+    if unknown:
+        raise ValueError(f"unsupported verification kind(s): {', '.join(unknown)}; choose from {', '.join(FULL_KINDS)}")
+    root = repo_root(path)
+    requested = [kind for kind in FULL_KINDS if kind in set(kinds)]
+    discovered = discover_in(root)
+    checks: list[dict[str, Any]] = []
+    missing: list[str] = []
+    for kind in requested:
+        found = [c for c in discovered if c.kind == kind]
+        if not found:
+            missing.append(kind)
+        for command in found:
+            checks.append({"kind": kind, "command": command.command, "source": command.source,
+                           "origin": "discovered", "reason": f"full-project {kind} verification"})
+    for command in commands:
+        checks.append({"kind": "custom", "command": command, "origin": "explicit",
+                       "reason": "explicitly requested command"})
+
+    files: list[str] = []
+    impact: dict[str, Any] = {}
+    if include_changed:
+        aware = plan(root, base=base, symbols=symbols)
+        files, impact = aware["changed_files"], aware["impact"]
+        present = {(c["kind"], c.get("command"), c.get("test_file")) for c in checks}
+        for check in aware["checks"]:
+            key = (check["kind"], check.get("command"), check.get("test_file"))
+            if key not in present:
+                present.add(key)
+                checks.append({**check, "origin": "change-aware"})
+
+    return {
+        "schema_version": "1",
+        "document_type": "agentic.verification-plan",
+        "mode": "full",
+        "repository": str(root),
+        "base": base,
+        "requested_kinds": requested,
+        "missing_kinds": missing,
+        "include_changed": include_changed,
+        "changed_files": files,
+        "changed_languages": _changed_languages(files),
+        "checks": checks,
+        "skipped_checks": [],
+        "impact": impact,
     }
 
 
@@ -302,7 +373,10 @@ def execute(
             repository=root,
         )
 
-    for check in verification_plan["checks"]:
+    missing_kinds = list(verification_plan.get("missing_kinds") or [])
+    # A required kind with nothing to run fails the whole run before anything executes.
+    checks = [] if missing_kinds else verification_plan["checks"]
+    for check in checks:
         check_started = time.perf_counter()
         if check["kind"] == "affected-test" and not check.get("command"):
             results.append({
@@ -370,6 +444,12 @@ def execute(
             if not continue_on_failure:
                 break
 
+    executed = sum(1 for item in results if item.get("executed"))
+    if missing_kinds or executed == 0:
+        status, success = "no-checks", False
+    else:
+        status = "passed" if success else "failed"
+
     duration_ms = (time.perf_counter() - verification_started) * 1000
     record_metric(
         "verification.completed",
@@ -388,7 +468,12 @@ def execute(
         "schema_version": "1",
         "document_type": "agentic.verification-run",
         "repository": str(root),
+        "mode": verification_plan.get("mode", "change-aware"),
+        "status": status,
         "success": success,
+        "requested_kinds": list(verification_plan.get("requested_kinds") or []),
+        "missing_kinds": missing_kinds,
+        "checks_executed": executed,
         "duration_ms": duration_ms,
         "plan": verification_plan,
         "execution": {

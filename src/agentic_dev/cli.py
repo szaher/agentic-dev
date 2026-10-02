@@ -22,7 +22,7 @@ from .execution import configure as configure_execution, run as run_execution, s
 from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
 from .trust import define_profile, document as trust_document, get_profile, set_current
 from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
-from .verification import execute as execute_verification, plan as verification_plan
+from .verification import FULL_KINDS, execute as execute_verification, full_plan as full_verification_plan, plan as verification_plan
 from . import readiness
 from .readiness import render as readiness_render
 from .readiness.apply import ApplyError, run as readiness_run
@@ -493,7 +493,7 @@ def cmd_ready_apply(args: argparse.Namespace) -> int:
 
 def _verification_args(args: argparse.Namespace) -> tuple[str, str | None, list[str] | None]:
     return (
-        getattr(args, "path", "."),
+        getattr(args, "target_path", None) or getattr(args, "path", "."),
         getattr(args, "base", None),
         getattr(args, "symbol", None),
     )
@@ -525,7 +525,18 @@ def cmd_verify_plan(args: argparse.Namespace) -> int:
 
 def cmd_verify_run(args: argparse.Namespace) -> int:
     path, base, symbols = _verification_args(args)
-    plan = verification_plan(path, base=base, symbols=symbols)
+    kinds = getattr(args, "kind", None) or []
+    commands = getattr(args, "command", None) or []
+    if kinds or commands:
+        plan = full_verification_plan(path, kinds=kinds, commands=commands,
+                                      include_changed=getattr(args, "include_changed", False),
+                                      base=base, symbols=symbols)
+    elif getattr(args, "include_changed", False):
+        print("agentic: --include-changed augments full verification; also pass --kind or --command",
+              file=sys.stderr)
+        return 2
+    else:
+        plan = verification_plan(path, base=base, symbols=symbols)
     data = execute_verification(
         plan,
         continue_on_failure=getattr(args, "continue_on_failure", False),
@@ -541,8 +552,12 @@ def cmd_verify_run(args: argparse.Namespace) -> int:
             mark = "✓" if result.get("success") is True else ("·" if result.get("success") is None else "!")
             label = result.get("command") or result.get("test_file") or result.get("capability")
             print(f"{mark} {result['kind']}: {label}")
-        print("verification: " + ("passed" if data["success"] else "failed"))
-    return 0 if data["success"] else 1
+        if data["missing_kinds"]:
+            print("no runnable command for required kind(s): " + ", ".join(data["missing_kinds"]))
+        elif data["status"] == "no-checks":
+            print("no checks were executed")
+        print(f"verification: {data['status']}")
+    return 0 if data["status"] == "passed" else 1
 
 
 def cmd_execution_status(args: argparse.Namespace) -> int:
@@ -1475,14 +1490,32 @@ def build_parser() -> argparse.ArgumentParser:
     vsub = verify.add_subparsers(dest="verify_command")
 
     vplan = vsub.add_parser("plan", help="Create a verification plan")
+    vplan.add_argument("target_path", nargs="?", default=None, metavar="PATH")
     vplan.add_argument("--path", default=".")
     vplan.add_argument("--base", default=None)
     vplan.add_argument("--symbol", action="append", default=None)
     vplan.add_argument("--json", action="store_true")
     vplan.set_defaults(func=cmd_verify_plan)
 
-    vrun = vsub.add_parser("run", help="Execute the selected verification checks")
+    vrun = vsub.add_parser(
+        "run",
+        help="Execute verification checks (change-aware, or full-project with --kind/--command)",
+        description=(
+            "Without --kind/--command, run the change-aware plan. With --kind, run every "
+            "discovered command of each kind across the whole project; --command adds explicit "
+            "commands; --include-changed adds change-aware checks on top (never removes any). "
+            "Exit 0 only when checks ran and passed. A requested kind with no command, or a run "
+            "that executes nothing, is status no-checks and exits 1."
+        ),
+    )
+    vrun.add_argument("target_path", nargs="?", default=None, metavar="PATH")
     vrun.add_argument("--path", default=".")
+    vrun.add_argument("--kind", action="append", choices=FULL_KINDS, default=None,
+                      help="full-project verification of this kind (repeatable)")
+    vrun.add_argument("--command", action="append", default=None, metavar="CMD",
+                      help="run this explicit command as a custom check (repeatable)")
+    vrun.add_argument("--include-changed", action="store_true",
+                      help="add change-aware checks to full verification")
     vrun.add_argument("--base", default=None)
     vrun.add_argument("--symbol", action="append", default=None)
     vrun.add_argument("--continue-on-failure", action="store_true")

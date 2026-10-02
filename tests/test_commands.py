@@ -16,6 +16,7 @@ from agentic_dev.commands import KINDS, Command, WorkingTree, by_kind, discover,
 from agentic_dev.inspection import inspect_repository
 from agentic_dev.readiness import assess
 from agentic_dev.readiness import evidence as readiness_evidence
+from agentic_dev.verification import execute, full_plan
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -67,6 +68,14 @@ class OneDiscovererTests(CommandCase):
         readiness = next(r for r in assess(root)["requirements"] if r["id"] == "feedback.tests.available")
         self.assertEqual(readiness["status"], "pass")
         self.assertEqual([(e["value"], e["source"]) for e in readiness["evidence"]], [("make check", "Makefile")])
+
+    def test_full_verification_runs_the_same_command(self):
+        root = self.repo({**self.FILES, "Makefile": "check:\n\ttouch ran-make-check\n"})
+        document = execute(full_plan(root, kinds=["test"]))
+        self.assertEqual(document["status"], "passed")
+        self.assertEqual([(r["kind"], r["command"], r["source"]) for r in document["results"]],
+                         [("test", "make check", "Makefile")])
+        self.assertTrue((root / "ran-make-check").exists())
 
     def test_there_is_no_second_discoverer(self):
         self.assertFalse(hasattr(inspection, "discover_commands"))
