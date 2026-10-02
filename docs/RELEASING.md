@@ -39,24 +39,41 @@ No long-lived PyPI API token is required.
 5. The release workflow builds the wheel and sdist in a separate build job.
 6. The publish job downloads those exact artifacts and publishes them through PyPI Trusted Publishing.
 
-The first Agentic Dev package is intentionally a prerelease:
+Versions are stable (`0.15.0`) unless the milestone is still in progress, in
+which case main carries an alpha (`0.16.0a1`) and nothing is published.
+`pyproject.toml`, `agentic_dev.__version__`, the installed-artifact version checks
+in `.github/workflows/ci.yml`, and the `CHANGELOG.md` heading (with the release
+date) change together in one release PR.
 
-```text
-0.14.0a1
-```
-
-This validates the renamed distribution/install path before the v0.14 Agent Ready milestone reaches a stable release.
+The readiness CLI exit codes (`ready apply`/`diff`, `verify`, `make`) are part of
+the external automation surface. A release must not change them except
+intentionally and compatibly, with a CHANGELOG entry.
 
 ## Consumer smoke test
 
-After publication:
+After publication, from a clean environment, install **from PyPI** (not from the
+repository or a workflow artifact):
 
 ```bash
-uv tool install --prerelease allow agentic-dev
+uv tool install agentic-dev==X.Y.Z
 agentic --version
 agentic doctor --json
 agentic skills list
 ```
+
+In a Git repository, run the readiness lifecycle:
+
+```bash
+agentic ready assess .
+agentic ready plan . --target structured
+agentic ready make . --target structured --dry-run
+agentic ready verify . --target structured
+agentic ready diff . --ci-check   # must pin agentic-dev==X.Y.Z, spec version, spec sha256
+```
+
+Then commit the generated `.github/workflows/agentic-readiness.yml` in a
+throwaway GitHub repository and confirm the workflow installs `X.Y.Z` from PyPI
+and passes.
 
 A temporary Git repository should also successfully run:
 

@@ -1,8 +1,12 @@
 # Changelog
 
-## 0.15.0a1 - Unreleased
+## 0.15.0 - 2026-10-02
 
 v0.15 (Agent Ready remediation + CI): slices 1–4.
+
+The readiness exit codes below are frozen as part of the automation contract from this release.
+
+- The generated `readiness.ci-check` workflow uses `actions/checkout@v6` (with `persist-credentials: false`) and `actions/setup-python@v6`, matching this repository's own CI.
 
 - Added `agentic ready make [PATH] --target LEVEL [--dry-run] [--ci-check] [--max-rounds N] [--json]`. It runs bounded rounds of plan → safe remediation → reassess and stops on human decisions (listed with candidates) instead of guessing. `--dry-run` previews the whole run in a throwaway copy. Exit codes: `0` target met, `1` conflict, `2` usage error, `3` rolled back, `4` stopped. New contract: `readiness-make-v1`.
 
