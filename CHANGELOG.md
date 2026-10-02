@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.14.0 - 2026-10-02
+
+Stable Agent Ready Specification v1 assessment release.
+
+- Promoted the completed v0.14 milestone from prerelease to stable.
+- Includes `agentic ready assess`, `agentic ready explain`, and `agentic ready plan`, with deterministic offline assessment and requirement-based maturity.
+- Includes the vendored Agent Ready Specification v1 bundle pinned by source commit and SHA-256.
+- Includes wheel/sdist installation smoke tests and PyPI Trusted Publishing through `.github/workflows/publish.yml`.
+- Preserves the v0.14 guarantees: read-only assessment, repository-relative evidence, redaction of suspected secrets, and `unknown` distinct from `fail`.
+
 ## 0.14.0a2 - 2026-10-02
 
 Agent Ready Specification v1 assessment (Roadmap v2 milestone v0.14, in progress).

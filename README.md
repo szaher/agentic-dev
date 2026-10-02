@@ -59,7 +59,7 @@ uv tool install agentic-dev
 agentic --version
 ```
 
-For prereleases such as `0.14.0a2`, use:
+For prereleases, use:
 
 ```bash
 uv tool install --prerelease allow agentic-dev
