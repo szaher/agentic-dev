@@ -1,15 +1,12 @@
 # Agentic Dev brand
 
-Agentic Dev should feel technical, trustworthy, fast, and vendor-neutral. The visual system deliberately avoids robot mascots as the primary mark; the product is about the development system around agents, not a single model.
+Agentic Dev should feel technical, capable, approachable, and vendor-neutral.
 
 ## Core idea
 
-The mark is an angular **A** with a forward path crossing it. It represents:
+The primary identity is an **orange octopus agent**: one coordinated agent with multiple capable arms working across code, tools, context, verification, and automation.
 
-- **Agent** — the A;
-- **path** — the internal forward stroke;
-- **development** — a path through code toward a verified outcome;
-- **readiness** — structure rather than model magic.
+The mascot is intentionally distinct from cloud-vendor and generic geometric AI marks.
 
 ## Wordmark
 
@@ -21,22 +18,16 @@ Primary tagline:
 
 > **Assess. Explain. Plan. Build agent-ready repositories.**
 
-Short positioning line:
-
-> From code to agent-ready, with a clear path.
-
 ## Palette
 
 | Role | Hex |
 |---|---|
-| Ink | `#0F172A` |
-| Blue | `#2563EB` |
-| Violet | `#7C3AED` |
-| Cyan | `#06B6D4` |
-| Slate | `#64748B` |
+| Ink / visor | `#111827` |
+| Deep plum | `#2B1D2F` |
+| Agent orange | `#E94A18` |
+| Bright orange | `#FF7A1A` |
+| Amber accent | `#FFB21A` |
 | Canvas | `#F8FAFC` |
-
-The main gradient runs **Cyan → Blue → Violet**.
 
 ## Typography
 
@@ -50,20 +41,20 @@ Code stays monospace and should use the platform/editor default.
 
 ## Assets
 
-- `assets/brand/agentic-dev-mark.svg` — icon/mark;
-- `assets/brand/agentic-dev-logo.svg` — horizontal wordmark;
-- `assets/brand/agentic-dev-banner.svg` — README/docs hero.
+- `assets/brand/agentic-dev-logo.svg` — horizontal octopus wordmark; primary README/docs logo.
+- `assets/brand/agentic-dev-mark.svg` — standalone octopus mascot for compact/icon use.
 
 ## Usage
 
 Do:
-- give the mark clear space;
-- use the gradient on the mark or `dev` portion;
-- keep the wordmark lowercase;
+- use the octopus wordmark as the primary brand;
+- keep **agentic-dev** lowercase in the wordmark;
+- preserve the orange/navy palette;
+- give the mascot clear space;
 - keep backgrounds simple and high contrast.
 
 Avoid:
-- changing the mark proportions;
-- adding model/vendor logos into the primary brand;
-- using robot imagery as the primary logo;
-- adding glow, bevel, or 3D effects to the canonical SVG mark.
+- reverting to the old angular-A mark;
+- recoloring the mascot to match a cloud vendor;
+- adding model/vendor logos into the primary mark;
+- stretching, skewing, or heavily restyling the mascot.
