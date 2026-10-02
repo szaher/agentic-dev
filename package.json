@@ -2,7 +2,7 @@
   "name": "agentic-dev-pi",
   "version": "0.3.0",
   "private": true,
-  "description": "Pi package adapter for agentic-dev.",
+  "description": "Pi package adapter for Agentic Dev.",
   "license": "MIT",
   "keywords": [
     "pi-package",
