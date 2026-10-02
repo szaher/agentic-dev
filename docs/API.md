@@ -4,6 +4,24 @@
 
 Current schema version: **1**.
 
+## Compatibility handshake
+
+```bash
+agentic contracts --json              # agentic.contracts v1
+agentic contracts schema NAME [--version V]
+```
+
+Consumers decide compatibility from this document, never from `agentic --version`
+(`agentic_version` is informational only). It lists:
+
+- `contracts`: contract name → document versions this installation emits, each with a JSON Schema shipped inside the package (`agentic contracts schema NAME` prints it, so an installed artifact can validate its own output);
+- `document_types`: `<contract>@<version>` → the `document_type` values it covers;
+- `features`: capability flags such as `commands.canonical-discovery`, `verification.full-kind-filter`, `verification.no-checks-status`, `worktree.lifecycle`, `instructions.managed-block`;
+- `exit_codes`: stable process exit codes per command (`verify run`, `ready diff|apply|verify|make`, `instructions block`).
+
+Adding a contract version or a feature is additive; removing one or changing a listed exit code is breaking.
+Schemas live in `src/agentic_dev/schemas/`.
+
 ## Repository inspection
 
 ```bash
@@ -25,12 +43,14 @@ The document includes:
 - evidence for each fact;
 - facts grouped by type;
 - package managers;
-- zero or more install/test/lint/format/typecheck/build commands;
+- zero or more install/test/lint/format/typecheck/build commands (`commands`, a map by kind) and the same list with provenance (`discovered_commands`: `{kind, command, source}` in deterministic order);
 - installed and recommended skills;
 - current optional-capability state;
 - native agent integration status.
 
 Polyglot repositories intentionally return **arrays** of commands. There is no single global `TEST_CMD` winner in the API contract.
+
+Commands come from Agentic Dev's single canonical discovery service (`agentic_dev.commands`). `repo inspect`, readiness evidence (`command.*`), and verification all consume it, so they always agree.
 
 Schema:
 
@@ -81,18 +101,39 @@ before interpreting a document.
 
 ## AgentFlow
 
-The intended integration boundary is process/API-level, not Python-internal imports:
+The intended integration boundary is process/API-level, not Python-internal imports (decisions: [AGENTFLOW-AUDIT.md](AGENTFLOW-AUDIT.md)):
 
 ```text
 AgentFlow
    |
+   +-- agentic contracts --json               (handshake: required contracts/features)
    +-- agentic repo inspect . --json
-   +-- agentic ready assess . --json
+   +-- agentic ready verify . --scope local --json
+   +-- agentic verify run . --kind test --json
+   +-- agentic worktree create|status|clean --json
+   +-- agentic capabilities status --json
+   +-- agentic instructions block put|remove --json
    +-- agentic doctor --json
    |
    +-- consumes facts / commands / capabilities
    +-- decides mandatory workflow gates and evidence policy
 ```
+
+### Worktrees and capabilities
+
+`agentic worktree create|list|status|clean --json` emit `agentic.worktree`, `agentic.worktrees`, `agentic.worktree-status`, and `agentic.worktree-clean` (contracts `worktree`, `worktree-list`, `worktree-status`, `worktree-clean`). Agentic Dev owns the Git mechanics; cleaning is always explicit and refuses dirty worktrees without `--force`.
+
+`agentic capabilities status --json` is a bare map from capability name to state (contract `capability-status`). It predates document envelopes, so it has no `document_type`.
+
+### Managed instruction blocks
+
+```bash
+agentic instructions block put --file AGENTS.md --owner agentflow --id workflow --content-file - --json
+agentic instructions block remove --file AGENTS.md --owner agentflow --id workflow --json
+agentic instructions block list --json
+```
+
+A tool owns the *content* of one `<owner>.<id>` block in a shared instruction file (`AGENTS.md`, `CLAUDE.md`, `.claude/CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`); Agentic Dev owns the *mutation*, using the same marker, hash, and conflict protocol as readiness remediation. Hand-edited blocks are never overwritten or removed; content outside the block is preserved byte for byte; writes are atomic with rollback; repeating a request is a no-op. The `readiness` namespace is reserved. Document types `agentic.instruction-block` and `agentic.instruction-blocks`. Exit codes: `0` ok (`created`, `appended`, `replaced`, `unchanged`, `removed`, `absent`), `1` `conflict`/`refused` (nothing written), `2` usage, `3` rolled back.
 
 This keeps AgentFlow independent of the implementation details of repository detection.
 
@@ -164,6 +205,25 @@ src/agentic_dev/schemas/verification-plan-v1.schema.json
 ```
 
 The plan is advisory to orchestration layers: AgentFlow may make any subset of checks mandatory or add policy-specific gates.
+
+## Verification run
+
+```bash
+agentic verify run [PATH] --json                          # change-aware plan
+agentic verify run [PATH] --kind test --kind lint --json  # full-project, every discovered command per kind
+agentic verify run [PATH] --command "make e2e" --json     # explicit commands (kind "custom")
+agentic verify run [PATH] --kind test --include-changed   # full + change-aware additions
+```
+
+Document type `agentic.verification-run` v1 (`src/agentic_dev/schemas/verification-run-v1.schema.json`). `status` is authoritative:
+
+| status | meaning | success | exit |
+|---|---|---|---|
+| `passed` | checks executed and all passed | `true` | 0 |
+| `failed` | a check failed | `false` | 1 |
+| `no-checks` | a requested kind had no runnable command (`missing_kinds`, nothing executed), or the run executed nothing | `false` | 1 |
+
+Zero checks is never success. `--include-changed` may only add checks to the full baseline, never remove one. Full verification covers `build`, `test`, `lint`, and `typecheck` (`format` rewrites files and `install` prepares an environment, so neither is a check).
 
 
 ## Execution result

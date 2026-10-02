@@ -33,17 +33,18 @@ set +e
 set -e
 [[ "$make_exit" == 4 ]] || { echo "unexpected make exit code: $make_exit" >&2; exit 1; }
 
-python3 - "$source_root" "$work" <<'PY'
-import json, sys
+python3 - "$agentic" "$work" "$source_root" <<'PY'
+import json, subprocess, sys
 from pathlib import Path
 import jsonschema
 
-root = Path(sys.argv[1])
-schema = lambda name: json.loads((root / "src" / "agentic_dev" / "schemas" / f"{name}-v1.schema.json").read_text())
+# Schemas come from the installed artifact, never the source tree.
+schema = lambda name: json.loads(subprocess.run([sys.argv[1], "contracts", "schema", name], check=True,
+                                                capture_output=True, text=True).stdout)
 
 assessment = json.loads(Path("assess.json").read_text())
 jsonschema.validate(assessment, schema("readiness-assessment"))
-pin = json.loads((root / "src/agentic_dev/readiness/specs/PIN.json").read_text())
+pin = json.loads((Path(sys.argv[3]) / "src/agentic_dev/readiness/specs/PIN.json").read_text())  # cross-check packaging
 assert assessment["spec"] == {"name": "agent-ready", "version": pin["spec_version"],
                               "sha256": pin["sha256"], "source": "builtin"}, assessment["spec"]
 assert assessment["maturity"]["current"] == "optimized", assessment["maturity"]

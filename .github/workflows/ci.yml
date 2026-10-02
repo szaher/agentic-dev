@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install packaging tools
-        run: python -m pip install build twine 'jsonschema>=4.23'
+        run: python -m pip install build twine uv 'jsonschema>=4.23'
       - name: Build wheel and source distribution
         run: python -m build
       - name: Validate distribution metadata
@@ -75,6 +75,15 @@ jobs:
           set -Eeuo pipefail
           bash scripts/ci-readiness-smoke.sh /tmp/agentic-wheel/bin/agentic
 
+      - name: Contracts from uv tool-installed wheel
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export UV_TOOL_DIR=/tmp/agentic-uv-tools UV_TOOL_BIN_DIR=/tmp/agentic-uv-bin
+          uv tool install "$(ls dist/*.whl)"
+          /tmp/agentic-uv-bin/agentic --version | grep -Fx '0.15.0'
+          bash scripts/ci-contracts-smoke.sh /tmp/agentic-uv-bin/agentic
+
       - name: Smoke test installed source distribution
         shell: bash
         run: |
@@ -97,3 +106,9 @@ jobs:
         run: |
           set -Eeuo pipefail
           bash scripts/ci-readiness-smoke.sh /tmp/agentic-sdist/bin/agentic
+
+      - name: Contracts from installed sdist
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/ci-contracts-smoke.sh /tmp/agentic-sdist/bin/agentic
