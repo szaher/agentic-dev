@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from agentic_dev_env.execution import configure, run, status
+from agentic_dev.execution import configure, run, status
 
 
 class ExecutionBackendTests(unittest.TestCase):
@@ -28,8 +28,8 @@ class ExecutionBackendTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             run("true", root, backend="container", image="alpine:3.22")
 
-    @patch("agentic_dev_env.execution._invoke")
-    @patch("agentic_dev_env.execution.shutil.which")
+    @patch("agentic_dev.execution._invoke")
+    @patch("agentic_dev.execution.shutil.which")
     def test_container_defaults_to_no_network(self, which, invoke):
         root = self.repo()
         which.side_effect = lambda name: "/usr/bin/docker" if name == "docker" else None
@@ -45,8 +45,8 @@ class ExecutionBackendTests(unittest.TestCase):
         self.assertIn(f"{root.resolve()}:/workspace", argv)
         self.assertEqual(result["metadata"]["image"], "python:3.13")
 
-    @patch("agentic_dev_env.execution._invoke")
-    @patch("agentic_dev_env.execution.shutil.which")
+    @patch("agentic_dev.execution._invoke")
+    @patch("agentic_dev.execution.shutil.which")
     def test_devcontainer_up_then_exec(self, which, invoke):
         root = self.repo()
         (root / ".devcontainer").mkdir()
@@ -64,8 +64,8 @@ class ExecutionBackendTests(unittest.TestCase):
         self.assertEqual(second[:2], ["/usr/bin/devcontainer", "exec"])
         self.assertIn("--workspace-folder", second)
 
-    @patch("agentic_dev_env.execution._invoke")
-    @patch("agentic_dev_env.execution.shutil.which")
+    @patch("agentic_dev.execution._invoke")
+    @patch("agentic_dev.execution.shutil.which")
     def test_dagger_uses_no_apply_and_explicit_image(self, which, invoke):
         root = self.repo()
         which.side_effect = lambda name: "/usr/bin/dagger" if name == "dagger" else None
@@ -85,7 +85,7 @@ class ExecutionBackendTests(unittest.TestCase):
     def test_repo_config_is_local_and_requires_image_for_container(self):
         root = self.repo()
         with tempfile.TemporaryDirectory() as config:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 with self.assertRaises(ValueError):
                     configure(backend="container", path=root, repo_scope=True)
                 data = configure(
