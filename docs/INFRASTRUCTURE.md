@@ -51,7 +51,7 @@ agentic infra database schema sqlite --sqlite-file ./app.db --profile developmen
 agentic infra database schema postgres --profile production-read --json
 ```
 
-PostgreSQL and MySQL use the native client's existing environment/configuration. Credentials are not accepted as CLI flags by agentic-dev-env.
+PostgreSQL and MySQL use the native client's existing environment/configuration. Credentials are not accepted as CLI flags by agentic-dev.
 
 Read-only query mode permits only clearly read-oriented statement prefixes:
 
@@ -111,7 +111,7 @@ agentic infra database local start postgres \
   --json
 ```
 
-Agentic-dev-env generates a random password and passes it to Docker/Podman through a temporary mode-0600 env file. The generated credential is stored in a mode-0600 agentic-dev-env config file and is redacted from normal output.
+Agentic-dev-env generates a random password and passes it to Docker/Podman through a temporary mode-0600 env file. The generated credential is stored in a mode-0600 agentic-dev config file and is redacted from normal output.
 
 ```bash
 agentic infra database local list --json
