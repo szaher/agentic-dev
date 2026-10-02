@@ -13,7 +13,7 @@ have() { command -v "$1" >/dev/null 2>&1; }
 
 usage() {
   cat <<'USAGE'
-Usage: setup-coding-agent-env.sh [options]
+Usage: agentic setup [options]
 Linux/WSL workstation bootstrap.
 
   --configure-agents
@@ -149,8 +149,8 @@ fi
 install_policy_file() {
   target="$1"
   policy="$2"
-  start='<!-- agentic-dev-env:start -->'
-  end='<!-- agentic-dev-env:end -->'
+  start='<!-- agentic-dev:start -->'
+  end='<!-- agentic-dev:end -->'
   mkdir -p "$(dirname "$target")"
   touch "$target"
   tmp=$(mktemp)
@@ -168,7 +168,7 @@ install_policy_file() {
 }
 
 if [ "$NO_GLOBAL_INSTRUCTIONS" -eq 0 ]; then
-  policy="$HOME/.config/agentic-dev-env/templates/global-agent-policy.md"
+  policy="$HOME/.config/agentic-dev/templates/global-agent-policy.md"
   if [ -f "$policy" ]; then
     have claude && install_policy_file "$HOME/.claude/CLAUDE.md" "$policy"
     have codex && install_policy_file "$HOME/.codex/AGENTS.md" "$policy"
