@@ -23,6 +23,8 @@ from .skills import activate, context_and_recommendations, get_skill, installed_
 from .trust import define_profile, document as trust_document, get_profile, set_current
 from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
 from .verification import execute as execute_verification, plan as verification_plan
+from . import readiness
+from .readiness import render as readiness_render
 from .providers import (
     add_provider, doctor as provider_doctor, installed as installed_providers,
     migrate as migrate_provider, remove_provider, update_all as update_all_providers,
@@ -380,6 +382,55 @@ def cmd_worktree_clean(args: argparse.Namespace) -> int:
         if args.delete_branch:
             print(f"  branch deleted: {data['deleted_branch']}")
     return 0
+
+
+def _ready(args: argparse.Namespace, build, render) -> int:
+    try:
+        data = build()
+    except (readiness.SpecError, KeyError, FileNotFoundError) as exc:
+        message = exc.args[0] if isinstance(exc, KeyError) and exc.args else str(exc)
+        print(f"agentic ready: {message}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(render(data))
+    return 0
+
+
+def cmd_ready_assess(args: argparse.Namespace) -> int:
+    return _ready(
+        args,
+        lambda: readiness.assess(args.path, spec=args.spec, target=args.target),
+        lambda data: readiness_render.assessment(data, verbose=args.verbose),
+    )
+
+
+def cmd_ready_explain(args: argparse.Namespace) -> int:
+    subject = args.subject
+    def build() -> dict:
+        spec = readiness.load_spec(args.spec)
+        if subject in spec.rules:
+            return readiness.explain_rule(subject, args.path, spec=spec)
+        looks_like_rule = subject.split(".")[0] in spec.pillars and not Path(subject).exists()
+        if looks_like_rule:
+            return readiness.explain_rule(subject, args.path, spec=spec)
+        return readiness.explain_repository(subject, spec=spec, target=args.target)
+
+    def render(data: dict) -> str:
+        if data["subject"] == "rule":
+            return readiness_render.rule_explanation(data)
+        return readiness_render.repository_explanation(data)
+
+    return _ready(args, build, render)
+
+
+def cmd_ready_plan(args: argparse.Namespace) -> int:
+    return _ready(
+        args,
+        lambda: readiness.plan(args.path, spec=args.spec, target=args.target),
+        readiness_render.plan,
+    )
 
 
 def _verification_args(args: argparse.Namespace) -> tuple[str, str | None, list[str] | None]:
@@ -1116,6 +1167,40 @@ def build_parser() -> argparse.ArgumentParser:
     inspect_cmd.add_argument("--task", default="")
     inspect_cmd.add_argument("--json", action="store_true")
     inspect_cmd.set_defaults(func=cmd_repo_inspect)
+
+    ready = sub.add_parser(
+        "ready",
+        help="Assess a repository against the Agent Ready specification (read-only)",
+        description=(
+            "Evaluate a repository against the pinned Agent Ready Spec. Assessment is "
+            "deterministic, uses no LLM, and never modifies the repository."
+        ),
+    )
+    rsub = ready.add_subparsers(dest="ready_command", required=True)
+
+    def ready_common(command: argparse.ArgumentParser) -> None:
+        command.add_argument("--target", default=None, metavar="LEVEL",
+                             help="target maturity level (default: the next level)")
+        command.add_argument("--spec", default=None, metavar="PATH",
+                             help="explicit Agent Ready spec bundle (file or spec/dist directory); default: built-in")
+        command.add_argument("--json", action="store_true")
+
+    rassess = rsub.add_parser("assess", help="Assess maturity and every requirement")
+    rassess.add_argument("path", nargs="?", default=".")
+    rassess.add_argument("--verbose", action="store_true", help="also list not-applicable rules")
+    ready_common(rassess)
+    rassess.set_defaults(func=cmd_ready_assess)
+
+    rexplain = rsub.add_parser("explain", help="Explain the maturity outcome or a single rule")
+    rexplain.add_argument("subject", nargs="?", default=".", help="repository path or rule id")
+    rexplain.add_argument("--path", default=".", help="repository to evaluate a rule against")
+    ready_common(rexplain)
+    rexplain.set_defaults(func=cmd_ready_explain)
+
+    rplan = rsub.add_parser("plan", help="Read-only remediation plan toward a target level")
+    rplan.add_argument("path", nargs="?", default=".")
+    ready_common(rplan)
+    rplan.set_defaults(func=cmd_ready_plan)
 
     skills = sub.add_parser("skills", help="Context-aware Agent Skills")
     ssub = skills.add_subparsers(dest="skills_command", required=True)
