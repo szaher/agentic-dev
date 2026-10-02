@@ -1,11 +1,11 @@
 {
-  "name": "agentic-dev-env",
-  "description": "Use agentic-dev-env to inspect a repository, recommend focused engineering skills, and verify the local coding-agent toolchain.",
+  "name": "agentic-dev",
+  "description": "Use agentic-dev to inspect a repository, recommend focused engineering skills, and verify the local coding-agent toolchain.",
   "version": "0.3.0",
   "author": {
     "name": "Saad Zaher",
-    "url": "https://github.com/szaher/agentic-dev-env"
+    "url": "https://github.com/szaher/agentic-dev"
   },
-  "homepage": "https://github.com/szaher/agentic-dev-env",
-  "repository": "https://github.com/szaher/agentic-dev-env"
+  "homepage": "https://github.com/szaher/agentic-dev",
+  "repository": "https://github.com/szaher/agentic-dev"
 }
