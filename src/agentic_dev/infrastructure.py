@@ -14,6 +14,7 @@ from typing import Any
 from .capabilities import required_permissions, status as capability_status
 from .detect import repo_root
 from .execution import run as run_execution
+from .paths import config_dir
 from .trust import check as trust_check
 
 
@@ -259,11 +260,7 @@ def migration_check(
 
 
 def _db_state_dir() -> Path:
-    base = Path(os.environ.get(
-        "AGENTIC_DEV_CONFIG_DIR",
-        Path.home() / ".config" / "agentic-dev",
-    ))
-    return base / "infrastructure" / "databases"
+    return config_dir() / "infrastructure" / "databases"
 
 
 def _db_state(name: str) -> Path:
