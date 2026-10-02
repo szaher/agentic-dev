@@ -166,7 +166,8 @@ def read_events(
                 continue
             if stamp < cutoff:
                 continue
-        if repo and event.get("repository", {}).get("id") != repo["id"]:
+        event_repo = event.get("repository") or {}
+        if repo and event_repo.get("id") != repo["id"]:
             continue
         result.append(event)
     return result
@@ -259,6 +260,27 @@ def summary(
     sessions_ended = by_type.get("session.ended", 0)
     retries = by_type.get("retry", 0)
 
+    per_session: dict[str, Counter] = defaultdict(Counter)
+    for event in events:
+        session = event.get("session_id")
+        if not session:
+            continue
+        if event["event_type"] == "execution.completed":
+            per_session[str(session)]["tool_calls"] += 1
+            if not event["data"].get("success", False):
+                per_session[str(session)]["failed_tool_calls"] += 1
+        elif event["event_type"] == "retry":
+            per_session[str(session)]["retries"] += 1
+        elif event["event_type"] == "verification.completed":
+            per_session[str(session)]["verifications"] += 1
+
+    session_rows = {
+        name: dict(sorted(counts.items()))
+        for name, counts in sorted(per_session.items())
+    }
+    tool_calls = [row.get("tool_calls", 0) for row in session_rows.values()]
+    average_tool_calls = sum(tool_calls) / len(tool_calls) if tool_calls else None
+
     return {
         "schema_version": "1",
         "document_type": "agentic.metrics-summary",
@@ -294,6 +316,8 @@ def summary(
             "retries": retries,
             "sessions_started": sessions_started,
             "sessions_ended": sessions_ended,
+            "average_tool_calls_per_session": average_tool_calls,
+            "per_session": session_rows,
             "agentflow_stage_outcomes": {
                 stage: dict(sorted(outcomes.items()))
                 for stage, outcomes in sorted(agentflow.items())
