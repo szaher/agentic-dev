@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agentic_dev_env.worktrees import (
+from agentic_dev.worktrees import (
     clean_worktree,
     create_worktree,
     list_worktrees,
