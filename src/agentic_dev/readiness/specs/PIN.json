@@ -1,11 +1,11 @@
 {
-  "file": "agent-ready-spec-1.0.0.json",
+  "file": "agent-ready-spec-1.0.1.json",
   "name": "agent-ready",
-  "sha256": "393f96232ea4c79e855f734e732dbe4aeb2f606f511b6ab9049bed61e468a346",
+  "sha256": "d9c0e83af4caaabb09dbe8130cf04b74917576086e22a7443f0a59d5ff2a16fd",
   "source": {
-    "commit": "44e6e9ec9c9a9f65557938a8f835f2135e2eb872",
-    "path": "spec/dist/agent-ready-spec-1.0.0.json",
+    "commit": "9d8c4f0eefdad38d7891b364dda646c10151187e",
+    "path": "spec/dist/agent-ready-spec-1.0.1.json",
     "repository": "https://github.com/szaher/agent-ready"
   },
-  "spec_version": "1.0.0"
+  "spec_version": "1.0.1"
 }

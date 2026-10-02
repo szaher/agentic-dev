@@ -16,7 +16,7 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 from functools import cached_property
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Iterable
 
 from ..inspection import discover_commands
@@ -398,6 +398,26 @@ _LINK_TARGET = re.compile(r"\]\(([^)\s]+)")
 _URL = re.compile(r"^[a-z][a-z0-9+.-]*:", re.IGNORECASE)
 _EXTENSION = re.compile(r"\.[A-Za-z0-9]{1,8}$")
 
+# agent.instructions.commands (spec 1.0.1): the closed vocabulary of programs that
+# count as documented project commands. Widening it is a minor spec change.
+PROJECT_PROGRAMS = frozenset({
+    "make", "just", "task", "npm", "npx", "pnpm", "yarn", "bun", "bunx", "deno", "nx", "turbo",
+    "go", "gofmt", "golangci-lint", "cargo", "uv", "poetry", "pdm", "hatch", "pipenv", "pytest",
+    "tox", "nox", "ruff", "black", "isort", "flake8", "pylint", "mypy", "pyright", "basedpyright",
+    "eslint", "prettier", "biome", "tsc", "jest", "vitest", "playwright", "gradle", "mvn", "cmake",
+    "ctest", "bazel", "bazelisk", "swift", "xcodebuild", "dotnet", "mix", "sbt", "stack", "cabal",
+    "zig", "rake", "rspec", "bundle", "composer", "phpunit",
+})
+PYTHON_PROGRAMS = frozenset({"python", "python3", "py"})
+PYTHON_MODULES = frozenset({
+    "pytest", "unittest", "mypy", "ruff", "black", "build", "tox", "nox", "pylint", "flake8", "isort",
+})
+SCRIPT_EXTENSIONS = frozenset({
+    "", ".sh", ".bash", ".zsh", ".ps1", ".bat", ".cmd", ".py", ".js", ".mjs", ".cjs", ".ts", ".rb", ".pl",
+})
+_SEGMENT_SPLIT = re.compile(r"&&|\|\||;|\|")
+_ENV_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=\S*$")
+
 
 @dataclass
 class EvidenceCollector:
@@ -598,7 +618,61 @@ def _file_pointers(collector: EvidenceCollector, evidence_id: str) -> Observatio
                        note="at least two existing repository paths must be referenced")
 
 
+def _command_lines(lines: list[str]) -> Iterable[tuple[int, str]]:
+    """Inline code spans and the non-blank lines of fenced code blocks."""
+
+    fence: str | None = None
+    for number, line in enumerate(lines, start=1):
+        marker = FENCE.match(line)
+        if marker:
+            token = marker.group(1)[0]
+            fence = None if fence == token else (fence or token)
+            continue
+        if fence:
+            if line.strip():
+                yield number, line.strip()
+            continue
+        for span in _CODE_SPAN.findall(line):
+            yield number, span.strip()
+
+
+def _is_project_command(collector: EvidenceCollector, segment: str) -> bool:
+    words = segment.split()
+    if words[:1] == ["$"]:
+        words = words[1:]
+    while words and _ENV_ASSIGNMENT.match(words[0]):
+        words = words[1:]
+    if not words:
+        return False
+    program = words[0]
+    if program in PROJECT_PROGRAMS:
+        return True
+    if program in PYTHON_PROGRAMS:
+        return len(words) > 2 and words[1] == "-m" and words[2] in PYTHON_MODULES
+    if program.startswith("./"):
+        path = program.removeprefix("./")
+        return (".." not in path.split("/") and PurePosixPath(path).suffix in SCRIPT_EXTENSIONS
+                and collector.repo.exists_exact(path) == "file")
+    return False
+
+
+def _instruction_commands(collector: EvidenceCollector, evidence_id: str) -> Observation:
+    files: set[str] = set()
+    for ref in AGENT_FILE_EVIDENCE:
+        detection = collector.spec.evidence.get(ref, {}).get("detection", {})
+        if detection.get("kind") == "path":
+            files.update(collector.match_paths(detection))
+    items: list[dict[str, Any]] = []
+    for rel in sorted(files):
+        for number, text in _command_lines(collector.repo.lines(rel) or []):
+            if any(_is_project_command(collector, part.strip()) for part in _SEGMENT_SPLIT.split(text) if part.strip()):
+                items.append(_item(evidence_id, text, rel, number))
+    return _observation(evidence_id, items, None if items else
+                        "no recognized project command (in code) was found in the agent instructions")
+
+
 DERIVED: dict[str, Callable[[EvidenceCollector, str], Observation]] = {
+    "agent.instructions.commands": _instruction_commands,
     "agent.instructions.concise": _concise,
     "agent.instructions.file_pointers": _file_pointers,
     "project.language": _project_language,

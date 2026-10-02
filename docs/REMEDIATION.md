@@ -165,7 +165,7 @@ it is not proposed at all.
 
 ### Secret scanning stays `assisted`
 
-`constraints.secrets.scanning` remains `assisted` in spec 1.0.0, so it is always a
+`constraints.secrets.scanning` remains `assisted` in spec 1.0.1, so it is always a
 `human-decision`. "Enable secret scanning" can mean materially different things:
 using an installed scanner, installing one, modifying CI, adding a third-party
 action, sending data to an external service, or changing repository security
@@ -186,7 +186,7 @@ Every document passes `check_document` before it is returned.
   "schema_version": "1",
   "document_type": "agentic.readiness-remediation",
   "mode": "preview",
-  "spec": {"name": "agent-ready", "version": "1.0.0", "sha256": "…", "source": "builtin"},
+  "spec": {"name": "agent-ready", "version": "1.0.1", "sha256": "…", "source": "builtin"},
   "maturity": {"current": "foundational", "target": "structured", "target_met": false},
   "remediations": [
     {
@@ -344,7 +344,7 @@ they count as evidence in the working tree but do not exist in a CI checkout.
   (`target.tracked: false`), because it improves local readiness but not
   CI-visible readiness.
 
-## Current catalog (spec 1.0.0)
+## Current catalog (spec 1.0.1)
 
 The spec marks five rules `automatable`. All others are `assisted` or
 `human-required` and therefore `human-decision`. A test fails if a future spec

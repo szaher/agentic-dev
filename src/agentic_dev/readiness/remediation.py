@@ -33,7 +33,7 @@ from typing import Any, Callable
 from ..detect import repo_root
 from . import maturity
 from .assess import assess, references
-from .evidence import ATX_HEADING, FENCE, EvidenceCollector, compile_glob
+from .evidence import AGENT_FILE_EVIDENCE, ATX_HEADING, FENCE, EvidenceCollector, compile_glob
 from .spec import Spec, load_spec
 
 DOCUMENT_TYPE = "agentic.readiness-remediation"
@@ -188,19 +188,28 @@ def _matches(spec: Spec, globs: list[str], excludes: list[str], path: str) -> bo
 def evidence_created(spec: Spec, change: dict[str, Any]) -> set[str]:
     """Evidence ids a change could make observable, judged from the spec's detections.
 
-    ``derived`` evidence cannot be judged here. Maintenance targets therefore
-    come from a closed allowlist that excludes root-level files, which are the
-    only inputs derived definitions read.
+    ``derived`` evidence cannot be judged precisely, so it is judged
+    conservatively: a change to an agent instruction file may create any
+    ``agent.instructions.*`` evidence, and a change to a root-level file may
+    create any other derived evidence (derived definitions read root metadata).
     """
 
     path = change["path"]
     lines = _rendered_lines(change)
     created: set[str] = set()
+    instruction_file = any(
+        _matches(spec, spec.evidence[ref]["detection"]["paths"], spec.evidence[ref]["detection"].get("exclude", []), path)
+        for ref in AGENT_FILE_EVIDENCE if spec.evidence.get(ref, {}).get("detection", {}).get("kind") == "path"
+    )
     for evidence_id, definition in spec.evidence.items():
         detection = definition["detection"]
         kind = detection["kind"]
         if kind == "path":
             if _matches(spec, detection["paths"], detection.get("exclude", []), path):
+                created.add(evidence_id)
+            continue
+        if kind == "derived":
+            if instruction_file if evidence_id.startswith("agent.instructions.") else "/" not in path:
                 created.add(evidence_id)
             continue
         if kind not in {"heading", "content"}:

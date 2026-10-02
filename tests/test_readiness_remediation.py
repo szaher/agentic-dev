@@ -341,6 +341,19 @@ class MaintenanceActionTests(RemediationCase):
             with self.subTest(label), self.assertRaisesRegex(ContractError, "would create readiness evidence"):
                 self.propose_with(READINESS_WORKFLOW + extra)
 
+    def test_derived_evidence_is_judged_conservatively(self):
+        from agentic_dev.readiness.remediation import evidence_created
+
+        def change(path: str) -> dict:
+            return {"path": path, "format": "markdown", "block_id": "x", "content": "plain text", "prelude": None}
+
+        for path in ("AGENTS.md", ".github/copilot-instructions.md", ".cursor/rules/a.md"):
+            with self.subTest(path=path):
+                self.assertIn("agent.instructions.commands", evidence_created(SPEC, change(path)))
+        self.assertIn("command.test", evidence_created(SPEC, change("Makefile")))
+        nested = evidence_created(SPEC, change(".github/workflows/agentic-readiness.yml"))
+        self.assertFalse({e for e in nested if SPEC.evidence[e]["detection"]["kind"] == "derived"})
+
     def test_maintenance_cannot_grant_credentials_permissions_or_install_tools(self):
         for label, extra in {
             "credential": "        env:\n          TOKEN: ${{ secrets.DEPLOY_TOKEN }}\n",

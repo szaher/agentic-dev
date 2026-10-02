@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Vendored **Agent Ready Spec 1.0.1** (erratum). `agent.instructions.commands` is now derived: an agent instruction file must show at least one recognized project command in code. A heading such as "Useful commands" that lists only a workflow tool's own commands no longer satisfies `context.agent_instructions.commands`. The commands block that `ready apply` generates still satisfies the rule.
 - `ready plan` no longer says automated remediation is unavailable; it points to `ready diff` and `ready make`.
 - `ready diff --ci-check` now suggests the matching `ready apply ... --ci-check` command.
 
