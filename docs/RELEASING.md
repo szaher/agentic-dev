@@ -22,7 +22,7 @@ PyPI Trusted Publishing should be configured for:
 PyPI project:       agentic-dev
 GitHub owner:       szaher
 GitHub repository:  agentic-dev
-Workflow:           publish-to-pypi.yml
+Workflow:           publish.yml
 Environment:        pypi
 ```
 
