@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.13.0 - 2026-10-02
+
+Local measurement and evaluation.
+
+- Added local metrics/event store, disabled by default.
+- Added `agentic metrics status/enable/disable/summary/export/clear/record`.
+- Added schema-v1 metric events and automatic sensitive-key redaction.
+- Added hashed repository identities instead of storing absolute repository paths in events.
+- Added execution duration/failure/tool-call measurement without storing raw command strings.
+- Added verification check and total-duration measurement plus time to first passing focused test.
+- Added change-size measurement and CodeGraph context usefulness signals.
+- Added worktree session start/end events.
+- Added skill/capability recommendation uptake measurement by matching recommended item names to later activation/enablement.
+- Added generic events for AgentFlow stages, retries, external tool calls, context usefulness, and reverted edits.
+- Added per-session/task tool-call summaries.
+- Added explicit local file export only; no network telemetry/export.
+- Added privacy and lifecycle regression tests.
+- Completed the original agentic-dev-env roadmap.
+
 ## 0.12.0 - 2026-10-02
 
 Provider ecosystem, lifecycle, Linux/WSL, and remote development profiles.
