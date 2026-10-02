@@ -202,7 +202,7 @@ class AssessmentTests(unittest.TestCase):
         return root
 
     def schema(self, name: str) -> dict:
-        return json.loads((ROOT / "schemas" / name).read_text())
+        return json.loads((ROOT / "src" / "agentic_dev" / "schemas" / name).read_text())
 
     def test_empty_repository_is_unaware_with_code_rules_not_applicable(self):
         document = assess(self.repo({}))
@@ -379,7 +379,7 @@ class ExplainAndPlanTests(unittest.TestCase):
         shutil.rmtree(self.root, ignore_errors=True)
 
     def schema(self, name: str) -> dict:
-        return json.loads((ROOT / "schemas" / name).read_text())
+        return json.loads((ROOT / "src" / "agentic_dev" / "schemas" / name).read_text())
 
     def test_explain_repository(self):
         document = explain_repository(self.root)

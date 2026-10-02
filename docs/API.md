@@ -35,7 +35,7 @@ Polyglot repositories intentionally return **arrays** of commands. There is no s
 Schema:
 
 ```text
-schemas/repo-inspection-v1.schema.json
+src/agentic_dev/schemas/repo-inspection-v1.schema.json
 ```
 
 ## Environment/doctor document
@@ -54,7 +54,7 @@ The document includes:
 Schema:
 
 ```text
-schemas/doctor-v1.schema.json
+src/agentic_dev/schemas/doctor-v1.schema.json
 ```
 
 ## Stability rules
@@ -106,7 +106,7 @@ agentic ready explain <rule-id> --path . --json    # agentic.readiness-explanati
 agentic ready plan . --target optimized --json     # agentic.readiness-plan
 ```
 
-Schemas: `schemas/readiness-assessment-v1.schema.json`, `schemas/readiness-explanation-v1.schema.json`, `schemas/readiness-plan-v1.schema.json`.
+Schemas: `src/agentic_dev/schemas/readiness-assessment-v1.schema.json`, `src/agentic_dev/schemas/readiness-explanation-v1.schema.json`, `src/agentic_dev/schemas/readiness-plan-v1.schema.json`.
 
 Every document identifies the assessor, the exact Agent Ready spec (`name`, `version`, `sha256`, `source`), and the repository by directory name and Git `revision`. Absolute paths are never included, and evidence `source` values are repository-relative.
 
@@ -125,7 +125,7 @@ The same repository content and the same spec version produce the same document,
 
 ### Remediation contract (preview)
 
-`agentic.readiness-remediation` v1 (`schemas/readiness-remediation-v1.schema.json`) describes what can safely be changed toward a target level, in three separate parts:
+`agentic.readiness-remediation` v1 (`src/agentic_dev/schemas/readiness-remediation-v1.schema.json`) describes what can safely be changed toward a target level, in three separate parts:
 
 - `remediations`: one per open Agent Ready rule. Each is `safe-automatic`, `human-decision` (a stated decision plus detected candidates), or `unsupported`, and the spec's remediation classification caps it (never upgraded).
 - `maintenance_actions`: operational scaffolding for the readiness lifecycle, such as a readiness CI check. They are not rules and must be evidence-neutral: they can never satisfy or change a readiness requirement.
@@ -135,11 +135,11 @@ In v0.15 slice 1 it is a library preview (`agentic_dev.readiness.remediation.pro
 
 ### Readiness make
 
-`agentic ready make --target LEVEL --json` emits `agentic.readiness-make` v1 (`schemas/readiness-make-v1.schema.json`): `status` (`target-met`, `needs-decision`, `no-safe-progress`, `conflict`, `rolled-back`, `round-limit`), `exit_code` (`0`, `1`, `3`, `4`; `2` is a usage error with no document), `dry_run`, `maturity` (`before`, `after`, `target_met`, `ci_visible`), `rounds`, `written`, `uncommitted`, `diffs` (dry run), and `remaining` (`human_decision` with candidates, `unsupported`).
+`agentic ready make --target LEVEL --json` emits `agentic.readiness-make` v1 (`src/agentic_dev/schemas/readiness-make-v1.schema.json`): `status` (`target-met`, `needs-decision`, `no-safe-progress`, `conflict`, `rolled-back`, `round-limit`), `exit_code` (`0`, `1`, `3`, `4`; `2` is a usage error with no document), `dry_run`, `maturity` (`before`, `after`, `target_met`, `ci_visible`), `rounds`, `written`, `uncommitted`, `diffs` (dry run), and `remaining` (`human_decision` with candidates, `unsupported`).
 
 ### Readiness verification
 
-`agentic ready verify --target LEVEL --json` emits `agentic.readiness-verification` v1 (`schemas/readiness-verification-v1.schema.json`). It carries `scope` (default `ci`: tracked files only), `target`, `passed`, `exit_code` (`0` met, `1` not met, `3` pinned spec mismatch; `2` is a usage error with no document), `pin` (`spec_version`, `spec_sha256`, `matched`, `problems`), `maturity`, `blockers`, and, for the `ci` scope, `local`: the working-tree maturity and per-rule `differences` with their `local_only_evidence`. Every readiness document (assessment, explanation, plan, remediation, verification) carries `"scope": "local" | "ci"`.
+`agentic ready verify --target LEVEL --json` emits `agentic.readiness-verification` v1 (`src/agentic_dev/schemas/readiness-verification-v1.schema.json`). It carries `scope` (default `ci`: tracked files only), `target`, `passed`, `exit_code` (`0` met, `1` not met, `3` pinned spec mismatch; `2` is a usage error with no document), `pin` (`spec_version`, `spec_sha256`, `matched`, `problems`), `maturity`, `blockers`, and, for the `ci` scope, `local`: the working-tree maturity and per-rule `differences` with their `local_only_evidence`. Every readiness document (assessment, explanation, plan, remediation, verification) carries `"scope": "local" | "ci"`.
 
 ## Verification plan
 
@@ -160,7 +160,7 @@ Document type:
 Schema:
 
 ```text
-schemas/verification-plan-v1.schema.json
+src/agentic_dev/schemas/verification-plan-v1.schema.json
 ```
 
 The plan is advisory to orchestration layers: AgentFlow may make any subset of checks mandatory or add policy-specific gates.
@@ -184,7 +184,7 @@ Document type:
 Schema:
 
 ```text
-schemas/execution-result-v1.schema.json
+src/agentic_dev/schemas/execution-result-v1.schema.json
 ```
 
 Execution results include backend, exact argv, normalized stdout/stderr/return code, and backend metadata.
@@ -208,7 +208,7 @@ Document type:
 Schema:
 
 ```text
-schemas/infrastructure-status-v1.schema.json
+src/agentic_dev/schemas/infrastructure-status-v1.schema.json
 ```
 
 Infrastructure operation results are normalized JSON documents specific to database, cluster, cloud, and observability operations.
@@ -223,7 +223,7 @@ agentic providers doctor --json
 Provider manifests use:
 
 ```text
-schemas/provider-manifest-v1.schema.json
+src/agentic_dev/schemas/provider-manifest-v1.schema.json
 ```
 
 Installed providers may contribute skills and command-backed capabilities only when their recorded content digest still matches. Provider Git sources retain the resolved commit SHA and signature status.
@@ -256,7 +256,7 @@ agentic metrics record <event-type> --field key=value
 Event schema:
 
 ```text
-schemas/metric-event-v1.schema.json
+src/agentic_dev/schemas/metric-event-v1.schema.json
 ```
 
 The built-in exporter only writes JSON/JSONL files. There is no network export.

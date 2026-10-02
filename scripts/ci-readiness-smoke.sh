@@ -39,7 +39,7 @@ from pathlib import Path
 import jsonschema
 
 root = Path(sys.argv[1])
-schema = lambda name: json.loads((root / "schemas" / f"{name}-v1.schema.json").read_text())
+schema = lambda name: json.loads((root / "src" / "agentic_dev" / "schemas" / f"{name}-v1.schema.json").read_text())
 
 assessment = json.loads(Path("assess.json").read_text())
 jsonschema.validate(assessment, schema("readiness-assessment"))

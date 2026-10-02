@@ -64,7 +64,7 @@ itself is never touched. Rounds are bounded (`--max-rounds`, default 5).
 | `3` | `rolled-back`: a write failed, and that run was restored |
 | `4` | `needs-decision`, `no-safe-progress`, or `round-limit` |
 
-Contract: `agentic.readiness-make` v1 (`schemas/readiness-make-v1.schema.json`):
+Contract: `agentic.readiness-make` v1 (`src/agentic_dev/schemas/readiness-make-v1.schema.json`):
 before and after maturity, the CI-visible level, per-round writes, files not yet
 tracked by Git, and the remaining decisions.
 
@@ -177,7 +177,7 @@ with different classes. That change belongs in agent-ready.
 ## Document
 
 `agentic.readiness-remediation` v1. Schema:
-[`schemas/readiness-remediation-v1.schema.json`](../schemas/readiness-remediation-v1.schema.json).
+[`src/agentic_dev/schemas/readiness-remediation-v1.schema.json`](../src/agentic_dev/schemas/readiness-remediation-v1.schema.json).
 Library entry point: `agentic_dev.readiness.remediation.propose(path, target=...)`.
 Every document passes `check_document` before it is returned.
 

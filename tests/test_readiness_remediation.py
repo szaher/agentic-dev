@@ -29,7 +29,7 @@ from agentic_dev.readiness.remediation import (  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = load_spec()
-SCHEMA = json.loads((ROOT / "schemas" / "readiness-remediation-v1.schema.json").read_text())
+SCHEMA = json.loads((ROOT / "src" / "agentic_dev" / "schemas" / "readiness-remediation-v1.schema.json").read_text())
 
 
 def snapshot(root: Path) -> dict[str, tuple]:

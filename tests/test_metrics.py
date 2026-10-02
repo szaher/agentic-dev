@@ -65,7 +65,7 @@ class MetricsTests(unittest.TestCase):
                 self.assertNotIn(str(repo), json.dumps(event))
                 self.assertEqual(event["session_id"], "task-1")
 
-                schema = json.loads((ROOT / "schemas" / "metric-event-v1.schema.json").read_text())
+                schema = json.loads((ROOT / "src" / "agentic_dev" / "schemas" / "metric-event-v1.schema.json").read_text())
                 jsonschema.validate(event, schema)
 
     def test_execution_event_contains_hash_not_raw_command(self):

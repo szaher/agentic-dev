@@ -121,7 +121,7 @@ Normal lint/typecheck/test/build checks route through the selected execution bac
 The normalized result schema is:
 
 ```text
-schemas/execution-result-v1.schema.json
+src/agentic_dev/schemas/execution-result-v1.schema.json
 ```
 
 ## Security boundary

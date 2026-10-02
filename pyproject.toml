@@ -32,7 +32,7 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-agentic_dev = ["builtin_skills/**/*.md", "builtin_skills/**/*.toml", "readiness/specs/*.json"]
+agentic_dev = ["builtin_skills/**/*.md", "builtin_skills/**/*.toml", "readiness/specs/*.json", "schemas/*.json"]
 
 
 [tool.setuptools.data-files]

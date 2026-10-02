@@ -20,7 +20,7 @@ from agentic_dev.readiness import assess, explain_repository, explain_rule, load
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = load_spec()
 SCHEMAS = {
-    name: json.loads((ROOT / "schemas" / f"{name}-v1.schema.json").read_text())
+    name: json.loads((ROOT / "src" / "agentic_dev" / "schemas" / f"{name}-v1.schema.json").read_text())
     for name in ("readiness-assessment", "readiness-explanation", "readiness-plan")
 }
 

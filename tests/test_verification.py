@@ -44,7 +44,7 @@ line-length = 100
         return root
 
     def schema(self) -> dict:
-        return json.loads((ROOT / "schemas/verification-plan-v1.schema.json").read_text())
+        return json.loads((ROOT / "src/agentic_dev/schemas/verification-plan-v1.schema.json").read_text())
 
     @patch("agentic_dev.verification.shutil.which", return_value=None)
     def test_source_change_selects_repo_native_checks(self, which):
@@ -146,7 +146,7 @@ class FullVerificationTests(unittest.TestCase):
         subprocess.run(["git", "-C", str(self.root), "add", "."], check=True)
         subprocess.run(["git", "-C", str(self.root), "-c", "user.name=t", "-c", "user.email=t@example.invalid",
                         "commit", "-qm", "init"], check=True)
-        self.schema = json.loads((ROOT / "schemas/verification-run-v1.schema.json").read_text())
+        self.schema = json.loads((ROOT / "src/agentic_dev/schemas/verification-run-v1.schema.json").read_text())
 
     def cli(self, *args: str) -> subprocess.CompletedProcess[str]:
         env = {**os.environ, "PYTHONPATH": str(ROOT / "src"), "AGENTIC_DEV_CONFIG_DIR": tempfile.mkdtemp()}

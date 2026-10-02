@@ -22,6 +22,7 @@ from .execution import configure as configure_execution, run as run_execution, s
 from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
 from .trust import define_profile, document as trust_document, get_profile, set_current
 from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
+from .contracts import UnknownContract, document as contracts_document, schema as contract_schema
 from .verification import FULL_KINDS, execute as execute_verification, full_plan as full_verification_plan, plan as verification_plan
 from . import readiness
 from .readiness import render as readiness_render
@@ -284,6 +285,31 @@ def cmd_repo_inspect(args: argparse.Namespace) -> int:
     print("Recommended skills: " + (", ".join(recommended) if recommended else "none"))
     enabled_caps = [name for name, item in document["capabilities"].items() if item["enabled"]]
     print("Enabled capabilities: " + (", ".join(enabled_caps) if enabled_caps else "none"))
+    return 0
+
+
+def cmd_contracts(args: argparse.Namespace) -> int:
+    data = contracts_document()
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return 0
+    print("Contracts (name: versions):")
+    for name, versions in data["contracts"].items():
+        print(f"  {name}: {', '.join(versions)}")
+    print("Features:")
+    for feature in data["features"]:
+        print(f"  {feature}")
+    print("Schemas: agentic contracts schema NAME [--version V]")
+    return 0
+
+
+def cmd_contracts_schema(args: argparse.Namespace) -> int:
+    try:
+        data = contract_schema(args.name, args.version)
+    except UnknownContract as exc:
+        print(f"agentic: {exc.args[0]}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True))
     return 0
 
 
@@ -1782,6 +1808,20 @@ def build_parser() -> argparse.ArgumentParser:
     iinstall = isub.add_parser("install", help="Install/configure a native integration")
     iinstall.add_argument("target", choices=["all", "claude", "codex", "pi"])
     iinstall.set_defaults(func=cmd_integrations_install)
+
+    contracts = sub.add_parser(
+        "contracts",
+        help="Machine-readable compatibility handshake (contracts, features, exit codes)",
+        description=("List the document contracts and features this installation supports. Consumers "
+                     "check these instead of the package version."),
+    )
+    contracts.add_argument("--json", action="store_true")
+    contracts.set_defaults(func=cmd_contracts)
+    csub = contracts.add_subparsers(dest="contracts_command")
+    cschema = csub.add_parser("schema", help="Print the packaged JSON Schema for a contract")
+    cschema.add_argument("name")
+    cschema.add_argument("--version", default="1")
+    cschema.set_defaults(func=cmd_contracts_schema)
 
     doctor = sub.add_parser("doctor", help="Check the workstation toolchain and integrations")
     doctor.add_argument("--json", action="store_true")

@@ -61,7 +61,7 @@ class OneDiscovererTests(CommandCase):
         self.assertEqual(discover_in(root), [expected])
 
         document = inspect_repository(root)
-        jsonschema.validate(document, json.loads((ROOT / "schemas" / "repo-inspection-v1.schema.json").read_text()))
+        jsonschema.validate(document, json.loads((ROOT / "src" / "agentic_dev" / "schemas" / "repo-inspection-v1.schema.json").read_text()))
         self.assertEqual(document["commands"]["test"], ["make check"])
         self.assertEqual(document["discovered_commands"], [expected.to_dict()])
 

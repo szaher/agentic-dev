@@ -30,7 +30,7 @@ SPEC = load_spec()
 
 
 def schema(name: str) -> dict:
-    return json.loads((ROOT / "schemas" / f"{name}-v1.schema.json").read_text())
+    return json.loads((ROOT / "src" / "agentic_dev" / "schemas" / f"{name}-v1.schema.json").read_text())
 
 
 def git(root: Path, *args: str) -> None:
