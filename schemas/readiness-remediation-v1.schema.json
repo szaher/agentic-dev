@@ -1,0 +1,542 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/readiness-remediation-v1.schema.json",
+  "title": "agentic readiness remediation v1",
+  "description": "What can safely be fixed toward a target maturity level. safe-automatic items reference declarative, idempotent, reversible actions derived from observed evidence; human-decision items state the decision and offer detected candidates; unsupported items have no safe action. The spec classification is an upper bound and is never upgraded. See docs/REMEDIATION.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "document_type",
+    "assessor",
+    "spec",
+    "repository",
+    "mode",
+    "maturity",
+    "actions",
+    "items",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.readiness-remediation"
+    },
+    "assessor": {
+      "$ref": "#/$defs/assessor"
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    },
+    "repository": {
+      "$ref": "#/$defs/repository"
+    },
+    "mode": {
+      "enum": [
+        "preview"
+      ],
+      "description": "preview never modifies anything. ready apply (v0.15 slice 2) adds applied results."
+    },
+    "maturity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current",
+        "target",
+        "target_met"
+      ],
+      "properties": {
+        "current": {
+          "$ref": "#/$defs/level"
+        },
+        "target": {
+          "$ref": "#/$defs/level"
+        },
+        "target_met": {
+          "type": "boolean"
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/item"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "safe_automatic",
+        "human_decision",
+        "unsupported",
+        "actions"
+      ],
+      "properties": {
+        "safe_automatic": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "human_decision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unsupported": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "actions": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "assessor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "agentic-dev"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "sha256",
+        "source"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source": {
+          "enum": [
+            "builtin",
+            "path"
+          ]
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "revision"
+      ],
+      "description": "Identifies the checkout without exposing absolute paths.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40,64}$"
+        }
+      }
+    },
+    "level": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "ruleId": {
+      "type": "string",
+      "pattern": "^(context|conventions|constraints|feedback)(\\.[a-z][a-z0-9_]*)+$"
+    },
+    "severity": {
+      "enum": [
+        "required",
+        "recommended",
+        "advisory"
+      ]
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "relpath": {
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "anyOf": [
+          {
+            "pattern": "^/"
+          },
+          {
+            "pattern": "(^|/)\\.\\.(/|$)"
+          },
+          {
+            "pattern": "^\\.git(/|$)"
+          },
+          {
+            "pattern": "\\\\"
+          }
+        ]
+      },
+      "description": "Normalized repository-relative path outside .git/."
+    },
+    "remediationClass": {
+      "enum": [
+        "safe-automatic",
+        "human-decision",
+        "unsupported"
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "type",
+        "value",
+        "source"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "evidence",
+            "spec"
+          ],
+          "description": "evidence: observed in the repository; spec: content defined by the Agent Ready spec."
+        },
+        "type": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "source",
+        "basis"
+      ],
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "basis": {
+          "type": "string"
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "format",
+        "block_id",
+        "content",
+        "content_sha256",
+        "prelude",
+        "target",
+        "provenance",
+        "rules"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^readiness\\.[a-z0-9][a-z0-9.-]*@.+$"
+        },
+        "kind": {
+          "enum": [
+            "managed-block"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/relpath"
+        },
+        "format": {
+          "enum": [
+            "markdown",
+            "hash"
+          ]
+        },
+        "block_id": {
+          "type": "string",
+          "pattern": "^readiness\\.[a-z0-9][a-z0-9.-]*$"
+        },
+        "content": {
+          "type": "string",
+          "description": "Block body without markers; normalized to end with one newline.",
+          "not": {
+            "pattern": "agentic-dev:"
+          }
+        },
+        "content_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "prelude": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Written before the block only when the action creates the file."
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exists",
+            "sha256",
+            "tracked"
+          ],
+          "description": "Precondition captured at preview time. Apply refuses when the target has changed.",
+          "properties": {
+            "exists": {
+              "type": "boolean"
+            },
+            "sha256": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/sha256"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tracked": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/provenance"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ruleId"
+          }
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "title",
+        "severity",
+        "required_from",
+        "status",
+        "spec_classification",
+        "remediation_class",
+        "reason",
+        "action_ids",
+        "decision",
+        "depends_on"
+      ],
+      "properties": {
+        "rule_id": {
+          "$ref": "#/$defs/ruleId"
+        },
+        "title": {
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/severity"
+        },
+        "required_from": {
+          "$ref": "#/$defs/level"
+        },
+        "status": {
+          "enum": [
+            "fail",
+            "unknown"
+          ]
+        },
+        "spec_classification": {
+          "enum": [
+            "automatable",
+            "assisted",
+            "human-required"
+          ]
+        },
+        "remediation_class": {
+          "$ref": "#/$defs/remediationClass"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "question",
+                "guidance",
+                "candidates"
+              ],
+              "properties": {
+                "question": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "guidance": {
+                  "type": "string"
+                },
+                "candidates": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/candidate"
+                  },
+                  "description": "Detected options shown to a person. Never selected automatically."
+                }
+              }
+            }
+          ]
+        },
+        "depends_on": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ruleId"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "spec_classification": {
+                "const": "assisted"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "remediation_class": {
+                "enum": [
+                  "human-decision",
+                  "unsupported"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "spec_classification": {
+                "const": "human-required"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "remediation_class": {
+                "const": "human-decision"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "remediation_class": {
+                "const": "safe-automatic"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "action_ids": {
+                "minItems": 1
+              },
+              "decision": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "action_ids": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "remediation_class": {
+                "const": "human-decision"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "decision": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

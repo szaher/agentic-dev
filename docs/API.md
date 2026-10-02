@@ -123,6 +123,10 @@ Each entry in `requirements` has a `status`:
 
 The same repository content and the same spec version produce the same document, with no timestamps. Assessment is read-only: commands are never executed and nothing is written. Errors (unknown rule, target level, or spec) exit with status `2` and a message on stderr.
 
+### Remediation contract (preview)
+
+`agentic.readiness-remediation` v1 (`schemas/readiness-remediation-v1.schema.json`) describes what can safely be fixed toward a target level. Each open rule is `safe-automatic` (declarative managed-block actions with provenance), `human-decision` (a stated decision plus detected candidates), or `unsupported`. The spec's remediation classification is an upper bound and is never upgraded. In v0.15 slice 1 it is available as a library preview (`agentic_dev.readiness.remediation.propose`). `ready diff`/`ready apply` build on it. See [REMEDIATION.md](REMEDIATION.md).
+
 ## Verification plan
 
 ```bash

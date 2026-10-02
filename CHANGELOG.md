@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+v0.15 (Agent Ready remediation + CI), slice 1: remediation contract.
+
+- Added the remediation contract (`docs/REMEDIATION.md`) and `schemas/readiness-remediation-v1.schema.json`: `safe-automatic` / `human-decision` / `unsupported` classes, managed-block markers, and normative apply, conflict, idempotency, and rollback semantics.
+- Added `agentic_dev.readiness.remediation.propose`, which builds a read-only remediation preview. The spec classification is an upper bound and is never upgraded. Actions record provenance, and policy rules become decisions with detected candidates instead of invented content.
+
 ## 0.14.0 - 2026-10-02
 
 Stable Agent Ready Specification v1 assessment release.

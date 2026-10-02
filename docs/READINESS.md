@@ -158,6 +158,8 @@ Each rule declares a remediation classification:
 | `assisted` | tooling can scaffold, a person supplies or confirms the content |
 | `human-required` | needs a team decision, which the plan states as *Required decision* |
 
+The contract for *applying* fixes (managed blocks, idempotency, conflicts, rollback) is defined in [REMEDIATION.md](REMEDIATION.md).
+
 `agentic ready plan` lists the required rules blocking the target in level and
 dependency order, then recommended and optional items. It only *describes*
 remediation. Applying it (`ready apply`) and CI regression gates are planned for
