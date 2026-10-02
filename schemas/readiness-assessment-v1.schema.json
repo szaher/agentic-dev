@@ -15,7 +15,8 @@
     "summary",
     "pillars",
     "dimensions",
-    "requirements"
+    "requirements",
+    "scope"
   ],
   "properties": {
     "schema_version": {
@@ -71,6 +72,13 @@
       "items": {
         "$ref": "#/$defs/requirement"
       }
+    },
+    "scope": {
+      "enum": [
+        "local",
+        "ci"
+      ],
+      "description": "local: the working tree. ci: only files tracked by Git (what a CI checkout contains); untracked or Git-excluded local state is never evidence."
     }
   },
   "$defs": {

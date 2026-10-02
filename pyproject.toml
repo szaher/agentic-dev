@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentic-dev"
-version = "0.14.0"
+version = "0.15.0a1"
 description = "Make repositories agent-ready and prepare safe, reproducible development environments for coding agents"
 readme = "README.md"
 requires-python = ">=3.11"

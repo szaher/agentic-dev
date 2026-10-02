@@ -16,7 +16,8 @@
     "steps",
     "recommended",
     "optional",
-    "summary"
+    "summary",
+    "scope"
   ],
   "properties": {
     "schema_version": {
@@ -103,6 +104,13 @@
           "minimum": 0
         }
       }
+    },
+    "scope": {
+      "enum": [
+        "local",
+        "ci"
+      ],
+      "description": "local: the working tree. ci: only files tracked by Git (what a CI checkout contains); untracked or Git-excluded local state is never evidence."
     }
   },
   "$defs": {

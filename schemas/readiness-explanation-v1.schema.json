@@ -11,7 +11,8 @@
     "spec",
     "repository",
     "subject",
-    "maturity"
+    "maturity",
+    "scope"
   ],
   "properties": {
     "schema_version": {
@@ -37,6 +38,13 @@
     },
     "maturity": {
       "$ref": "#/$defs/maturitySummary"
+    },
+    "scope": {
+      "enum": [
+        "local",
+        "ci"
+      ],
+      "description": "local: the working tree. ci: only files tracked by Git (what a CI checkout contains); untracked or Git-excluded local state is never evidence."
     }
   },
   "oneOf": [

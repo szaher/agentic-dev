@@ -31,6 +31,13 @@ FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 GIT_ENV = {**os.environ, "GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0"}
 
 
+SCOPES = ("local", "ci")
+
+
+class ScopeError(ValueError):
+    """The requested assessment scope cannot be used for this repository."""
+
+
 @dataclass(frozen=True)
 class Observation:
     """The outcome for one evidence id. ``satisfied`` is None when unsupported."""
@@ -53,9 +60,18 @@ def _git(root: Path, *args: str) -> subprocess.CompletedProcess[bytes] | None:
 
 
 class Repository:
-    """A read-only view over a repository checkout."""
+    """A read-only view over a repository checkout.
 
-    def __init__(self, root: Path, ignored: Iterable[str], literal_prefixes: Iterable[str]):
+    ``scope="local"`` sees the working tree. ``scope="ci"`` sees only files Git
+    tracks, which is what a CI checkout contains, so untracked or Git-excluded
+    local state (for example a locally generated AGENTS.md) is never evidence.
+    """
+
+    def __init__(self, root: Path, ignored: Iterable[str], literal_prefixes: Iterable[str],
+                 scope: str = "local"):
+        if scope not in SCOPES:
+            raise ScopeError(f"unknown assessment scope {scope!r}; choose one of: {', '.join(SCOPES)}")
+        self.scope = scope
         self.root = root
         self.ignored = frozenset(ignored)
         # Hidden directories are only entered when a glob names them literally.
@@ -92,9 +108,27 @@ class Repository:
                    for prefix in self._hidden_allowed)
 
     @cached_property
-    def entries(self) -> tuple[tuple[str, bool], ...]:
-        """(relative path, is_dir) for the worktree, sorted. Never follows directory symlinks."""
+    def _tracked_set(self) -> frozenset[str]:
+        return frozenset(self.tracked_files or ())
 
+    @cached_property
+    def _tracked_dirs(self) -> frozenset[str]:
+        dirs: set[str] = set()
+        for name in self._tracked_set:
+            parts = name.split("/")[:-1]
+            for index in range(1, len(parts) + 1):
+                dirs.add("/".join(parts[:index]))
+        return frozenset(dirs)
+
+    def is_tracked(self, rel: str) -> bool:
+        return rel in self._tracked_set
+
+    @cached_property
+    def entries(self) -> tuple[tuple[str, bool], ...]:
+        """(relative path, is_dir) visible in this scope, sorted. Never follows directory symlinks."""
+
+        if self.scope == "ci":
+            return tuple(sorted([(d, True) for d in self._tracked_dirs] + [(f, False) for f in self._tracked_set]))
         found: list[tuple[str, bool]] = []
         stack = [""]
         while stack:
@@ -136,6 +170,11 @@ class Repository:
         parts = [part for part in rel.split("/") if part]
         if not parts or any(part in {".", ".."} for part in parts):
             return None
+        if self.scope == "ci":
+            normalized = "/".join(parts)
+            if normalized in self._tracked_set:
+                return "file"
+            return "dir" if normalized in self._tracked_dirs else None
         current = ""
         for part in parts:
             if part not in self._list(current):
@@ -154,6 +193,8 @@ class Repository:
             return False
 
     def lines(self, rel: str) -> list[str] | None:
+        if self.scope == "ci" and rel not in self._tracked_set:
+            return None
         if rel not in self._text_cache:
             path = self.root / rel
             text: list[str] | None = None
@@ -263,7 +304,12 @@ def discover(repo: Repository) -> dict[str, list[tuple[str, str]]]:
     base = discover_commands(repo.root)
     for kind in _COMMAND_KINDS:
         for command in base.get(kind, []):
-            found[kind].append((command, _command_source(repo, command)))
+            source = _command_source(repo, command)
+            # discover_commands reads the working tree. In CI scope keep only
+            # commands whose defining file is tracked.
+            if repo.scope == "ci" and repo.exists_exact(source) != "file":
+                continue
+            found[kind].append((command, source))
 
     def add(kind: str, command: str, source: str) -> None:
         if (command, source) not in found[kind]:
@@ -367,7 +413,7 @@ class EvidenceCollector:
         return self._commands
 
     @classmethod
-    def for_repository(cls, root: Path, spec: Spec) -> "EvidenceCollector":
+    def for_repository(cls, root: Path, spec: Spec, scope: str = "local") -> "EvidenceCollector":
         matching = spec.document["path_matching"]
         prefixes = sorted({
             literal_prefix(glob)
@@ -375,7 +421,9 @@ class EvidenceCollector:
             for glob in [*item["detection"].get("paths", []), *item["detection"].get("exclude", [])]
             if literal_prefix(glob)
         })
-        repo = Repository(root, matching["ignored_directories"], prefixes)
+        repo = Repository(root, matching["ignored_directories"], prefixes, scope)
+        if scope == "ci" and repo.tracked_files is None:
+            raise ScopeError("the ci scope needs a Git repository: it assesses only tracked files")
         return cls(repo=repo, spec=spec)
 
     def observe(self, evidence_id: str) -> Observation:

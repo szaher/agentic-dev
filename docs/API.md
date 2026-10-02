@@ -133,6 +133,10 @@ The same repository content and the same spec version produce the same document,
 
 In v0.15 slice 1 it is a library preview (`agentic_dev.readiness.remediation.propose`). `ready diff`/`ready apply` build on it. See [REMEDIATION.md](REMEDIATION.md).
 
+### Readiness verification
+
+`agentic ready verify --target LEVEL --json` emits `agentic.readiness-verification` v1 (`schemas/readiness-verification-v1.schema.json`). It carries `scope` (default `ci`: tracked files only), `target`, `passed`, `exit_code` (`0` met, `1` not met, `3` pinned spec mismatch; `2` is a usage error with no document), `pin` (`spec_version`, `spec_sha256`, `matched`, `problems`), `maturity`, `blockers`, and, for the `ci` scope, `local`: the working-tree maturity and per-rule `differences` with their `local_only_evidence`. Every readiness document (assessment, explanation, plan, remediation, verification) carries `"scope": "local" | "ci"`.
+
 ## Verification plan
 
 ```bash

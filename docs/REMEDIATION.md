@@ -1,7 +1,8 @@
 # Readiness remediation contract
 
 Status: **contract v1**. Defined in v0.15 slice 1 (#53), executed by `ready diff` /
-`ready apply` (#54). `ready verify` (#55) and `ready make` (#56) build on it. Every
+`ready apply` (#54). The CI check maintenance action and the assessment scope ship
+with `ready verify` (#55). `ready make` (#56) builds on all of these. Every
 command implements this contract and must not extend it ad hoc.
 
 > **The readiness spec controls what may be remediated. Agentic Dev controls how
@@ -283,7 +284,7 @@ installers and never needs the network.
 its end marker, plus the single separator line inserted before it. If the file
 is then empty or equal to the change's `prelude`, the file is deleted.
 
-## Assessment scope: local vs CI (normative for #55)
+## Assessment scope: local vs CI (normative, implemented in #55)
 
 Local assessment and CI assessment can legitimately differ. Agentic Dev's
 `repo init` writes `AGENTS.md`/`CLAUDE.md` and excludes them from Git locally, so
@@ -293,8 +294,12 @@ they count as evidence in the working tree but do not exist in a CI checkout.
   tracked repository.** It must never rely on untracked or Git-excluded local
   Agentic Dev state. Local-only evidence is never silently treated as CI
   evidence.
-- Assessment results expose their scope explicitly, as an extensible field (for
-  example `"scope": "ci"`, or `"local"`).
+- Every readiness document carries `"scope": "local"` or `"scope": "ci"`. `ci`
+  sees only files `git ls-files` reports. Content is read from the working tree, so
+  run `ready verify` in CI for the authoritative result. Locally it is the
+  closest approximation: untracked, ignored, and Git-excluded files never count,
+  and command discovery ignores untracked sources (for example an untracked
+  `Makefile`). The `ci` scope requires a Git repository.
 - A local run may report both views and their difference. That difference is
   useful information and must not be hidden:
 
@@ -335,9 +340,30 @@ Candidate providers (detected, never chosen): top-level source directories for
 format, and type-checker configuration for `conventions.documented`, and
 discovered commands for `context.readme.setup`.
 
-Maintenance actions: none in slice 1. The readiness CI check
-(`readiness.ci-check`, owning `.github/workflows/agentic-readiness.yml`) arrives
-with `ready verify` in #55.
+### Maintenance catalog
+
+| Action | Opt-in flag | Change |
+|---|---|---|
+| `readiness.ci-check` | `ready apply --ci-check` / `ready diff --ci-check` | `.github/workflows/agentic-readiness.yml` runs `agentic ready verify . --target <floor> --spec-version <v> --spec-sha256 <digest>` on pull requests and pushes |
+
+Maintenance is **opt-in**: `propose`/`apply` only run the actions the caller
+requests. Requested actions that cannot be produced are reported in
+`maintenance_skipped` with a reason, never silently dropped.
+
+The CI check:
+
+- uses **today's CI-visible level as its floor**, so adding it never breaks CI on
+  day one. It is skipped when there is nothing to protect (CI-visible `unaware`,
+  or no Git repository). When the level later rises, the block becomes stale and
+  `apply --ci-check` raises the floor;
+- pins the **exact Agentic Dev version** that generated it
+  (`pip install agentic-dev==<version>`, the one installation maintenance may
+  perform), plus the spec version and sha256. Use a released version so CI can
+  install it;
+- runs with `permissions: contents: read` and only GitHub's own `checkout` and
+  `setup-python` actions, with no credentials;
+- passes `check_maintenance`. It creates only `ci.config` evidence, which no rule
+  depends on directly, so adding the check never changes any rule's status.
 
 ## Decisions
 
