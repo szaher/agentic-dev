@@ -5,9 +5,9 @@ import subprocess
 from dataclasses import dataclass
 
 
-MARKETPLACE_REPO = "szaher/agentic-dev-env"
-CLAUDE_PLUGIN_ID = "agentic-dev-env@agentic-dev-env"
-PI_SOURCE = "git:github.com/szaher/agentic-dev-env"
+MARKETPLACE_REPO = "szaher/agentic-dev"
+CLAUDE_PLUGIN_ID = "agentic-dev@agentic-dev"
+PI_SOURCE = "git:github.com/szaher/agentic-dev"
 
 
 @dataclass(frozen=True)
@@ -44,7 +44,7 @@ def status() -> list[IntegrationStatus]:
     if codex:
         probe = _capture([codex, "plugin", "marketplace", "list"])
         text = _visible_output(probe)
-        configured = "agentic-dev-env" in text
+        configured = "agentic-dev" in text
         detail = "marketplace registered" if configured else "marketplace not registered"
     else:
         configured = False
@@ -55,7 +55,7 @@ def status() -> list[IntegrationStatus]:
     if pi:
         probe = _capture([pi, "list"])
         text = _visible_output(probe)
-        configured = "agentic-dev-env" in text or MARKETPLACE_REPO in text
+        configured = "agentic-dev" in text or MARKETPLACE_REPO in text
         detail = "package installed" if configured else "package not installed"
     else:
         configured = False
@@ -98,16 +98,16 @@ def install_codex() -> int:
         return 2
 
     current = _capture([codex, "plugin", "marketplace", "list"])
-    if "agentic-dev-env" not in _visible_output(current):
+    if "agentic-dev" not in _visible_output(current):
         rc = _run([codex, "plugin", "marketplace", "add", MARKETPLACE_REPO])
         if rc != 0:
             return rc
     else:
-        print("✓ Codex marketplace already registered: agentic-dev-env")
+        print("✓ Codex marketplace already registered: agentic-dev")
 
     # Current Codex authoring flow registers local/Git marketplaces from the CLI,
     # then installs the selected plugin from /plugins or the desktop Plugins Directory.
-    print("→ Open Codex, run /plugins, choose the agentic-dev-env marketplace, and install Agentic Dev Env.")
+    print("→ Open Codex, run /plugins, choose the agentic-dev marketplace, and install Agentic Dev Env.")
     return 0
 
 
@@ -119,8 +119,8 @@ def install_pi() -> int:
 
     current = _capture([pi, "list"])
     text = _visible_output(current)
-    if "agentic-dev-env" in text or MARKETPLACE_REPO in text:
-        print("✓ Pi package already installed: agentic-dev-env")
+    if "agentic-dev" in text or MARKETPLACE_REPO in text:
+        print("✓ Pi package already installed: agentic-dev")
         return 0
 
     rc = _run([pi, "install", PI_SOURCE])
