@@ -7,8 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agentic_dev_env.detect import detect_repo
-from agentic_dev_env.skills import activate, installed_skills, recommend, remove
+from agentic_dev.detect import detect_repo
+from agentic_dev.skills import activate, installed_skills, recommend, remove
 
 
 class SkillTests(unittest.TestCase):
