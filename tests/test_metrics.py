@@ -104,10 +104,20 @@ class MetricsTests(unittest.TestCase):
                     "success": True, "duration_ms": 40,
                 }, **kwargs)
                 record("retry", {"reason": "test-failure"}, **kwargs)
-                record("skills.suggested", {"count": 4}, **kwargs)
-                record("skills.activated", {"count": 2}, **kwargs)
-                record("capabilities.suggested", {"count": 2}, **kwargs)
+                record("skills.suggested", {
+                    "count": 4,
+                    "recommended_names": ["python-engineering", "test-development", "debugging", "code-review"],
+                }, **kwargs)
+                record("skills.activated", {
+                    "count": 2,
+                    "names": ["python-engineering", "debugging"],
+                }, **kwargs)
+                record("capabilities.suggested", {
+                    "count": 2,
+                    "names": ["secret-scan", "sast"],
+                }, **kwargs)
                 record("capability.enabled", {"name": "secret-scan"}, **kwargs)
+                record("tool.call", {"tool": "serena", "success": True}, **kwargs)
                 record("context.used", {"source": "codegraph", "useful": True}, **kwargs)
                 record("context.used", {"source": "serena", "useful": False}, **kwargs)
                 record("agentflow.stage", {"stage": "review", "outcome": "passed"}, **kwargs)
@@ -119,7 +129,8 @@ class MetricsTests(unittest.TestCase):
                 self.assertEqual(data["execution"]["count"], 2)
                 self.assertEqual(data["execution"]["failures"], 1)
                 self.assertEqual(data["execution"]["failure_rate"], 0.5)
-                self.assertEqual(data["workflow"]["per_session"]["session-a"]["tool_calls"], 2)
+                self.assertEqual(data["workflow"]["per_session"]["session-a"]["tool_calls"], 3)
+                self.assertEqual(data["workflow"]["per_session"]["session-a"]["external_tool_calls"], 1)
                 self.assertEqual(data["workflow"]["retries"], 1)
                 self.assertEqual(data["verification"]["time_to_first_passing_focused_test_ms"], 25)
                 self.assertEqual(data["recommendations"]["skill_activation_ratio"], 0.5)
