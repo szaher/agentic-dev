@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/szaher/agentic-dev-env/schemas/infrastructure-status-v1.schema.json",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/infrastructure-status-v1.schema.json",
   "title": "agentic infrastructure status v1",
   "type": "object",
   "required": ["schema_version", "document_type", "repository", "tools", "cluster", "cloud", "observability"],
