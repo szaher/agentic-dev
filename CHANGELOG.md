@@ -2,7 +2,9 @@
 
 ## 0.15.0a1 - Unreleased
 
-v0.15 (Agent Ready remediation + CI), in progress: slices 1–3.
+v0.15 (Agent Ready remediation + CI): slices 1–4.
+
+- Added `agentic ready make [PATH] --target LEVEL [--dry-run] [--ci-check] [--max-rounds N] [--json]`. It runs bounded rounds of plan → safe remediation → reassess and stops on human decisions (listed with candidates) instead of guessing. `--dry-run` previews the whole run in a throwaway copy. Exit codes: `0` target met, `1` conflict, `2` usage error, `3` rolled back, `4` stopped. New contract: `readiness-make-v1`.
 
 - Added `agentic ready verify --target LEVEL [--spec-version V] [--spec-sha256 H] [--scope ci|local] [--json]`, a CI gate with stable exit codes: `0` met, `1` not met (regression), `2` usage or spec error, `3` pinned spec mismatch. It emits the `readiness-verification-v1` contract, which names the blocking rules and reports the local vs CI-visible difference with the untracked files responsible.
 - Added the assessment `scope` (`local` / `ci`). In `ci` scope only tracked files are evidence, so untracked or Git-excluded local state (for example a locally generated `AGENTS.md`) never counts. Every readiness document reports its scope. `assess`, `explain`, and `plan` accept `--scope`.

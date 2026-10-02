@@ -28,6 +28,10 @@ set +e
 "$agentic" ready verify "$work/fixture" --target optimized --spec-version 0.0.0 > /dev/null; mismatch=$?
 set -e
 [[ "$not_met" == 1 && "$mismatch" == 3 ]] || { echo "unexpected verify exit codes: $not_met $mismatch" >&2; exit 1; }
+set +e
+"$agentic" ready make "$work/policy" --target optimized --dry-run --json > make.json; make_exit=$?
+set -e
+[[ "$make_exit" == 4 ]] || { echo "unexpected make exit code: $make_exit" >&2; exit 1; }
 
 python3 - "$source_root" "$work" <<'PY'
 import json, sys
@@ -43,7 +47,7 @@ pin = json.loads((root / "src/agentic_dev/readiness/specs/PIN.json").read_text()
 assert assessment["spec"] == {"name": "agent-ready", "version": pin["spec_version"],
                               "sha256": pin["sha256"], "source": "builtin"}, assessment["spec"]
 assert assessment["maturity"]["current"] == "optimized", assessment["maturity"]
-for name in ("assess.json", "plan.json", "verify.json", "assess.txt", "explain.txt", "rule.txt", "plan.txt"):
+for name in ("assess.json", "plan.json", "verify.json", "make.json", "assess.txt", "explain.txt", "rule.txt", "plan.txt"):
     assert sys.argv[2] not in Path(name).read_text(), f"absolute path leaked into {name}"
 
 plan = json.loads(Path("plan.json").read_text())
@@ -53,6 +57,11 @@ assert [(s["id"], s["status"]) for s in plan["steps"]] == [("constraints.archite
 verification = json.loads(Path("verify.json").read_text())
 jsonschema.validate(verification, schema("readiness-verification"))
 assert (verification["scope"], verification["exit_code"], verification["pin"]["matched"]) == ("ci", 0, True)
+
+made = json.loads(Path("make.json").read_text())
+jsonschema.validate(made, schema("readiness-make"))
+assert made["dry_run"] and made["status"] == "needs-decision", (made["status"], made["dry_run"])
+assert "constraints.architecture_boundaries" in [i["rule_id"] for i in made["remaining"]["human_decision"]]
 
 assert "Maturity: Optimized" in Path("assess.txt").read_text()
 assert "Why fixture is Optimized" in Path("explain.txt").read_text()

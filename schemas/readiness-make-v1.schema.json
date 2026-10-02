@@ -1,0 +1,408 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/readiness-make-v1.schema.json",
+  "title": "agentic readiness make v1",
+  "description": "Result of `agentic ready make --target LEVEL --json`: rounds of plan \u2192 safe remediation \u2192 reassess. Stops on human decisions instead of guessing. Exit codes: 0 target met, 1 conflict, 2 usage error (no document), 3 rolled back, 4 stopped (needs a decision, no safe progress, or round limit).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "document_type",
+    "assessor",
+    "spec",
+    "repository",
+    "scope",
+    "dry_run",
+    "target",
+    "status",
+    "exit_code",
+    "error",
+    "maturity",
+    "rounds",
+    "written",
+    "uncommitted",
+    "diffs",
+    "remaining"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.readiness-make"
+    },
+    "assessor": {
+      "$ref": "#/$defs/assessor"
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    },
+    "repository": {
+      "$ref": "#/$defs/repository"
+    },
+    "scope": {
+      "const": "local",
+      "description": "make writes the working tree; see maturity.ci_visible for what CI sees."
+    },
+    "dry_run": {
+      "type": "boolean",
+      "description": "true: the whole run happened in a throwaway copy; the repository was not modified."
+    },
+    "target": {
+      "$ref": "#/$defs/level"
+    },
+    "status": {
+      "enum": [
+        "target-met",
+        "needs-decision",
+        "no-safe-progress",
+        "conflict",
+        "rolled-back",
+        "round-limit"
+      ]
+    },
+    "exit_code": {
+      "enum": [
+        0,
+        1,
+        3,
+        4
+      ]
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "maturity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "before",
+        "after",
+        "target",
+        "target_met",
+        "ci_visible"
+      ],
+      "properties": {
+        "before": {
+          "$ref": "#/$defs/level"
+        },
+        "after": {
+          "$ref": "#/$defs/level"
+        },
+        "target": {
+          "$ref": "#/$defs/level"
+        },
+        "target_met": {
+          "type": "boolean"
+        },
+        "ci_visible": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "rounds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "round",
+          "status",
+          "written",
+          "changes",
+          "maturity_after"
+        ],
+        "properties": {
+          "round": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "enum": [
+              "applied",
+              "no-op",
+              "conflict"
+            ]
+          },
+          "written": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/relpath"
+            }
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "change_id",
+                "path",
+                "outcome",
+                "reason"
+              ],
+              "properties": {
+                "change_id": {
+                  "type": "string"
+                },
+                "path": {
+                  "$ref": "#/$defs/relpath"
+                },
+                "outcome": {
+                  "enum": [
+                    "create",
+                    "append",
+                    "replace",
+                    "unchanged",
+                    "conflict",
+                    "refused"
+                  ]
+                },
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "maturity_after": {
+            "$ref": "#/$defs/level"
+          }
+        }
+      }
+    },
+    "written": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relpath"
+      }
+    },
+    "uncommitted": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relpath"
+      },
+      "description": "Written files Git does not track yet: CI cannot see them until committed."
+    },
+    "diffs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Unified diffs (dry run only)."
+    },
+    "remaining": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_decision",
+        "unsupported"
+      ],
+      "properties": {
+        "human_decision": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rule_id",
+              "severity",
+              "required_from",
+              "status",
+              "question",
+              "candidates"
+            ],
+            "properties": {
+              "rule_id": {
+                "$ref": "#/$defs/ruleId"
+              },
+              "severity": {
+                "$ref": "#/$defs/severity"
+              },
+              "required_from": {
+                "$ref": "#/$defs/level"
+              },
+              "status": {
+                "enum": [
+                  "fail",
+                  "unknown"
+                ]
+              },
+              "question": {
+                "type": "string"
+              },
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/candidate"
+                }
+              }
+            }
+          }
+        },
+        "unsupported": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rule_id",
+              "severity",
+              "required_from",
+              "reason"
+            ],
+            "properties": {
+              "rule_id": {
+                "$ref": "#/$defs/ruleId"
+              },
+              "severity": {
+                "$ref": "#/$defs/severity"
+              },
+              "required_from": {
+                "$ref": "#/$defs/level"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "assessor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "agentic-dev"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "sha256",
+        "source"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source": {
+          "enum": [
+            "builtin",
+            "path"
+          ]
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "revision"
+      ],
+      "description": "Identifies the checkout without exposing absolute paths.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40,64}$"
+        }
+      }
+    },
+    "level": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "ruleId": {
+      "type": "string",
+      "pattern": "^(context|conventions|constraints|feedback)(\\.[a-z][a-z0-9_]*)+$"
+    },
+    "severity": {
+      "enum": [
+        "required",
+        "recommended",
+        "advisory"
+      ]
+    },
+    "relpath": {
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "anyOf": [
+          {
+            "pattern": "^/"
+          },
+          {
+            "pattern": "(^|/)\\.\\.(/|$)"
+          },
+          {
+            "pattern": "^\\.git(/|$)"
+          },
+          {
+            "pattern": "\\\\"
+          }
+        ]
+      },
+      "description": "Normalized repository-relative path outside .git/."
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "source",
+        "basis"
+      ],
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "basis": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

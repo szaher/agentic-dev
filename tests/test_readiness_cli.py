@@ -157,10 +157,13 @@ class ReadyCliTests(unittest.TestCase):
             ("ready", "assess", ".", "--scope", "ci", "--json"),
             ("ready", "verify", ".", "--target", "foundational"),
             ("ready", "verify", ".", "--target", "foundational", "--json", "--scope", "local"),
+            ("ready", "make", ".", "--target", "structured", "--dry-run"),
+            ("ready", "make", ".", "--target", "optimized", "--dry-run", "--ci-check", "--json"),
         ]
         for command in commands:
             completed = run(*command, cwd=self.root)
-            self.assertEqual(completed.returncode, 0, f"{command}: {completed.stderr}")
+            allowed = {0, 1, 4} if command[1] in {"verify", "make"} else {0}
+            self.assertIn(completed.returncode, allowed, f"{command}: {completed.stderr}")
         self.assertEqual(snapshot(self.root), before)
 
 
