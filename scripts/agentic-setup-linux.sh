@@ -151,12 +151,14 @@ install_policy_file() {
   policy="$2"
   start='<!-- agentic-dev:start -->'
   end='<!-- agentic-dev:end -->'
+  legacy_start='<!-- agentic-dev-env:start -->'
+  legacy_end='<!-- agentic-dev-env:end -->'
   mkdir -p "$(dirname "$target")"
   touch "$target"
   tmp=$(mktemp)
-  awk -v start="$start" -v end="$end" '
-    $0 == start {skip=1; next}
-    $0 == end {skip=0; next}
+  awk -v start="$start" -v end="$end" -v legacy_start="$legacy_start" -v legacy_end="$legacy_end" '
+    $0 == start || $0 == legacy_start {skip=1; next}
+    $0 == end || $0 == legacy_end {skip=0; next}
     !skip {print}
   ' "$target" > "$tmp"
   mv "$tmp" "$target"
