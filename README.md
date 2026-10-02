@@ -502,7 +502,7 @@ See [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) for optional capability packs
 See [`docs/SECURITY.md`](docs/SECURITY.md) for local security scanning.
 See [`docs/TRUST.md`](docs/TRUST.md) for trust and permission profiles.
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the implementation sequence beyond v0.5.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for Roadmap v2, which takes the project from the current v0.13 capability control plane toward a stable v1.0 agentic development platform. The completed v0.5–v0.13 roadmap is archived at [`docs/roadmaps/ROADMAP-v0.5-v0.13.md`](docs/roadmaps/ROADMAP-v0.5-v0.13.md).
 
 ## Development
 
@@ -594,3 +594,23 @@ agentic metrics export --output ./agentic-metrics.jsonl --since 7d
 There is no network telemetry/export path.
 
 See [`docs/METRICS.md`](docs/METRICS.md).
+
+
+## Roadmap v2
+
+The active roadmap is centered on four outcomes:
+
+1. **Make repositories agent-ready** using the Agent Ready maturity model as a versioned specification, with assessment, remediation, and CI regression checks.
+2. **Make agent configurations portable** through first-class Skill, Agent, AgentTeam, MCPServer, Plugin, Pack, WorkflowRef, and EnvironmentProfile artifacts plus local/federated catalogs.
+3. **Make task sessions minimal and reproducible** with lockfiles, content-addressed storage, context budgeting, trust/policy, credentials, and unified execution backends.
+4. **Make the stack governable and measurable** through deep AgentFlow integration, organization policy, evaluation, and optional telemetry.
+
+The product boundary is deliberate:
+
+```text
+agent-ready     -> defines the readiness standard
+agentic-dev-env -> assesses and prepares the environment
+AgentFlow       -> governs and orchestrates development workflows
+```
+
+See the full [Roadmap v2](docs/ROADMAP.md).
