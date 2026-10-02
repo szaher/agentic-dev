@@ -10,11 +10,11 @@ from unittest.mock import patch
 
 import jsonschema
 
-from agentic_dev_env.execution import run as run_execution
-from agentic_dev_env.metrics import (
+from agentic_dev.execution import run as run_execution
+from agentic_dev.metrics import (
     clear, export, read_events, record, set_enabled, status, summary,
 )
-from agentic_dev_env.worktrees import create_worktree, clean_worktree
+from agentic_dev.worktrees import create_worktree, clean_worktree
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,7 +36,7 @@ class MetricsTests(unittest.TestCase):
 
     def test_disabled_by_default_creates_no_events(self):
         with tempfile.TemporaryDirectory() as config:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 self.assertFalse(status()["enabled"])
                 self.assertFalse(record("test.event", {"value": 1}))
                 self.assertEqual(read_events(), [])
@@ -45,7 +45,7 @@ class MetricsTests(unittest.TestCase):
     def test_redaction_and_repository_identity(self):
         with tempfile.TemporaryDirectory() as config:
             repo = self.make_repo()
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 set_enabled(True)
                 self.assertTrue(record(
                     "manual.event",
@@ -71,7 +71,7 @@ class MetricsTests(unittest.TestCase):
     def test_execution_event_contains_hash_not_raw_command(self):
         with tempfile.TemporaryDirectory() as config:
             repo = self.make_repo()
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 set_enabled(True)
                 result = run_execution("printf agentic-sensitive-example", repo)
                 self.assertTrue(result["success"])
@@ -86,7 +86,7 @@ class MetricsTests(unittest.TestCase):
     def test_summary_covers_roadmap_metrics(self):
         with tempfile.TemporaryDirectory() as config:
             repo = self.make_repo()
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 set_enabled(True)
                 kwargs = {"repository": repo, "session_id": "session-a"}
                 record("session.started", {"agent": "codex"}, **kwargs)
@@ -144,7 +144,7 @@ class MetricsTests(unittest.TestCase):
     def test_worktree_lifecycle_emits_session_events(self):
         with tempfile.TemporaryDirectory() as config, tempfile.TemporaryDirectory() as wtroot:
             repo = self.make_repo()
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 set_enabled(True)
                 created = create_worktree(
                     "metrics-session", repo,
@@ -163,7 +163,7 @@ class MetricsTests(unittest.TestCase):
 
     def test_export_is_local_file_only_and_clear_requires_yes(self):
         with tempfile.TemporaryDirectory() as config, tempfile.TemporaryDirectory() as out:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 set_enabled(True)
                 record("test.event", {"ok": True})
                 target = Path(out) / "metrics.jsonl"
