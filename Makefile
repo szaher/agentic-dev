@@ -10,6 +10,7 @@ syntax:
 	bash -n scripts/agentic-setup-linux.sh
 	bash -n scripts/agentic-repo-init.sh
 	bash -n tests/smoke.sh
+	bash -n scripts/ci-readiness-smoke.sh
 	PYTHONPATH=src python3 -m py_compile src/agentic_dev/*.py src/agentic_dev/readiness/*.py scripts/sync-agent-ready-spec.py
 	python3 scripts/sync-agent-ready-spec.py --check
 

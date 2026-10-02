@@ -39,6 +39,7 @@ The `agentic` CLI is the public command surface:
 
 - `agentic setup` — run once per workstation. Installs the common foundation, optional language/toolchain support, and can wire supported tools into coding agents.
 - `agentic repo init` — run per repository. Detects languages, frameworks, package managers, runtime declarations, build/test commands, code-intelligence prerequisites, and relevant Agent Skills.
+- `agentic ready assess|explain|plan` — measure a repository against the [Agent Ready Specification](https://github.com/szaher/agent-ready/tree/main/spec): requirement-based maturity, concrete evidence, and a read-only remediation plan.
 - the rest of `agentic` manages skills, capabilities, trust, worktrees, verification, execution, providers, remotes, integrations, and local metrics.
 
 The repository initializer follows this rule:
@@ -58,7 +59,7 @@ uv tool install agentic-dev
 agentic --version
 ```
 
-For the `0.14.0a1` prerelease, use:
+For prereleases such as `0.14.0a2`, use:
 
 ```bash
 uv tool install --prerelease allow agentic-dev
@@ -295,6 +296,35 @@ npx ctx7 setup --claude
 npx ctx7 setup --codex
 ```
 
+## Agent Ready assessment
+
+Measure how ready a repository is for coding agents against the versioned [Agent Ready Specification](https://github.com/szaher/agent-ready/tree/main/spec):
+
+```bash
+agentic ready assess .                          # maturity + every requirement with evidence
+agentic ready explain .                         # why the repository has its level
+agentic ready explain context.agent_instructions
+agentic ready plan . --target optimized         # read-only remediation plan
+```
+
+```text
+Maturity: Foundational (level 1 of 4)
+Target:   Structured — not met
+
+Levels
+  ✓ 0 Unaware
+  ✓ 1 Foundational   5 required, 4 pass, 1 n/a
+  ✗ 2 Structured     11 required, 7 pass, 3 fail, 1 n/a
+      blocking: constraints.documented, context.agent_instructions, context.agent_instructions.commands
+  ✗ 3 Optimized      3 required, 1 fail, 1 unknown, 1 n/a
+      blocking: constraints.architecture_boundaries, context.task_workflows
+  ✗ 4 Autonomous     5 required, 4 fail, 1 unknown
+```
+
+Maturity is requirement-based, not a score. A level is reached only when all of its required rules, and those of every lower level, pass. `pass`, `fail`, `unknown` (team policy that cannot be inferred), and `not-applicable` are distinct. Assessment is deterministic, offline, uses no LLM, and never modifies the repository. The spec is pinned into the package by version and sha256.
+
+See [`docs/READINESS.md`](docs/READINESS.md).
+
 ## Smart repository detection
 
 The repo initializer recognizes common project signals for:
@@ -477,6 +507,7 @@ agentic-dev/
 │   ├── capabilities.py
 │   ├── detect.py
 │   ├── skills.py
+│   ├── readiness/          # Agent Ready assessment + pinned spec bundle
 │   └── builtin_skills/
 ├── integrations/
 │   ├── claude/
@@ -494,6 +525,7 @@ agentic-dev/
 │   ├── API.md
 │   ├── CAPABILITIES.md
 │   ├── INTEGRATIONS.md
+│   ├── READINESS.md
 │   ├── SECURITY.md
 │   ├── SKILLS.md
 │   ├── TRUST.md
@@ -625,7 +657,7 @@ The product boundary is deliberate:
 
 ```text
 agent-ready     -> defines the readiness standard
-agentic-dev -> assesses and prepares the environment
+agentic-dev     -> assesses and prepares the environment
 AgentFlow       -> governs and orchestrates development workflows
 ```
 

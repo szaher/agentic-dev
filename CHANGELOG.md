@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.14.0a2 - 2026-10-02
+
+Agent Ready Specification v1 assessment (Roadmap v2 milestone v0.14, in progress).
+
+- Added `agentic ready assess`, `agentic ready explain` (repository or rule), and `agentic ready plan`, each with `--json`, `--target`, and `--spec`.
+- Added the `agentic_dev.readiness` engine: three-valued evaluation (`pass`/`fail`/`unknown`/`not-applicable`), requirement-based cumulative maturity in which `unknown` blocks like `fail`, and concrete repository-relative evidence with file and line.
+- Vendored Agent Ready Spec `1.0.0` (owned by szaher/agent-ready), pinned by sha256 and source commit and verified on load. Assessment needs no network and no YAML parser.
+- Added `scripts/sync-agent-ready-spec.py` to update and verify the pinned spec.
+- Added JSON contracts: `readiness-assessment-v1`, `readiness-explanation-v1`, `readiness-plan-v1`.
+- Assessment is read-only, deterministic, and private: no command execution, no writes, no timestamps, no absolute paths, and redacted secret-bearing matches.
+- Added realistic generated fixtures (empty, foundational-python, missing-tests, no-agent-instructions, ambiguous-policy, structured-go, optimized-node, autonomous-node) and a read-only regression test.
+- Package CI now proves that installed wheels and sdists assess a repository with the packaged spec.
+- Added `docs/READINESS.md` and readiness sections in `docs/API.md` and `README.md`.
+
 ## 0.14.0a1 - 2026-10-02
 
 Agentic Dev product/package rename and packaging hardening.
