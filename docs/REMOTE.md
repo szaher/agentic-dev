@@ -1,6 +1,6 @@
 # SSH development profiles
 
-SSH profiles let tooling refer to remote development machines without storing passwords or private-key contents in agentic-dev-env.
+SSH profiles let tooling refer to remote development machines without storing passwords or private-key contents in agentic-dev.
 
 ## Add
 
@@ -45,6 +45,6 @@ The test uses non-interactive SSH with `BatchMode=yes` and a short connection ti
 agentic remote remove gpu-lab
 ```
 
-Remote profiles are user-local state under the agentic-dev-env configuration directory.
+Remote profiles are user-local state under the agentic-dev configuration directory.
 
 They are intended as a connection-description layer for future remote execution/AgentFlow adapters, not as a replacement for SSH config, bastion policy, VPN controls, or host authorization.

@@ -13,7 +13,7 @@ agentic worktree create api-refactor \
 By default:
 
 - branch: `agentic/api-refactor`
-- location: `~/.local/share/agentic-dev-env/worktrees/<repo>/api-refactor`
+- location: `~/.local/share/agentic-dev/worktrees/<repo>/api-refactor`
 - base: current `HEAD`
 
 Override when needed:
@@ -69,4 +69,4 @@ The primary worktree can never be removed through this command.
 
 ## AgentFlow
 
-AgentFlow can create one worktree per workflow attempt/executor and record the worktree path in its own run state. `agentic-dev-env` owns Git isolation mechanics; AgentFlow remains responsible for lifecycle policy, retries, evidence, approvals and deciding when cleanup is allowed.
+AgentFlow can create one worktree per workflow attempt/executor and record the worktree path in its own run state. `agentic-dev` owns Git isolation mechanics; AgentFlow remains responsible for lifecycle policy, retries, evidence, approvals and deciding when cleanup is allowed.

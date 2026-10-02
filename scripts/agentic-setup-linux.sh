@@ -13,7 +13,7 @@ have() { command -v "$1" >/dev/null 2>&1; }
 
 usage() {
   cat <<'USAGE'
-Usage: setup-coding-agent-env.sh [options]
+Usage: agentic setup [options]
 Linux/WSL workstation bootstrap.
 
   --configure-agents
@@ -149,14 +149,16 @@ fi
 install_policy_file() {
   target="$1"
   policy="$2"
-  start='<!-- agentic-dev-env:start -->'
-  end='<!-- agentic-dev-env:end -->'
+  start='<!-- agentic-dev:start -->'
+  end='<!-- agentic-dev:end -->'
+  legacy_start='<!-- agentic-dev-env:start -->'
+  legacy_end='<!-- agentic-dev-env:end -->'
   mkdir -p "$(dirname "$target")"
   touch "$target"
   tmp=$(mktemp)
-  awk -v start="$start" -v end="$end" '
-    $0 == start {skip=1; next}
-    $0 == end {skip=0; next}
+  awk -v start="$start" -v end="$end" -v legacy_start="$legacy_start" -v legacy_end="$legacy_end" '
+    $0 == start || $0 == legacy_start {skip=1; next}
+    $0 == end || $0 == legacy_end {skip=0; next}
     !skip {print}
   ' "$target" > "$tmp"
   mv "$tmp" "$target"
@@ -168,10 +170,24 @@ install_policy_file() {
 }
 
 if [ "$NO_GLOBAL_INSTRUCTIONS" -eq 0 ]; then
-  policy="$HOME/.config/agentic-dev-env/templates/global-agent-policy.md"
-  if [ -f "$policy" ]; then
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+  policy=""
+  config_base="${AGENTIC_DEV_CONFIG_DIR:-${AGENTIC_DEV_ENV_CONFIG_DIR:-}}"
+  for candidate in \
+    "${AGENTIC_DEV_POLICY_FILE:-}" \
+    "${config_base:+$config_base/templates/global-agent-policy.md}" \
+    "$script_dir/../templates/global-agent-policy.md" \
+    "$HOME/.config/agentic-dev/templates/global-agent-policy.md"; do
+    if [ -n "$candidate" ] && [ -f "$candidate" ]; then
+      policy="$candidate"
+      break
+    fi
+  done
+  if [ -n "$policy" ]; then
     have claude && install_policy_file "$HOME/.claude/CLAUDE.md" "$policy"
     have codex && install_policy_file "$HOME/.codex/AGENTS.md" "$policy"
+  else
+    warn "Global agent policy template not found."
   fi
 fi
 

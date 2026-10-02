@@ -6,13 +6,13 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from agentic_dev_env.remote import add, get, list_profiles, remove, status
+from agentic_dev.remote import add, get, list_profiles, remove, status
 
 
 class RemoteProfileTests(unittest.TestCase):
     def test_profile_round_trip_without_secrets(self):
         with tempfile.TemporaryDirectory() as config:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 profile = add(
                     "gpu-lab", "gpu.example.test",
                     user="saad", port=2222,
@@ -32,7 +32,7 @@ class RemoteProfileTests(unittest.TestCase):
 
     def test_port_validation(self):
         with tempfile.TemporaryDirectory() as config:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 with self.assertRaises(ValueError):
                     add("bad", "host", port=70000)
 

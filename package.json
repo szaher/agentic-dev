@@ -1,8 +1,8 @@
 {
-  "name": "agentic-dev-env-pi",
+  "name": "agentic-dev-pi",
   "version": "0.3.0",
   "private": true,
-  "description": "Pi package adapter for agentic-dev-env.",
+  "description": "Pi package adapter for Agentic Dev.",
   "license": "MIT",
   "keywords": [
     "pi-package",
@@ -11,7 +11,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/szaher/agentic-dev-env.git"
+    "url": "https://github.com/szaher/agentic-dev.git"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"

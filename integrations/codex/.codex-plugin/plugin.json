@@ -1,10 +1,10 @@
 {
-  "name": "agentic-dev-env",
+  "name": "agentic-dev",
   "version": "0.3.0",
   "description": "Repository-aware skill selection and local coding-agent environment management.",
   "skills": "./skills/",
   "interface": {
-    "displayName": "Agentic Dev Env",
+    "displayName": "Agentic Dev",
     "shortDescription": "Tune a repo for agentic development",
     "longDescription": "Inspect repository context, recommend focused engineering skills, and diagnose the local coding-agent development environment."
   }

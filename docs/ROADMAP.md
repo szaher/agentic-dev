@@ -1,8 +1,8 @@
-# agentic-dev-env — Roadmap v2
+# agentic-dev — Roadmap v2
 
 ## Executive summary
 
-`agentic-dev-env` has completed its first roadmap. By v0.13 it is no longer just a workstation bootstrap: it is a developer capability control plane with repository inspection, skills, capabilities, trust profiles, security scanning, worktree isolation, verification planning, execution backends, infrastructure access, provider extensibility, native agent integrations, remote profiles, and local measurement.
+`agentic-dev` has completed its first roadmap. By v0.13 it is no longer just a workstation bootstrap: it is a developer capability control plane with repository inspection, skills, capabilities, trust profiles, security scanning, worktree isolation, verification planning, execution backends, infrastructure access, provider extensibility, native agent integrations, remote profiles, and local measurement.
 
 Roadmap v2 moves the project from a capability control plane toward a **portable agentic development platform**.
 
@@ -19,7 +19,7 @@ The architecture across the three related projects is:
                    look like?"
                         |
                         v
-                agentic-dev-env
+                agentic-dev
        assess / configure / resolve / prepare
       catalog / trust / reproduce / measure
                         |
@@ -36,7 +36,7 @@ The architecture across the three related projects is:
 The product boundary is:
 
 - **Agent Ready** defines what an agent-ready repository is.
-- **agentic-dev-env** assesses, prepares, reproduces, secures, and configures the environment agents work in.
+- **agentic-dev** assesses, prepares, reproduces, secures, and configures the environment agents work in.
 - **AgentFlow** governs the software-development process performed by agents.
 
 The north-star outcome is that a developer can enter a repository, assess its readiness, prepare a minimal and reproducible agent session, and then hand the prepared environment to AgentFlow or a coding agent.
@@ -203,7 +203,7 @@ It answers:
 
 It should not become an environment manager or orchestration engine.
 
-## agentic-dev-env owns
+## agentic-dev owns
 
 This repository owns:
 
@@ -303,7 +303,7 @@ Every release in this roadmap follows these principles.
 
 Turn the principles defined by Agent Ready into machine-evaluable repository requirements.
 
-Agent Ready remains authoritative. `agentic-dev-env` becomes the assessment engine.
+Agent Ready remains authoritative. `agentic-dev` becomes the assessment engine.
 
 ## Agent Ready specification
 
@@ -464,7 +464,7 @@ Readiness should become a maintained repository property that can regress and be
 
 ## Goal
 
-Make AgentFlow consume `agentic-dev-env` contracts instead of rediscovering environment/repository state.
+Make AgentFlow consume `agentic-dev` contracts instead of rediscovering environment/repository state.
 
 ## AgentFlow consumes
 
@@ -480,7 +480,7 @@ agentic metrics record ...
 
 ## Remove duplicated logic
 
-Move generic responsibility out of AgentFlow where `agentic-dev-env` already owns it:
+Move generic responsibility out of AgentFlow where `agentic-dev` already owns it:
 
 - language/framework detection;
 - package-manager detection;
@@ -508,9 +508,9 @@ AgentFlow patterns should be able to declare environment/readiness requirements,
 ## Acceptance criteria
 
 - one repository/environment source of truth;
-- JSON/process contracts only, not imports of agentic-dev-env internals;
+- JSON/process contracts only, not imports of agentic-dev internals;
 - AgentFlow retains authority over mandatory gates and state transitions;
-- agentic-dev-env never owns AgentFlow workflow semantics.
+- agentic-dev never owns AgentFlow workflow semantics.
 
 ---
 
@@ -767,7 +767,7 @@ spec:
 
 ## Boundary
 
-`agentic-dev-env` owns team membership, environment, requirements, skills, tools, and capabilities.
+`agentic-dev` owns team membership, environment, requirements, skills, tools, and capabilities.
 
 AgentFlow owns ordering, parallelism, delegation, retries, gates, approvals, handoffs, and termination.
 
@@ -895,7 +895,7 @@ agentic env export
 Use an immutable store under:
 
 ```text
-~/.local/share/agentic-dev-env/store/sha256/
+~/.local/share/agentic-dev/store/sha256/
 ```
 
 Benefits include integrity, deduplication, rollback, offline reuse, and reproducibility.
@@ -1161,13 +1161,13 @@ Make installation and lifecycle feel like a finished developer product.
 ## Target installation
 
 ```bash
-brew install agentic-dev-env
+brew install agentic-dev
 ```
 
 and:
 
 ```bash
-uv tool install agentic-dev-env
+uv tool install agentic-dev
 ```
 
 Then:
@@ -1208,7 +1208,7 @@ Native Windows can remain post-1.0 unless demand justifies it.
 Support workflows such as:
 
 ```yaml
-- uses: szaher/agentic-dev-env@v1
+- uses: szaher/agentic-dev@v1
   with:
     command: ready verify --target structured
 ```
@@ -1216,7 +1216,7 @@ Support workflows such as:
 and:
 
 ```yaml
-- uses: szaher/agentic-dev-env@v1
+- uses: szaher/agentic-dev@v1
   with:
     command: verify
 ```
@@ -1366,7 +1366,7 @@ security review                   ✓
                    │ specification
                    v
 ┌───────────────────────────────────────┐
-│           agentic-dev-env             │
+│           agentic-dev             │
 │                                       │
 │ readiness assessment                  │
 │ remediation                           │
@@ -1466,7 +1466,7 @@ Evaluation framework
 
 # Explicit non-goals
 
-To keep the project coherent, `agentic-dev-env` should **not** become:
+To keep the project coherent, `agentic-dev` should **not** become:
 
 - another multi-agent orchestrator — that is AgentFlow;
 - another public MCP marketplace — federate existing registries/catalogs;
@@ -1599,7 +1599,7 @@ The implementation sequence is:
 
 # Product identity at 1.0
 
-At 1.0, `agentic-dev-env` should be describable as:
+At 1.0, `agentic-dev` should be describable as:
 
 > **A vendor-neutral developer platform for assessing, preparing, reproducing, and governing agentic software-development environments. It makes repositories agent-ready, manages portable agent/skill/tool configurations, prepares minimal task-specific sessions, and provides the environment contract consumed by AgentFlow and coding agents such as Claude Code, Codex, Pi, and OpenCode.**
 
@@ -1607,6 +1607,6 @@ The three-project story is:
 
 > **Agent Ready teaches and defines the standard.**
 
-> **agentic-dev-env implements and operationalizes the standard.**
+> **agentic-dev implements and operationalizes the standard.**
 
 > **AgentFlow runs governed software development on top of that prepared environment.**

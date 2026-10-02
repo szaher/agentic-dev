@@ -9,6 +9,8 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Iterable
 
+from .paths import config_dir
+
 
 SENSITIVE_KEY = re.compile(
     r"(secret|token|password|passwd|authorization|cookie|header|api[_-]?key|private[_-]?key|credential)",
@@ -17,10 +19,7 @@ SENSITIVE_KEY = re.compile(
 
 
 def _config_dir() -> Path:
-    return Path(os.environ.get(
-        "AGENTIC_DEV_ENV_CONFIG_DIR",
-        Path.home() / ".config" / "agentic-dev-env",
-    ))
+    return config_dir()
 
 
 def _metrics_dir() -> Path:

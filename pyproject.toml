@@ -3,20 +3,26 @@ requires = ["setuptools>=78"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agentic-dev-env"
-version = "0.13.0"
-description = "Context-aware local environment and repository bootstrap for agentic software development"
+name = "agentic-dev"
+version = "0.14.0a1"
+description = "Make repositories agent-ready and prepare safe, reproducible development environments for coding agents"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [{ name = "Saad Zaher" }]
 dependencies = []
 
+[project.urls]
+Homepage = "https://github.com/szaher/agentic-dev"
+Repository = "https://github.com/szaher/agentic-dev"
+Issues = "https://github.com/szaher/agentic-dev/issues"
+Documentation = "https://github.com/szaher/agentic-dev#readme"
+
 [project.optional-dependencies]
 test = ["jsonschema>=4.23"]
 
 [project.scripts]
-agentic = "agentic_dev_env.cli:main"
+agentic = "agentic_dev.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -26,4 +32,15 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-agentic_dev_env = ["builtin_skills/**/*.md", "builtin_skills/**/*.toml"]
+agentic_dev = ["builtin_skills/**/*.md", "builtin_skills/**/*.toml"]
+
+
+[tool.setuptools.data-files]
+"share/agentic-dev/scripts" = [
+  "scripts/agentic-setup.sh",
+  "scripts/agentic-setup-linux.sh",
+  "scripts/agentic-repo-init.sh",
+]
+"share/agentic-dev/templates" = [
+  "templates/global-agent-policy.md",
+]

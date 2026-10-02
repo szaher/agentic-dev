@@ -1,6 +1,6 @@
 # Trust and permission profiles
 
-Capabilities do not all have the same risk. `agentic-dev-env` models that explicitly with permission profiles.
+Capabilities do not all have the same risk. `agentic-dev` models that explicitly with permission profiles.
 
 ## Built-in profiles
 

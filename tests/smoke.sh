@@ -3,8 +3,8 @@ set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
-"$ROOT/scripts/setup-coding-agent-env.sh" --help >/dev/null
-"$ROOT/scripts/saad-tool-repo-init.sh" --help >/dev/null
+"$ROOT/scripts/agentic-setup.sh" --help >/dev/null
+"$ROOT/scripts/agentic-repo-init.sh" --help >/dev/null
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -27,14 +27,14 @@ printf 'def add(a: int, b: int) -> int:\n    return a + b\n' > "$tmp/src/fixture
 printf 'fn main() {}\n' > "$tmp/main.rs"
 printf '[package]\nname="fixture"\nversion="0.0.0"\nedition="2021"\n' > "$tmp/Cargo.toml"
 
-output="$($ROOT/scripts/saad-tool-repo-init.sh "$tmp" --check --no-codegraph --no-serena --no-instructions 2>&1)"
+output="$($ROOT/scripts/agentic-repo-init.sh "$tmp" --check --no-codegraph --no-serena --no-instructions 2>&1)"
 
 grep -q 'python' <<<"$output"
 grep -q 'rust' <<<"$output"
 grep -q 'cargo test' <<<"$output"
 grep -q 'cargo build' <<<"$output"
 
-test ! -e "$tmp/.saad-agent"
+test ! -e "$tmp/.agentic"
 test ! -e "$tmp/.serena"
 test ! -e "$tmp/.codegraph"
 

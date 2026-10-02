@@ -9,11 +9,11 @@ from unittest.mock import patch
 
 import jsonschema
 
-from agentic_dev_env import capabilities
-from agentic_dev_env.providers import (
+from agentic_dev import capabilities
+from agentic_dev.providers import (
     add_provider, installed, migrate, remove_provider, verify_provider,
 )
-from agentic_dev_env.skills import get_skill, skill_content
+from agentic_dev.skills import get_skill, skill_content
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -82,7 +82,7 @@ class ProviderEcosystemTests(unittest.TestCase):
 
     def test_manifest_schema_and_provider_contributions(self):
         with self.config() as config, tempfile.TemporaryDirectory() as tmp:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 source = self.make_provider(Path(tmp))
                 manifest = json.loads((source / "agentic-provider.json").read_text())
                 schema = json.loads((ROOT / "schemas/provider-manifest-v1.schema.json").read_text())
@@ -125,7 +125,7 @@ class ProviderEcosystemTests(unittest.TestCase):
 
     def test_tamper_detection(self):
         with self.config() as config, tempfile.TemporaryDirectory() as tmp:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 source = self.make_provider(Path(tmp))
                 record = add_provider(str(source))
                 installed_source = Path(config) / "providers" / record["name"] / "source"
@@ -136,14 +136,14 @@ class ProviderEcosystemTests(unittest.TestCase):
 
     def test_digest_pin_rejects_wrong_source(self):
         with self.config() as config, tempfile.TemporaryDirectory() as tmp:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 source = self.make_provider(Path(tmp))
                 with self.assertRaises(ValueError):
                     add_provider(str(source), expected_sha256="0" * 64)
 
     def test_migrations_require_explicit_yes(self):
         with self.config() as config, tempfile.TemporaryDirectory() as tmp:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 source = self.make_provider(Path(tmp))
                 add_provider(str(source))
                 with self.assertRaises(PermissionError):

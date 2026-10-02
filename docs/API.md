@@ -1,6 +1,6 @@
 # Machine-readable contracts
 
-`agentic-dev-env` exposes stable JSON documents so AgentFlow, native agent integrations, CI, IDE extensions, and other tooling do not need to parse human-facing terminal output.
+`agentic-dev` exposes stable JSON documents so AgentFlow, native agent integrations, CI, IDE extensions, and other tooling do not need to parse human-facing terminal output.
 
 Current schema version: **1**.
 
@@ -49,7 +49,7 @@ The document includes:
 - core tool availability and resolved executable paths;
 - Claude Code/Codex/Pi availability and integration status;
 - optional capability state;
-- agentic-dev-env version.
+- agentic-dev version.
 
 Schema:
 

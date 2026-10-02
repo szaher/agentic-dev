@@ -12,16 +12,14 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from . import __version__
+from .paths import config_dir
 
 
 MANIFEST = "agentic-provider.json"
 
 
 def _config_dir() -> Path:
-    return Path(os.environ.get(
-        "AGENTIC_DEV_ENV_CONFIG_DIR",
-        Path.home() / ".config" / "agentic-dev-env",
-    ))
+    return config_dir()
 
 
 def providers_dir() -> Path:

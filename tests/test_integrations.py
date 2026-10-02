@@ -15,21 +15,21 @@ class IntegrationPackagingTests(unittest.TestCase):
 
     def test_claude_marketplace_points_to_plugin(self):
         marketplace = self.load_json(".claude-plugin/marketplace.json")
-        self.assertEqual(marketplace["name"], "agentic-dev-env")
+        self.assertEqual(marketplace["name"], "agentic-dev")
         self.assertEqual(marketplace["plugins"][0]["source"], "./integrations/claude")
         plugin = self.load_json("integrations/claude/.claude-plugin/plugin.json")
-        self.assertEqual(plugin["name"], "agentic-dev-env")
+        self.assertEqual(plugin["name"], "agentic-dev")
         self.assertTrue((ROOT / "integrations/claude/skills/repo/SKILL.md").exists())
 
     def test_codex_marketplace_points_to_plugin(self):
         marketplace = self.load_json(".agents/plugins/marketplace.json")
         entry = marketplace["plugins"][0]
-        self.assertEqual(entry["name"], "agentic-dev-env")
+        self.assertEqual(entry["name"], "agentic-dev")
         self.assertEqual(entry["source"]["source"], "local")
         self.assertEqual(entry["source"]["path"], "./integrations/codex")
         portable = self.load_json("integrations/codex/plugin.json")
         compat = self.load_json("integrations/codex/.codex-plugin/plugin.json")
-        self.assertEqual(portable["name"], "agentic-dev-env")
+        self.assertEqual(portable["name"], "agentic-dev")
         self.assertEqual(compat["skills"], "./skills/")
         self.assertTrue((ROOT / "integrations/codex/skills/repo/SKILL.md").exists())
 

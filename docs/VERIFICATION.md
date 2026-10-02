@@ -83,4 +83,4 @@ Every deterministic command produces normalized stdout/stderr/return-code eviden
 
 ## AgentFlow boundary
 
-`agentic-dev-env` determines what checks are relevant and can execute them. AgentFlow decides which checks are mandatory workflow gates, whether evidence is fresh enough, whether a retry is allowed, and whether human/reviewer approval is required.
+`agentic-dev` determines what checks are relevant and can execute them. AgentFlow decides which checks are mandatory workflow gates, whether evidence is fresh enough, whether a retry is allowed, and whether human/reviewer approval is required.

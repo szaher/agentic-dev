@@ -1,12 +1,12 @@
 {
-  "name": "agentic-dev-env",
-  "description": "Native Claude Code integration for agentic-dev-env.",
+  "name": "agentic-dev",
+  "description": "Native Claude Code integration for agentic-dev.",
   "owner": {
     "name": "Saad Zaher"
   },
   "plugins": [
     {
-      "name": "agentic-dev-env",
+      "name": "agentic-dev",
       "source": "./integrations/claude",
       "description": "Repository-aware skill selection and local coding-agent environment management."
     }

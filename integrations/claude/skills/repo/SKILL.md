@@ -1,9 +1,9 @@
 ---
 name: repo
-description: Use agentic-dev-env to inspect the current repository, select focused engineering skills, or diagnose the coding-agent environment.
+description: Use agentic-dev to inspect the current repository, select focused engineering skills, or diagnose the coding-agent environment.
 ---
 
-# Agentic Dev Env
+# Agentic Dev
 
 Use the local `agentic` CLI as the control plane for repository-aware development setup.
 

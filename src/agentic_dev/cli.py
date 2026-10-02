@@ -34,6 +34,7 @@ from .metrics import (
     set_enabled as set_metrics_enabled, status as metrics_status,
     summary as metrics_summary,
 )
+from .paths import prepare_runtime_state
 
 
 def _print_recommendations(path: str, task: str, max_skills: int, as_json: bool):
@@ -198,16 +199,39 @@ def cmd_skills_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def _helper_script(name: str) -> Path | None:
+    on_path = shutil.which(name)
+    if on_path:
+        return Path(on_path)
+
+    candidates = [
+        Path(sys.prefix) / "share" / "agentic-dev" / "scripts" / name,
+        Path(__file__).resolve().parents[2] / "scripts" / name,
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def _exec_script(name: str, argv: list[str]) -> int:
-    path = shutil.which(name)
+    path = _helper_script(name)
     if not path:
-        print(f"{name} is not installed. Run ./install.sh from agentic-dev-env.", file=sys.stderr)
+        print(
+            f"{name} is not available in this Agentic Dev installation. "
+            "Reinstall agentic-dev or run ./install.sh from a source checkout.",
+            file=sys.stderr,
+        )
         return 2
-    return subprocess.call([path, *argv])
+    bash = shutil.which("bash")
+    if not bash:
+        print("bash is required for Agentic Dev setup/repository bootstrap.", file=sys.stderr)
+        return 2
+    return subprocess.call([bash, str(path), *argv])
 
 
 def cmd_setup(args: argparse.Namespace) -> int:
-    return _exec_script("setup-coding-agent-env.sh", args.args)
+    return _exec_script("agentic-setup.sh", args.args)
 
 
 def cmd_repo_init(args: argparse.Namespace) -> int:
@@ -231,7 +255,7 @@ def cmd_repo_init(args: argparse.Namespace) -> int:
         argv += ["--task", args.task]
     if args.skills_target:
         argv += ["--skills-target", args.skills_target]
-    return _exec_script("saad-tool-repo-init.sh", argv)
+    return _exec_script("agentic-repo-init.sh", argv)
 
 
 def cmd_repo_inspect(args: argparse.Namespace) -> int:
@@ -1125,7 +1149,7 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("--force", action="store_true")
     add.set_defaults(func=cmd_skills_add)
 
-    rm = ssub.add_parser("remove", help="Remove agentic-dev-env managed skills")
+    rm = ssub.add_parser("remove", help="Remove agentic-dev managed skills")
     rm.add_argument("names", nargs="+")
     rm.add_argument("--path", default=".")
     rm.add_argument("--target", choices=["both", "all", "claude", "codex", "pi"], default="both")
@@ -1521,6 +1545,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    prepare_runtime_state()
     parser = build_parser()
     args = parser.parse_args()
     raise SystemExit(args.func(args))

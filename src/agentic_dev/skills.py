@@ -14,7 +14,7 @@ from .providers import skill_entries as provider_skill_entries
 from .metrics import record as record_metric
 
 
-MANAGED_MARKER = "<!-- managed-by: agentic-dev-env -->"
+MANAGED_MARKER = "<!-- managed-by: agentic-dev -->"
 
 
 @dataclass(frozen=True)
@@ -37,7 +37,7 @@ class Recommendation:
 
 
 def skills_root():
-    return resources.files("agentic_dev_env").joinpath("builtin_skills")
+    return resources.files("agentic_dev").joinpath("builtin_skills")
 
 
 def load_registry() -> list[Skill]:
@@ -173,7 +173,7 @@ def activate(
             dest = base / name
             skill_md = dest / "SKILL.md"
             if skill_md.exists() and not _managed(skill_md) and not force:
-                print(f"! {skill_md} exists and is not managed by agentic-dev-env; skipped.", file=sys.stderr)
+                print(f"! {skill_md} exists and is not managed by agentic-dev; skipped.", file=sys.stderr)
                 continue
             dest.mkdir(parents=True, exist_ok=True)
             skill_md.write_text(content.rstrip() + "\n\n" + MANAGED_MARKER + "\n")

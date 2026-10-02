@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.14.0a1 - 2026-10-02
+
+Agentic Dev product/package rename and packaging hardening.
+
+- Renamed the product/repository identity from `agentic-dev-env` to **Agentic Dev** / `agentic-dev`.
+- Renamed the Python distribution to `agentic-dev` and the import package to `agentic_dev`.
+- Kept the public command surface as `agentic`.
+- Renamed configuration/data namespaces to `~/.config/agentic-dev`, `~/.local/share/agentic-dev`, and `AGENTIC_DEV_*`.
+- Added non-destructive one-time migration for legacy user configuration and fallback support for legacy config/bin environment variables.
+- Preserved existing linked Git worktrees in place instead of moving them unsafely.
+- Bundled setup/repository bootstrap scripts and the global policy template into wheel/sdist installations so `uv tool install agentic-dev` provides a complete CLI.
+- Added transitional helper aliases for source installs and legacy managed-instruction marker cleanup.
+- Added wheel/sdist build-and-install smoke validation and PyPI Trusted Publishing workflow.
+- Added migration/release documentation and a scoped identity-regression check.
+
 ## 0.13.0 - 2026-10-02
 
 Local measurement and evaluation.

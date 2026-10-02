@@ -7,12 +7,11 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from .paths import config_dir
+
 
 def _config_dir() -> Path:
-    return Path(os.environ.get(
-        "AGENTIC_DEV_ENV_CONFIG_DIR",
-        Path.home() / ".config" / "agentic-dev-env",
-    ))
+    return config_dir()
 
 
 def _file() -> Path:

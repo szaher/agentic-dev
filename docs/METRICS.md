@@ -2,7 +2,7 @@
 
 Measurement is **local and disabled by default**.
 
-`agentic-dev-env` does not send telemetry to a server. Enabling metrics writes structured JSONL events to the local agentic-dev-env configuration directory. Export is explicit and file-only.
+`agentic-dev` does not send telemetry to a server. Enabling metrics writes structured JSONL events to the local agentic-dev configuration directory. Export is explicit and file-only.
 
 ## Enable
 
@@ -25,7 +25,7 @@ agentic metrics clear --yes
 
 ## What the core measures
 
-When metrics are enabled, agentic-dev-env automatically records narrow outcome events for:
+When metrics are enabled, agentic-dev automatically records narrow outcome events for:
 
 - execution backend calls: backend, tool name, success/failure, return code, duration, command hash;
 - verification checks and total verification duration;
@@ -102,7 +102,7 @@ Metric field names containing secret-like terms such as `token`, `password`, `au
 
 CodeGraph use during the built-in verification planner is measured automatically when available.
 
-Serena, Context7, Claude/Codex/Pi native tool calls happen outside the agentic-dev-env process. Those integrations can report:
+Serena, Context7, Claude/Codex/Pi native tool calls happen outside the agentic-dev process. Those integrations can report:
 
 ```text
 tool.call
@@ -145,12 +145,12 @@ schemas/metric-event-v1.schema.json
 Default location:
 
 ```text
-~/.config/agentic-dev-env/metrics/
+~/.config/agentic-dev/metrics/
 ├── settings.json
 └── events.jsonl
 ```
 
-The location follows `AGENTIC_DEV_ENV_CONFIG_DIR` when set.
+The location follows `AGENTIC_DEV_CONFIG_DIR` when set.
 
 ## Evaluation use
 

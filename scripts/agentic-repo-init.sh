@@ -20,7 +20,7 @@ SKILLS_TARGET="both"
 
 usage() {
   cat <<'USAGE'
-Usage: saad-tool-repo-init.sh [repo-path] [options]
+Usage: agentic repo init [repo-path] [options]
 
 Options:
   --check                     Read-only discovery/readiness report.
@@ -274,7 +274,7 @@ write_local_context(){
   cat > "$path" <<EOF2
 # Local Repository Context
 
-Generated locally by agentic-dev-env. Shared tool-routing policy belongs in the user-level Claude/Codex instructions.
+Generated locally by agentic-dev. Shared tool-routing policy belongs in the user-level Claude/Codex instructions.
 
 - Repository: $REPO_NAME
 - Languages: ${LANGUAGES[*]:-not confidently detected}
@@ -300,9 +300,9 @@ EOF2
 
 if [[ "$CHECK_ONLY" -eq 0 ]]; then
   info "Configuring repository intelligence"
-  for e in '/.codegraph/' '/.serena/' '/.saad-agent/' '/repomix-output.xml' '/repomix-output.md'; do ensure_local_exclude "$e"; done
-  mkdir -p .saad-agent
-  cat > .saad-agent/repo.env <<EOF2
+  for e in '/.codegraph/' '/.serena/' '/.agentic/' '/repomix-output.xml' '/repomix-output.md'; do ensure_local_exclude "$e"; done
+  mkdir -p .agentic
+  cat > .agentic/repo.env <<EOF2
 REPO_NAME=$(printf '%q' "$REPO_NAME")
 LANGUAGES=$(printf '%q' "${LANGUAGES[*]:-}")
 SERENA_LANGUAGES=$(printf '%q' "${SERENA_LANGUAGES[*]:-}")
@@ -322,7 +322,7 @@ EOF2
 
   if [[ "$NO_CODEGRAPH" -eq 0 ]]; then
     if have codegraph; then [[ -d .codegraph ]] && success "CodeGraph already initialized" || codegraph init
-    else warn "CodeGraph not installed; run setup-coding-agent-env.sh first."; fi
+    else warn "CodeGraph not installed; run 'agentic setup' first."; fi
   fi
 
   if [[ "$NO_SERENA" -eq 0 ]]; then
@@ -335,7 +335,7 @@ EOF2
         serena "${args[@]}" || warn "Serena project creation/indexing failed"
       fi
     elif [[ ${#SERENA_LANGUAGES[@]} -eq 0 ]]; then warn "No Serena-supported language confidently detected."
-    else warn "Serena not installed; run setup-coding-agent-env.sh first."; fi
+    else warn "Serena not installed; run 'agentic setup' first."; fi
   fi
 fi
 
@@ -369,7 +369,7 @@ cat <<EOF2
 Repository initialization complete.
 
 Useful commands:
-  saad-tool-repo-init.sh . --check
+  agentic-repo-init.sh . --check
   agentic skills suggest . --task "describe the work"
   agentic skills status .
   codegraph status

@@ -1,6 +1,6 @@
 # External providers and lifecycle
 
-External providers let `agentic-dev-env` gain skills and command-backed capabilities without hard-coding them into core.
+External providers let `agentic-dev` gain skills and command-backed capabilities without hard-coding them into core.
 
 A provider is a directory or Git repository containing:
 
@@ -119,7 +119,7 @@ agentic providers update example-provider --yes
 agentic update --yes
 ```
 
-`agentic update` currently updates installed external providers. Core application updates remain explicit through the installation source used for agentic-dev-env (for example Git pull + `./install.sh`).
+`agentic update` currently updates installed external providers. Core application updates remain explicit through the installation source used for agentic-dev (for example Git pull + `./install.sh`).
 
 ## Migration hooks
 
@@ -161,7 +161,7 @@ Provider commands run from the installed provider source directory.
 
 Provider compatibility can constrain:
 
-- agentic-dev-env version;
+- agentic-dev version;
 - host platform: macOS, Linux, WSL, Windows;
 - required executables;
 - required coding-agent CLIs.
