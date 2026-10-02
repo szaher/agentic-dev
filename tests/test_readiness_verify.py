@@ -239,6 +239,7 @@ class VerifyCliTests(VerifyCase):
         self.assertEqual(diff.returncode, 0, diff.stderr)
         self.assertIn(f"+++ b/{CI_WORKFLOW}", diff.stdout)
         self.assertIn("maintenance readiness.ci-check", diff.stdout)
+        self.assertIn("Apply with: agentic ready apply <path> --target optimized --ci-check", diff.stdout)
 
 
 if __name__ == "__main__":

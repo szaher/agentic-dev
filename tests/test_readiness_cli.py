@@ -124,6 +124,8 @@ class ReadyCliTests(unittest.TestCase):
         self.assertIn("Target:  Optimized", text.stdout)
         self.assertIn("Classification: human-required", text.stdout)
         self.assertIn("Required decision:", text.stdout)
+        self.assertIn("Next: agentic ready diff <path>", text.stdout)
+        self.assertNotIn("not performed in this version", text.stdout)
         data = json.loads(run("ready", "plan", str(self.root), "--json").stdout)
         jsonschema.validate(data, self.schema("readiness-plan-v1.schema.json"))
         self.assertEqual(data["maturity"]["target"], "structured")

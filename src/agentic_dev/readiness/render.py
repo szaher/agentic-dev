@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .remediation import CI_CHECK
+
 SYMBOL = {"pass": "✓", "fail": "✗", "unknown": "?", "not-applicable": "–"}
 LABEL = {"pass": "PASS", "fail": "FAIL", "unknown": "UNKNOWN", "not-applicable": "NOT APPLICABLE"}
 PILLAR_TITLES = {
@@ -223,7 +225,8 @@ def plan(document: dict[str, Any]) -> str:
         f"Summary: {summary['required_steps']} required step(s) — {summary['automatable']} automatable, "
         f"{summary['assisted']} assisted, {summary['human_required']} human-required."
     )
-    lines.append("Automated remediation is not performed in this version; this plan only describes it.")
+    lines.append("Next: agentic ready diff <path> to preview safe changes   ·   "
+                 "agentic ready make <path> --target LEVEL")
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -284,8 +287,10 @@ def remediation_run(document: dict[str, Any], *, show_diff: bool) -> str:
     elif applied:
         lines.append(f"Wrote: {', '.join(result['written'])}. Review with `git diff`; nothing was committed.")
     elif result["status"] == "planned":
-        lines.append("Apply with: agentic ready apply <path>" + (
-            f" --target {state['target']}" if state["target"] else ""))
+        flags = [f"--target {state['target']}"] if state["target"] else []
+        if any(a["id"] == CI_CHECK for a in document["maintenance_actions"]):
+            flags.append("--ci-check")
+        lines.append(" ".join(["Apply with: agentic ready apply <path>", *flags]))
     return "\n".join(lines).rstrip() + "\n"
 
 
