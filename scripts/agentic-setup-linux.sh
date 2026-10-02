@@ -172,8 +172,10 @@ install_policy_file() {
 if [ "$NO_GLOBAL_INSTRUCTIONS" -eq 0 ]; then
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
   policy=""
+  config_base="${AGENTIC_DEV_CONFIG_DIR:-${AGENTIC_DEV_ENV_CONFIG_DIR:-}}"
   for candidate in \
     "${AGENTIC_DEV_POLICY_FILE:-}" \
+    "${config_base:+$config_base/templates/global-agent-policy.md}" \
     "$script_dir/../templates/global-agent-policy.md" \
     "$HOME/.config/agentic-dev/templates/global-agent-policy.md"; do
     if [ -n "$candidate" ] && [ -f "$candidate" ]; then
