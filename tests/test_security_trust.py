@@ -8,8 +8,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from agentic_dev_env import capabilities
-from agentic_dev_env.trust import (
+from agentic_dev import capabilities
+from agentic_dev.trust import (
     check,
     current_profile_name,
     define_profile,
@@ -38,7 +38,7 @@ class SecurityTrustTests(unittest.TestCase):
 
     def test_custom_profile_round_trip(self):
         with tempfile.TemporaryDirectory() as config:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 define_profile("review-only", ["repo.read", "security.scan"], "Review profile")
                 set_current("review-only")
                 self.assertEqual(current_profile_name(), "review-only")
@@ -49,7 +49,7 @@ class SecurityTrustTests(unittest.TestCase):
     def test_repo_profile_is_local_excluded(self):
         root = self.make_repo()
         with tempfile.TemporaryDirectory() as config:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 set_current("development", root=root)
                 self.assertEqual(current_profile_name(root), "development")
                 exclude = subprocess.run(
@@ -73,8 +73,8 @@ class SecurityTrustTests(unittest.TestCase):
         self.assertIn("iac-misconfiguration", names)
         self.assertIn("sbom", names)
 
-    @patch("agentic_dev_env.capabilities.shutil.which")
-    @patch("agentic_dev_env.capabilities._capture")
+    @patch("agentic_dev.capabilities.shutil.which")
+    @patch("agentic_dev.capabilities._capture")
     def test_trivy_result_is_normalized(self, capture, which):
         which.side_effect = lambda name: "/usr/bin/trivy" if name == "trivy" else None
         capture.return_value = subprocess.CompletedProcess(
@@ -96,19 +96,19 @@ class SecurityTrustTests(unittest.TestCase):
         self.assertEqual(result["finding_count"], 2)
         self.assertEqual(result["trust_profile"], "safe")
 
-    @patch("agentic_dev_env.capabilities.shutil.which")
+    @patch("agentic_dev.capabilities.shutil.which")
     def test_sast_is_denied_under_safe_profile_before_execution(self, which):
         which.return_value = "/usr/bin/semgrep"
         root = self.make_repo()
         with self.assertRaises(PermissionError):
             capabilities.run_capability("sast", root)
 
-    @patch("agentic_dev_env.capabilities._run", return_value=0)
-    @patch("agentic_dev_env.capabilities.shutil.which")
+    @patch("agentic_dev.capabilities._run", return_value=0)
+    @patch("agentic_dev.capabilities.shutil.which")
     def test_enable_sast_under_development(self, which, run):
         which.side_effect = lambda name: "/usr/bin/semgrep" if name == "semgrep" else None
         with tempfile.TemporaryDirectory() as config:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 rc = capabilities.enable("sast", profile="development")
                 self.assertEqual(rc, 0)
                 state = capabilities.status()["sast"]
