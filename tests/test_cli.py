@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
-from agentic_dev.cli import build_parser
+from agentic_dev.cli import _helper_script, build_parser
 from agentic_dev import integrations
 
 
@@ -31,6 +33,16 @@ class CliIntegrationTests(unittest.TestCase):
         self.assertTrue(doctor.json)
 
 
+
+    @patch("agentic_dev.cli.shutil.which", return_value=None)
+    def test_bundled_helper_resolution(self, _which):
+        with tempfile.TemporaryDirectory() as tmp:
+            prefix = Path(tmp)
+            helper = prefix / "share" / "agentic-dev" / "scripts" / "agentic-repo-init.sh"
+            helper.parent.mkdir(parents=True)
+            helper.write_text("#!/usr/bin/env bash\n")
+            with patch("agentic_dev.cli.sys.prefix", str(prefix)):
+                self.assertEqual(_helper_script("agentic-repo-init.sh"), helper)
 
     def test_metrics_commands_parse(self):
         parser = build_parser()
