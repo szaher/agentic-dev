@@ -191,3 +191,27 @@ agentic remote test <name> --json
 ```
 
 Remote state is local user configuration and contains connection metadata only. Passwords and private-key contents are not stored.
+
+
+## Measurement
+
+Metrics are disabled by default.
+
+```bash
+agentic metrics status
+agentic metrics summary --json
+```
+
+External local integrations such as AgentFlow can submit schema-v1 events through:
+
+```bash
+agentic metrics record <event-type> --field key=value
+```
+
+Event schema:
+
+```text
+schemas/metric-event-v1.schema.json
+```
+
+The built-in exporter only writes JSON/JSONL files. There is no network export.
