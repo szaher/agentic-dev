@@ -1,11 +1,11 @@
 {
-  "name": "agentic-dev-env",
+  "name": "agentic-dev",
   "interface": {
-    "displayName": "Agentic Dev Env"
+    "displayName": "Agentic Dev"
   },
   "plugins": [
     {
-      "name": "agentic-dev-env",
+      "name": "agentic-dev",
       "source": {
         "source": "local",
         "path": "./integrations/codex"
