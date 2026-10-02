@@ -8,13 +8,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from agentic_dev_env.capabilities import (
+from agentic_dev.capabilities import (
     disable,
     enable,
     status,
     suggest_for_repo,
 )
-from agentic_dev_env.cli import build_parser
+from agentic_dev.cli import build_parser
 
 
 class BrowserCapabilityTests(unittest.TestCase):
@@ -30,7 +30,7 @@ class BrowserCapabilityTests(unittest.TestCase):
             "devDependencies": {"@playwright/test": "^1.0.0"},
         }))
         with tempfile.TemporaryDirectory() as config:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 _ctx, recs = suggest_for_repo(root)
                 names = [r.name for r in recs]
                 self.assertIn("browser-automation", names)
@@ -48,13 +48,13 @@ class BrowserCapabilityTests(unittest.TestCase):
         names = [r.name for r in recs]
         self.assertIn("browser-agent", names)
 
-    @patch("agentic_dev_env.capabilities.subprocess.run")
-    @patch("agentic_dev_env.capabilities._run", return_value=0)
-    @patch("agentic_dev_env.capabilities.shutil.which")
+    @patch("agentic_dev.capabilities.subprocess.run")
+    @patch("agentic_dev.capabilities._run", return_value=0)
+    @patch("agentic_dev.capabilities.shutil.which")
     def test_enable_playwright_registers_isolated_mcp_and_records_state(self, which, run, subrun):
         which.side_effect = lambda name: f"/bin/{name}" if name in {"claude", "codex"} else None
         with tempfile.TemporaryDirectory() as config:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 self.assertEqual(enable("browser-automation", target="both", mode="isolated"), 0)
                 calls = [call.args[0] for call in run.call_args_list]
                 self.assertIn(["/bin/claude", "mcp", "add", "playwright", "npx", "@playwright/mcp@latest", "--isolated"], calls)
@@ -63,13 +63,13 @@ class BrowserCapabilityTests(unittest.TestCase):
                 self.assertTrue(item["enabled"])
                 self.assertEqual(item["configuration"]["mode"], "isolated")
 
-    @patch("agentic_dev_env.capabilities.subprocess.run")
-    @patch("agentic_dev_env.capabilities._run", return_value=0)
-    @patch("agentic_dev_env.capabilities.shutil.which")
+    @patch("agentic_dev.capabilities.subprocess.run")
+    @patch("agentic_dev.capabilities._run", return_value=0)
+    @patch("agentic_dev.capabilities.shutil.which")
     def test_existing_browser_playwright_uses_extension(self, which, run, subrun):
         which.side_effect = lambda name: "/bin/claude" if name == "claude" else None
         with tempfile.TemporaryDirectory() as config:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 self.assertEqual(enable("browser-automation", target="claude", mode="existing-browser", profile="development"), 0)
                 self.assertIn(
                     ["/bin/claude", "mcp", "add", "playwright", "npx", "@playwright/mcp@latest", "--extension"],
