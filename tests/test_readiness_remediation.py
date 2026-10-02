@@ -12,6 +12,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import jsonschema
 
@@ -20,8 +21,9 @@ from readiness_fixtures import SCENARIOS, materialize  # noqa: E402
 
 from agentic_dev.readiness import load_spec  # noqa: E402
 from agentic_dev.readiness.remediation import (  # noqa: E402
-    ALLOWED, HUMAN, SAFE, SAFE_GENERATORS, UNSUPPORTED, UNSUPPORTED_REASONS,
-    ContractError, block_format, check_action, check_document, digest, propose, render_block,
+    ALLOWED, HUMAN, MAINTENANCE_GENERATORS, SAFE, SAFE_GENERATORS, UNSUPPORTED, UNSUPPORTED_REASONS,
+    Context, ContractError, block_format, check_change, check_document, digest, maintenance_action, make_change,
+    propose, render_block,
 )
 
 
@@ -55,10 +57,10 @@ class RemediationCase(unittest.TestCase):
         shutil.rmtree(cls.workspace, ignore_errors=True)
 
     def item(self, document: dict, rule_id: str) -> dict:
-        return next(i for i in document["items"] if i["rule_id"] == rule_id)
+        return next(i for i in document["remediations"] if i["rule_id"] == rule_id)
 
-    def action(self, document: dict, action_id: str) -> dict:
-        return next(a for a in document["actions"] if a["id"] == action_id)
+    def action(self, document: dict, change_id: str) -> dict:
+        return next(a for a in document["changes"] if a["id"] == change_id)
 
 
 class CatalogTests(unittest.TestCase):
@@ -106,16 +108,18 @@ class ManagedBlockTests(unittest.TestCase):
             "content_sha256": digest(content), "prelude": None,
             "target": {"exists": False, "sha256": None, "tracked": None},
             "provenance": [{"kind": "spec", "type": "t", "value": "v", "source": "s"}],
+            "owner": {"type": "remediation", "rules": ["context.readme"]},
         }
         action.update(overrides)
         return action
 
-    def test_check_action_rejects_unsafe_actions(self):
-        check_action(self.valid_action())
+    def test_check_change_rejects_unsafe_changes(self):
+        check_change(self.valid_action())
         bad = {
-            "escape": {"path": "../outside.md"},
+            "escape": {"path": "../outside.md", "id": "readiness.test@../outside.md"},
+            "id mismatch": {"id": "readiness.other@AGENTS.md"},
             "absolute": {"path": "/etc/passwd.md"},
-            "git": {"path": ".git/info/exclude", "format": "hash"},
+            "git": {"path": ".git/info/exclude", "format": "hash", "id": "readiness.test@.git/info/exclude"},
             "unnormalized": {"path": "./AGENTS.md"},
             "kind": {"kind": "rewrite-file"},
             "format": {"format": "hash"},
@@ -130,7 +134,7 @@ class ManagedBlockTests(unittest.TestCase):
                 action = self.valid_action(**overrides)
                 if label == "marker injection":
                     action["content_sha256"] = digest(action["content"])
-                check_action(action)
+                check_change(action)
 
 
 class ProposalTests(RemediationCase):
@@ -140,9 +144,9 @@ class ProposalTests(RemediationCase):
                 with self.subTest(scenario=name, target=target):
                     document = propose(self.workspace / name, target=target)
                     jsonschema.validate(document, SCHEMA)
-                    check_document(document)
+                    check_document(document, SPEC)
                     self.assertEqual(document["mode"], "preview")
-                    for item in document["items"]:
+                    for item in document["remediations"]:
                         self.assertIn(item["remediation_class"], ALLOWED[item["spec_classification"]])
 
     def test_commands_and_gitignore_are_safe_automatic_with_provenance(self):
@@ -153,9 +157,10 @@ class ProposalTests(RemediationCase):
         self.assertIn("- Test: `uv run pytest` (from `pyproject.toml`)", commands["content"])
         self.assertIn({"kind": "evidence", "type": "command.test", "value": "uv run pytest",
                        "source": "pyproject.toml"}, commands["provenance"])
-        self.assertEqual(commands["rules"], ["context.agent_instructions", "context.agent_instructions.commands"])
-        for rule_id in commands["rules"]:
-            self.assertEqual(self.item(document, rule_id)["action_ids"], [commands["id"]])
+        self.assertEqual(commands["owner"], {"type": "remediation",
+                                             "rules": ["context.agent_instructions", "context.agent_instructions.commands"]})
+        for rule_id in commands["owner"]["rules"]:
+            self.assertEqual(self.item(document, rule_id)["change_ids"], [commands["id"]])
         ignored = self.action(document, "readiness.secrets-ignored@.gitignore")
         self.assertEqual(ignored["provenance"][0]["kind"], "spec")
         self.assertIn(".env.*\n", ignored["content"])
@@ -163,7 +168,7 @@ class ProposalTests(RemediationCase):
     def test_existing_instruction_file_is_extended_not_replaced(self):
         root = self.workspace / "ambiguous-policy"
         document = propose(root, target="autonomous")
-        self.assertFalse(any(a["path"] == "AGENTS.md" and not a["target"]["exists"] for a in document["actions"]))
+        self.assertFalse(any(a["path"] == "AGENTS.md" and not a["target"]["exists"] for a in document["changes"]))
         claude = Path(tempfile.mkdtemp())
         try:
             materialize("foundational-python", claude)
@@ -180,14 +185,13 @@ class ProposalTests(RemediationCase):
         item = self.item(document, "context.agent_instructions")
         self.assertEqual(item["remediation_class"], HUMAN)
         self.assertIn("no facts to document", item["reason"])
-        self.assertEqual(document["actions"],
-                         [a for a in document["actions"] if a["id"] != "readiness.commands@AGENTS.md"])
+        self.assertNotIn("readiness.commands@AGENTS.md", [c["id"] for c in document["changes"]])
 
     def test_policy_rules_are_human_decisions_with_candidates(self):
         document = propose(self.workspace / "ambiguous-policy", target="optimized")
         boundaries = self.item(document, "constraints.architecture_boundaries")
         self.assertEqual((boundaries["status"], boundaries["remediation_class"]), ("unknown", HUMAN))
-        self.assertEqual(boundaries["action_ids"], [])
+        self.assertEqual(boundaries["change_ids"], [])
         self.assertIn("which dependencies are forbidden", boundaries["decision"]["question"])
         self.assertIn("src/demo", [c["value"] for c in boundaries["decision"]["candidates"]])
 
@@ -205,12 +209,12 @@ class ProposalTests(RemediationCase):
 
     def test_target_scopes_items(self):
         structured = propose(self.workspace / "foundational-python", target="structured")
-        self.assertTrue(all(SPEC.rank(i["required_from"]) <= SPEC.rank("structured") for i in structured["items"]))
-        self.assertGreater(len(propose(self.workspace / "foundational-python", target="autonomous")["items"]),
-                           len(structured["items"]))
+        self.assertTrue(all(SPEC.rank(i["required_from"]) <= SPEC.rank("structured") for i in structured["remediations"]))
+        self.assertGreater(len(propose(self.workspace / "foundational-python", target="autonomous")["remediations"]),
+                           len(structured["remediations"]))
         met = propose(self.workspace / "autonomous-node", target="autonomous")
         self.assertTrue(met["maturity"]["target_met"])
-        self.assertFalse([i for i in met["items"] if i["severity"] == "required"])
+        self.assertFalse([i for i in met["remediations"] if i["severity"] == "required"])
 
     def test_proposal_is_read_only_and_deterministic(self):
         root = self.workspace / "foundational-python"
@@ -235,41 +239,159 @@ class DocumentInvariantTests(RemediationCase):
             return document
 
         def upgrade(doc):
-            item = next(i for i in doc["items"] if i["spec_classification"] == "assisted")
-            item.update(remediation_class=SAFE, action_ids=[doc["actions"][0]["id"]], decision=None)
+            item = next(i for i in doc["remediations"] if i["spec_classification"] == "assisted")
+            item.update(remediation_class=SAFE, change_ids=[doc["changes"][0]["id"]], decision=None)
 
         def safe_without_actions(doc):
-            next(i for i in doc["items"] if i["remediation_class"] == SAFE)["action_ids"] = []
+            next(i for i in doc["remediations"] if i["remediation_class"] == SAFE)["change_ids"] = []
 
         def decision_with_actions(doc):
-            next(i for i in doc["items"] if i["remediation_class"] == HUMAN)["action_ids"] = [doc["actions"][0]["id"]]
+            next(i for i in doc["remediations"] if i["remediation_class"] == HUMAN)["change_ids"] = [doc["changes"][0]["id"]]
 
         def missing_decision(doc):
-            next(i for i in doc["items"] if i["remediation_class"] == HUMAN)["decision"] = None
+            next(i for i in doc["remediations"] if i["remediation_class"] == HUMAN)["decision"] = None
 
         def orphan_action(doc):
-            doc["actions"].append({**doc["actions"][0], "id": "readiness.orphan@AGENTS.md", "block_id": "readiness.orphan"})
+            doc["changes"].append({**doc["changes"][0], "id": "readiness.orphan@AGENTS.md", "block_id": "readiness.orphan"})
 
         def no_provenance(doc):
-            doc["actions"][0]["provenance"] = []
+            doc["changes"][0]["provenance"] = []
 
         for label, fn in {
             "assisted upgraded to safe": upgrade,
             "safe without actions": safe_without_actions,
             "non-safe with actions": decision_with_actions,
             "human decision without a decision": missing_decision,
-            "unreferenced action": orphan_action,
-            "action without provenance": no_provenance,
+            "unreferenced change": orphan_action,
+            "change without provenance": no_provenance,
+            "spec classification misreported": lambda doc: doc["remediations"][0].update(spec_classification="automatable", remediation_class=SAFE),
+            "unknown rule": lambda doc: doc["remediations"][0].update(rule_id="context.invented"),
         }.items():
             with self.subTest(label), self.assertRaises(ContractError):
-                check_document(tamper(fn))
+                check_document(tamper(fn), SPEC)
 
     def test_schema_rejects_upgrades_too(self):
         document = self.document()
-        item = next(i for i in document["items"] if i["spec_classification"] == "human-required")
-        item.update(remediation_class=SAFE, action_ids=[document["actions"][0]["id"]], decision=None)
+        item = next(i for i in document["remediations"] if i["spec_classification"] == "human-required")
+        item.update(remediation_class=SAFE, change_ids=[document["changes"][0]["id"]], decision=None)
         with self.assertRaises(jsonschema.ValidationError):
             jsonschema.validate(document, SCHEMA)
+
+
+READINESS_WORKFLOW = """name: Agent Ready
+on: [pull_request]
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install agentic-dev==0.15.0
+      - run: agentic ready verify . --target structured
+"""
+WORKFLOW = ".github/workflows/agentic-readiness.yml"
+
+
+class MaintenanceActionTests(RemediationCase):
+    """Maintenance actions maintain readiness infrastructure. They never stand in for rules."""
+
+    def generator(self, content: str, path: str = WORKFLOW, action_id: str = "readiness.ci-check"):
+        def generate(ctx: Context):
+            change = make_change(
+                ctx, block_id="readiness.ci-check", path=path, content=content,
+                provenance=[{"kind": "spec", "type": "agentic-dev", "value": "readiness CI check",
+                             "source": "readiness-remediation-v1"}],
+                owner={"type": "maintenance-action", "id": action_id},
+            )
+            return "Readiness CI check", "Keep readiness from regressing.", [change]
+        return generate
+
+    def propose_with(self, content: str, scenario: str = "foundational-python", **kwargs) -> dict:
+        with patch.dict(MAINTENANCE_GENERATORS, {"readiness.ci-check": self.generator(content, **kwargs)}):
+            return propose(self.workspace / scenario, target="optimized")
+
+    def test_benign_ci_check_is_a_separate_safe_maintenance_action(self):
+        baseline = propose(self.workspace / "foundational-python", target="optimized")
+        document = self.propose_with(READINESS_WORKFLOW)
+        jsonschema.validate(document, SCHEMA)
+        self.assertEqual(document["maintenance_actions"], [{
+            "id": "readiness.ci-check", "class": SAFE, "kind": "maintenance-action",
+            "title": "Readiness CI check", "reason": "Keep readiness from regressing.",
+            "source": {"type": "agentic-dev", "contract": "readiness-remediation-v1"},
+            "change_ids": [f"readiness.ci-check@{WORKFLOW}"],
+        }])
+        change = self.action(document, f"readiness.ci-check@{WORKFLOW}")
+        self.assertEqual(change["owner"], {"type": "maintenance-action", "id": "readiness.ci-check"})
+        # Maintenance does not alter any rule remediation.
+        self.assertEqual(document["remediations"], baseline["remediations"])
+        self.assertEqual(document["summary"]["maintenance_actions"], 1)
+
+    def test_secret_scanning_stays_assisted_and_cannot_be_smuggled_in(self):
+        baseline = propose(self.workspace / "foundational-python", target="optimized")
+        scanning = self.item(baseline, "constraints.secrets.scanning")
+        self.assertEqual((scanning["spec_classification"], scanning["remediation_class"]), ("assisted", HUMAN))
+        with self.assertRaisesRegex(ContractError, "would create readiness evidence .*ci.runs_security"):
+            self.propose_with(READINESS_WORKFLOW + "      - run: gitleaks detect --source .\n")
+
+    def test_maintenance_cannot_create_any_rule_evidence(self):
+        for label, extra in {
+            "tests in CI": "      - run: npm test\n",
+            "lint in CI": "      - run: make check\n",
+            "security scanner": "      - uses: github/codeql-action/analyze@v3\n",
+        }.items():
+            with self.subTest(label), self.assertRaisesRegex(ContractError, "would create readiness evidence"):
+                self.propose_with(READINESS_WORKFLOW + extra)
+
+    def test_maintenance_cannot_grant_credentials_permissions_or_install_tools(self):
+        for label, extra in {
+            "credential": "        env:\n          TOKEN: ${{ secrets.DEPLOY_TOKEN }}\n",
+            "permission": "    permissions:\n      contents: write\n",
+            "cloud credentials": "      - uses: aws-actions/configure-aws-credentials@v4\n",
+            "installer": "      - run: curl -sSL https://example.invalid/install.sh | sh\n",
+            "arbitrary pip install": "      - run: pip install semgrep\n",
+            "unpinned agentic-dev": "      - run: pip install agentic-dev\n",
+        }.items():
+            with self.subTest(label), self.assertRaisesRegex(ContractError, "must not contain"):
+                self.propose_with(READINESS_WORKFLOW + extra)
+
+    def test_maintenance_targets_are_allowlisted(self):
+        with self.assertRaisesRegex(ContractError, "not an allowlisted maintenance target"):
+            self.propose_with(READINESS_WORKFLOW, path=".github/workflows/other.yml")
+        with self.assertRaisesRegex(ContractError, "not an allowlisted maintenance target"):
+            self.propose_with("# notes\n", path="AGENTS.md")
+
+    def test_maintenance_cannot_reference_or_share_with_rules(self):
+        document = self.propose_with(READINESS_WORKFLOW)
+        remediation_change = next(c for c in document["changes"] if c["owner"]["type"] == "remediation")
+        safe_rule = next(r for r in document["remediations"] if r["remediation_class"] == SAFE)
+        maintenance_change = f"readiness.ci-check@{WORKFLOW}"
+
+        def tamper(fn):
+            doc = copy.deepcopy(document)
+            fn(doc)
+            return doc
+
+        cases = {
+            "maintenance claims a remediation change":
+                lambda d: d["maintenance_actions"][0]["change_ids"].append(remediation_change["id"]),
+            "rule claims a maintenance change":
+                lambda d: next(r for r in d["remediations"] if r["rule_id"] == safe_rule["rule_id"])["change_ids"]
+                .append(maintenance_change),
+            "maintenance change owned by rules":
+                lambda d: self.action(d, maintenance_change).update(owner={"type": "remediation", "rules": [safe_rule["rule_id"]]}),
+            "not attributed to agentic-dev":
+                lambda d: d["maintenance_actions"][0].update(source={"type": "agent-ready", "contract": "x"}),
+            "downgraded class":
+                lambda d: d["maintenance_actions"][0].update({"class": HUMAN}),
+        }
+        for label, fn in cases.items():
+            with self.subTest(label), self.assertRaises(ContractError):
+                check_document(tamper(fn), SPEC)
+        with self.assertRaises(jsonschema.ValidationError):
+            jsonschema.validate(tamper(lambda d: d["maintenance_actions"][0].update(rule_id="feedback.ci.tests")), SCHEMA)
+
+    def test_constructor_shape(self):
+        self.assertEqual(maintenance_action("readiness.x", title="t", reason="r", change_ids=["b", "a"])["change_ids"],
+                         ["a", "b"])
 
 
 if __name__ == "__main__":

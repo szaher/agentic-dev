@@ -4,8 +4,9 @@
 
 v0.15 (Agent Ready remediation + CI), slice 1: remediation contract.
 
-- Added the remediation contract (`docs/REMEDIATION.md`) and `schemas/readiness-remediation-v1.schema.json`: `safe-automatic` / `human-decision` / `unsupported` classes, managed-block markers, and normative apply, conflict, idempotency, and rollback semantics.
-- Added `agentic_dev.readiness.remediation.propose`, which builds a read-only remediation preview. The spec classification is an upper bound and is never upgraded. Actions record provenance, and policy rules become decisions with detected candidates instead of invented content.
+- Added the remediation contract (`docs/REMEDIATION.md`) and `schemas/readiness-remediation-v1.schema.json`. Rule `remediations` (`safe-automatic` / `human-decision` / `unsupported`) are capped by the Agent Ready spec classification and never upgraded. Separate `maintenance_actions` provide operational scaffolding that must be evidence-neutral, never reference rules, use only allowlisted targets, and never add credentials, permissions, or installers. `changes` are managed blocks with normative apply, conflict, idempotency, and rollback semantics.
+- Added `agentic_dev.readiness.remediation.propose`, which builds a read-only remediation preview with change provenance and detected candidates (never selections) for policy decisions.
+- Documented the local vs CI assessment scope requirement for `ready verify`.
 
 ## 0.14.0 - 2026-10-02
 
