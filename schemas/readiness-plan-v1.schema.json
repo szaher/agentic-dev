@@ -1,0 +1,569 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/readiness-plan-v1.schema.json",
+  "title": "agentic readiness plan v1",
+  "description": "Result of `agentic ready plan --json`: a read-only remediation plan toward a target maturity level. Nothing is modified.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "document_type",
+    "assessor",
+    "spec",
+    "repository",
+    "read_only",
+    "maturity",
+    "steps",
+    "recommended",
+    "optional",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "assessor": {
+      "$ref": "#/$defs/assessor"
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    },
+    "repository": {
+      "$ref": "#/$defs/repository"
+    },
+    "document_type": {
+      "const": "agentic.readiness-plan"
+    },
+    "read_only": {
+      "const": true
+    },
+    "maturity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current",
+        "target",
+        "target_met"
+      ],
+      "properties": {
+        "current": {
+          "$ref": "#/$defs/level"
+        },
+        "target": {
+          "$ref": "#/$defs/level"
+        },
+        "target_met": {
+          "type": "boolean"
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      },
+      "description": "Required rules blocking the target, ordered by level then dependencies."
+    },
+    "recommended": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "optional": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_steps",
+        "automatable",
+        "assisted",
+        "human_required"
+      ],
+      "properties": {
+        "required_steps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "automatable": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "assisted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "human_required": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "assessor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "agentic-dev"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "sha256",
+        "source"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source": {
+          "enum": [
+            "builtin",
+            "path"
+          ]
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "revision"
+      ],
+      "description": "Identifies the checkout without exposing absolute paths.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40,64}$"
+        }
+      }
+    },
+    "level": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "fail",
+        "unknown",
+        "not-applicable"
+      ]
+    },
+    "severity": {
+      "enum": [
+        "required",
+        "recommended",
+        "advisory"
+      ]
+    },
+    "classification": {
+      "enum": [
+        "automatable",
+        "assisted",
+        "human-required"
+      ]
+    },
+    "ruleId": {
+      "type": "string",
+      "pattern": "^(context|conventions|constraints|feedback)(\\.[a-z][a-z0-9_]*)+$"
+    },
+    "evidenceId": {
+      "type": "string",
+      "pattern": "^[a-z]+(\\.[a-z0-9_]+)+$"
+    },
+    "evidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "value",
+        "source"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/evidenceId"
+        },
+        "value": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "not": {
+            "pattern": "^(/|[A-Za-z]:\\\\)"
+          },
+          "description": "Repository-relative path or metadata source."
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "failed",
+        "unknown",
+        "not_applicable"
+      ],
+      "properties": {
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_applicable": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "maturityLevel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "rank",
+        "title",
+        "achieved",
+        "required",
+        "passed",
+        "failed",
+        "unknown",
+        "not_applicable",
+        "blocking"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/level"
+        },
+        "rank": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "title": {
+          "type": "string"
+        },
+        "achieved": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_applicable": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocking": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ruleId"
+          }
+        },
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "status",
+              "reason"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/ruleId"
+              },
+              "status": {
+                "$ref": "#/$defs/status"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "maturitySummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current",
+        "current_rank",
+        "next",
+        "target",
+        "target_rank",
+        "target_met",
+        "target_blockers"
+      ],
+      "properties": {
+        "current": {
+          "$ref": "#/$defs/level"
+        },
+        "current_rank": {
+          "type": "integer"
+        },
+        "next": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target": {
+          "$ref": "#/$defs/level"
+        },
+        "target_rank": {
+          "type": "integer"
+        },
+        "target_met": {
+          "type": "boolean"
+        },
+        "target_blockers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ruleId"
+          }
+        },
+        "levels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/maturityLevel"
+          }
+        }
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "summary"
+      ],
+      "properties": {
+        "classification": {
+          "$ref": "#/$defs/classification"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        }
+      }
+    },
+    "applicability": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "expression",
+            "result",
+            "observed"
+          ],
+          "properties": {
+            "expression": {
+              "type": "string"
+            },
+            "result": {
+              "enum": [
+                "applicable",
+                "not-applicable",
+                "unknown"
+              ]
+            },
+            "observed": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/evidenceId"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "status",
+        "reason",
+        "evidence",
+        "missing_evidence",
+        "unsupported_evidence"
+      ],
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidenceItem"
+          }
+        },
+        "missing_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidenceId"
+          }
+        },
+        "unsupported_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidenceId"
+          }
+        },
+        "applicability": {
+          "$ref": "#/$defs/applicability"
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order",
+        "id",
+        "title",
+        "pillar",
+        "dimension",
+        "required_from",
+        "severity",
+        "status",
+        "classification",
+        "action",
+        "decision",
+        "depends_on",
+        "reason"
+      ],
+      "properties": {
+        "order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "id": {
+          "$ref": "#/$defs/ruleId"
+        },
+        "title": {
+          "type": "string"
+        },
+        "pillar": {
+          "enum": [
+            "context",
+            "conventions",
+            "constraints",
+            "feedback"
+          ]
+        },
+        "dimension": {
+          "enum": [
+            "security",
+            "performance",
+            null
+          ]
+        },
+        "required_from": {
+          "$ref": "#/$defs/level"
+        },
+        "severity": {
+          "$ref": "#/$defs/severity"
+        },
+        "status": {
+          "enum": [
+            "fail",
+            "unknown"
+          ]
+        },
+        "classification": {
+          "$ref": "#/$defs/classification"
+        },
+        "action": {
+          "type": "string"
+        },
+        "decision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "depends_on": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ruleId"
+          }
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

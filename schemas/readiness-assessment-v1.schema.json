@@ -1,0 +1,526 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/readiness-assessment-v1.schema.json",
+  "title": "agentic readiness assessment v1",
+  "description": "Result of `agentic ready assess --json`: a repository evaluated against the Agent Ready Spec. Maturity is requirement-based; counts are diagnostic only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "document_type",
+    "assessor",
+    "spec",
+    "repository",
+    "maturity",
+    "summary",
+    "pillars",
+    "dimensions",
+    "requirements"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "assessor": {
+      "$ref": "#/$defs/assessor"
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    },
+    "repository": {
+      "$ref": "#/$defs/repository"
+    },
+    "document_type": {
+      "const": "agentic.readiness-assessment"
+    },
+    "maturity": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/maturitySummary"
+        },
+        {
+          "required": [
+            "levels"
+          ]
+        }
+      ]
+    },
+    "summary": {
+      "$ref": "#/$defs/counts"
+    },
+    "pillars": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/counts"
+      },
+      "required": [
+        "context",
+        "conventions",
+        "constraints",
+        "feedback"
+      ]
+    },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/counts"
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/requirement"
+      }
+    }
+  },
+  "$defs": {
+    "assessor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "agentic-dev"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "sha256",
+        "source"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source": {
+          "enum": [
+            "builtin",
+            "path"
+          ]
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "revision"
+      ],
+      "description": "Identifies the checkout without exposing absolute paths.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40,64}$"
+        }
+      }
+    },
+    "level": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "fail",
+        "unknown",
+        "not-applicable"
+      ]
+    },
+    "severity": {
+      "enum": [
+        "required",
+        "recommended",
+        "advisory"
+      ]
+    },
+    "classification": {
+      "enum": [
+        "automatable",
+        "assisted",
+        "human-required"
+      ]
+    },
+    "ruleId": {
+      "type": "string",
+      "pattern": "^(context|conventions|constraints|feedback)(\\.[a-z][a-z0-9_]*)+$"
+    },
+    "evidenceId": {
+      "type": "string",
+      "pattern": "^[a-z]+(\\.[a-z0-9_]+)+$"
+    },
+    "evidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "value",
+        "source"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/evidenceId"
+        },
+        "value": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "not": {
+            "pattern": "^(/|[A-Za-z]:\\\\)"
+          },
+          "description": "Repository-relative path or metadata source."
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "failed",
+        "unknown",
+        "not_applicable"
+      ],
+      "properties": {
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_applicable": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "maturityLevel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "rank",
+        "title",
+        "achieved",
+        "required",
+        "passed",
+        "failed",
+        "unknown",
+        "not_applicable",
+        "blocking"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/level"
+        },
+        "rank": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "title": {
+          "type": "string"
+        },
+        "achieved": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_applicable": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocking": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ruleId"
+          }
+        },
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "status",
+              "reason"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/ruleId"
+              },
+              "status": {
+                "$ref": "#/$defs/status"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "maturitySummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current",
+        "current_rank",
+        "next",
+        "target",
+        "target_rank",
+        "target_met",
+        "target_blockers"
+      ],
+      "properties": {
+        "current": {
+          "$ref": "#/$defs/level"
+        },
+        "current_rank": {
+          "type": "integer"
+        },
+        "next": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target": {
+          "$ref": "#/$defs/level"
+        },
+        "target_rank": {
+          "type": "integer"
+        },
+        "target_met": {
+          "type": "boolean"
+        },
+        "target_blockers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ruleId"
+          }
+        },
+        "levels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/maturityLevel"
+          }
+        }
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "summary"
+      ],
+      "properties": {
+        "classification": {
+          "$ref": "#/$defs/classification"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        }
+      }
+    },
+    "applicability": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "expression",
+            "result",
+            "observed"
+          ],
+          "properties": {
+            "expression": {
+              "type": "string"
+            },
+            "result": {
+              "enum": [
+                "applicable",
+                "not-applicable",
+                "unknown"
+              ]
+            },
+            "observed": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/evidenceId"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "status",
+        "reason",
+        "evidence",
+        "missing_evidence",
+        "unsupported_evidence"
+      ],
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidenceItem"
+          }
+        },
+        "missing_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidenceId"
+          }
+        },
+        "unsupported_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidenceId"
+          }
+        },
+        "applicability": {
+          "$ref": "#/$defs/applicability"
+        }
+      }
+    },
+    "requirement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/outcome"
+        },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "title",
+            "pillar",
+            "dimension",
+            "severity",
+            "required_from",
+            "required_for",
+            "depends_on",
+            "remediation",
+            "applicability"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/ruleId"
+            },
+            "title": {
+              "type": "string"
+            },
+            "pillar": {
+              "enum": [
+                "context",
+                "conventions",
+                "constraints",
+                "feedback"
+              ]
+            },
+            "dimension": {
+              "enum": [
+                "security",
+                "performance",
+                null
+              ]
+            },
+            "severity": {
+              "$ref": "#/$defs/severity"
+            },
+            "required_from": {
+              "$ref": "#/$defs/level"
+            },
+            "required_for": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/level"
+              },
+              "description": "Levels this rule gates; empty for recommended/advisory rules."
+            },
+            "depends_on": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ruleId"
+              }
+            },
+            "remediation": {
+              "$ref": "#/$defs/remediation"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

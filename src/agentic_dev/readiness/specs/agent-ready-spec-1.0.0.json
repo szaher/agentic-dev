@@ -1,0 +1,2693 @@
+{
+  "description": "Machine-readable requirements that determine whether a software repository is ready for AI coding agents, organized by the four Agent Ready pillars and graded by a requirement-based five-level maturity model.",
+  "dimensions": [
+    {
+      "description": "Secrets hygiene, agent permission boundaries, and automated security gates. These are mostly constraints, with some feedback.",
+      "id": "security",
+      "sources": [
+        "content/module-7/01-why-safety-matters.mdx",
+        "content/module-10/03-security-audit.mdx"
+      ],
+      "title": "Security"
+    },
+    {
+      "description": "Agent efficiency, meaning context budget and navigation cost. It is not application runtime performance.",
+      "id": "performance",
+      "sources": [
+        "content/module-8/04-optimizing-context-budget.mdx",
+        "content/module-10/04-performance-optimization.mdx"
+      ],
+      "title": "Performance"
+    }
+  ],
+  "document_type": "agent-ready.spec",
+  "evidence": [
+    {
+      "category": "agent",
+      "description": "An agent instruction file has a section describing project structure or architecture.",
+      "detection": {
+        "in": [
+          "file.agents_md",
+          "file.claude_md",
+          "file.copilot_instructions",
+          "file.cursor_rules",
+          "file.gemini_md"
+        ],
+        "kind": "heading",
+        "patterns": [
+          "architecture",
+          "structure",
+          "layout",
+          "overview",
+          "organi[sz]ation",
+          "design",
+          "components",
+          "modules",
+          "data flow",
+          "how it works"
+        ]
+      },
+      "id": "agent.instructions.architecture",
+      "title": "Instructions describe architecture"
+    },
+    {
+      "category": "agent",
+      "description": "An agent instruction file has a section documenting how to build, test, lint, or run the project.",
+      "detection": {
+        "in": [
+          "file.agents_md",
+          "file.claude_md",
+          "file.copilot_instructions",
+          "file.cursor_rules",
+          "file.gemini_md"
+        ],
+        "kind": "heading",
+        "patterns": [
+          "command",
+          "build",
+          "test",
+          "lint",
+          "develop",
+          "getting started",
+          "setup",
+          "verif",
+          "check",
+          "\\brun"
+        ]
+      },
+      "id": "agent.instructions.commands",
+      "title": "Instructions document commands"
+    },
+    {
+      "category": "agent",
+      "description": "Root-level agent instruction files stay within a context-friendly size.",
+      "detection": {
+        "definition": "Satisfied when at least one of `AGENTS.md`, `CLAUDE.md`, or `GEMINI.md` exists at the repository root and every one of those root files that exists has at most 100 non-blank lines. 100 lines is the upper bound the course gives for complex systems. Smaller projects should aim lower.",
+        "kind": "derived"
+      },
+      "id": "agent.instructions.concise",
+      "title": "Root instructions are concise"
+    },
+    {
+      "category": "agent",
+      "description": "An agent instruction file has a section stating rules, prohibitions, or boundaries.",
+      "detection": {
+        "in": [
+          "file.agents_md",
+          "file.claude_md",
+          "file.copilot_instructions",
+          "file.cursor_rules",
+          "file.gemini_md"
+        ],
+        "kind": "heading",
+        "patterns": [
+          "don'?t",
+          "do not",
+          "never",
+          "must not",
+          "constraint",
+          "rule",
+          "boundar",
+          "restriction",
+          "guardrail",
+          "forbidden",
+          "off-limits",
+          "safety",
+          "caution",
+          "avoid",
+          "permission"
+        ]
+      },
+      "id": "agent.instructions.constraints",
+      "title": "Instructions state constraints"
+    },
+    {
+      "category": "agent",
+      "description": "An agent instruction file has a section documenting code style or conventions.",
+      "detection": {
+        "in": [
+          "file.agents_md",
+          "file.claude_md",
+          "file.copilot_instructions",
+          "file.cursor_rules",
+          "file.gemini_md"
+        ],
+        "kind": "heading",
+        "patterns": [
+          "convention",
+          "style",
+          "pattern",
+          "standard",
+          "guideline",
+          "idiom",
+          "naming",
+          "best practice"
+        ]
+      },
+      "id": "agent.instructions.conventions",
+      "title": "Instructions document conventions"
+    },
+    {
+      "category": "agent",
+      "description": "An agent instruction file has a section pointing to examples or reference implementations to follow.",
+      "detection": {
+        "in": [
+          "file.agents_md",
+          "file.claude_md",
+          "file.copilot_instructions",
+          "file.cursor_rules",
+          "file.gemini_md"
+        ],
+        "kind": "heading",
+        "patterns": [
+          "example",
+          "exemplar",
+          "reference implementation",
+          "pattern to follow",
+          "follow this",
+          "canonical",
+          "template"
+        ]
+      },
+      "id": "agent.instructions.examples",
+      "title": "Instructions point to exemplars"
+    },
+    {
+      "category": "agent",
+      "description": "Agent instructions tell the agent where code lives instead of leaving it to search.",
+      "detection": {
+        "definition": "Satisfied when the agent instruction files matched by file.agents_md, file.claude_md, file.copilot_instructions, file.cursor_rules, and file.gemini_md together reference at least two distinct repository-relative paths that exist in the worktree. A reference is the text of an inline code span or a Markdown link target that contains `/` or a file extension. After removing a leading `./`, a trailing `/`, and any `#fragment`, it must name an existing file or directory. URLs, absolute paths, and paths containing `..` are not references.",
+        "kind": "derived"
+      },
+      "id": "agent.instructions.file_pointers",
+      "title": "Instructions point to concrete paths"
+    },
+    {
+      "category": "agent",
+      "description": "Instruction files exist below the repository root and scope guidance to specific areas.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "*/**/AGENTS.md",
+          "*/**/CLAUDE.md",
+          "*/**/GEMINI.md",
+          ".github/instructions/*.instructions.md"
+        ]
+      },
+      "id": "agent.instructions.nested",
+      "title": "Scoped instruction files"
+    },
+    {
+      "category": "agent",
+      "description": "An agent instruction file contains explicit prohibition bullets (\"Do not …\", \"Never …\").",
+      "detection": {
+        "in": [
+          "file.agents_md",
+          "file.claude_md",
+          "file.copilot_instructions",
+          "file.cursor_rules",
+          "file.gemini_md"
+        ],
+        "kind": "content",
+        "patterns": [
+          "^\\s*([-*+]|\\d+\\.)\\s+(\\*\\*|__)?(do not|don't|never|must not|avoid)\\b"
+        ]
+      },
+      "id": "agent.instructions.prohibitions",
+      "title": "Instructions list prohibitions"
+    },
+    {
+      "category": "agent",
+      "description": "An agent instruction file mentions how secrets and credentials must be handled.",
+      "detection": {
+        "in": [
+          "file.agents_md",
+          "file.claude_md",
+          "file.copilot_instructions",
+          "file.cursor_rules",
+          "file.gemini_md"
+        ],
+        "kind": "content",
+        "patterns": [
+          "secret",
+          "credential",
+          "\\.env\\b",
+          "api[ _-]?key",
+          "private key",
+          "password"
+        ]
+      },
+      "id": "agent.instructions.secrets_policy",
+      "title": "Instructions address secrets"
+    },
+    {
+      "category": "agent",
+      "description": "An agent instruction file documents common tasks as step-by-step workflows.",
+      "detection": {
+        "in": [
+          "file.agents_md",
+          "file.claude_md",
+          "file.copilot_instructions",
+          "file.cursor_rules",
+          "file.gemini_md"
+        ],
+        "kind": "heading",
+        "patterns": [
+          "workflow",
+          "how to",
+          "common task",
+          "recipe",
+          "playbook",
+          "procedure",
+          "step[- ]by[- ]step",
+          "adding a",
+          "adding new",
+          "checklist"
+        ]
+      },
+      "id": "agent.instructions.workflows",
+      "title": "Instructions document task workflows"
+    },
+    {
+      "category": "agent",
+      "description": "The repository commits an agent permission or sandbox configuration.",
+      "detection": {
+        "kind": "content",
+        "paths": [
+          ".claude/settings.json",
+          ".codex/config.toml"
+        ],
+        "patterns": [
+          "\"permissions\"\\s*:",
+          "^\\s*(sandbox_mode|approval_policy)\\s*="
+        ]
+      },
+      "id": "agent.permissions",
+      "title": "Committed agent permission configuration"
+    },
+    {
+      "category": "agent",
+      "description": "The repository ships reusable agent skills, slash commands, or prompt files for common tasks.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          ".claude/skills/*/SKILL.md",
+          ".agents/skills/*/SKILL.md",
+          ".codex/skills/*/SKILL.md",
+          ".github/skills/*/SKILL.md",
+          ".claude/commands/*.md",
+          ".github/prompts/*.prompt.md"
+        ]
+      },
+      "id": "agent.skills",
+      "title": "Repository agent skills or commands"
+    },
+    {
+      "category": "ci",
+      "description": "A continuous-integration configuration file exists.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          ".github/workflows/*.yml",
+          ".github/workflows/*.yaml",
+          ".gitlab-ci.yml",
+          ".circleci/config.yml",
+          "Jenkinsfile",
+          "azure-pipelines.yml",
+          ".buildkite/pipeline.yml",
+          "bitbucket-pipelines.yml",
+          ".travis.yml",
+          ".woodpecker.yml",
+          ".drone.yml"
+        ]
+      },
+      "id": "ci.config",
+      "title": "CI configuration"
+    },
+    {
+      "category": "ci",
+      "description": "A CI configuration line references a linter, formatter check, or aggregate check target.",
+      "detection": {
+        "in": [
+          "ci.config"
+        ],
+        "kind": "content",
+        "patterns": [
+          "\\blint",
+          "eslint",
+          "ruff",
+          "golangci",
+          "clippy",
+          "flake8",
+          "pylint",
+          "rubocop",
+          "biome",
+          "prettier",
+          "gofmt",
+          "shellcheck",
+          "stylelint",
+          "pre-commit run",
+          "make check"
+        ]
+      },
+      "id": "ci.runs_lint",
+      "title": "CI runs lint or format checks"
+    },
+    {
+      "category": "ci",
+      "description": "A CI configuration line references a security scanner (SAST, dependency, or secret scanning).",
+      "detection": {
+        "in": [
+          "ci.config"
+        ],
+        "kind": "content",
+        "patterns": [
+          "codeql",
+          "semgrep",
+          "trivy",
+          "gitleaks",
+          "trufflehog",
+          "detect-secrets",
+          "snyk",
+          "osv-scanner",
+          "dependency-review",
+          "bandit",
+          "gosec",
+          "grype",
+          "npm audit",
+          "pnpm audit",
+          "yarn audit",
+          "pip-audit",
+          "cargo audit",
+          "cargo deny",
+          "govulncheck",
+          "zizmor"
+        ]
+      },
+      "id": "ci.runs_security",
+      "title": "CI runs security checks"
+    },
+    {
+      "category": "ci",
+      "description": "A CI configuration line references running tests.",
+      "detection": {
+        "in": [
+          "ci.config"
+        ],
+        "kind": "content",
+        "patterns": [
+          "\\btest",
+          "pytest",
+          "unittest",
+          "vitest",
+          "jest",
+          "ctest",
+          "\\btox\\b",
+          "\\bnox\\b",
+          "make check"
+        ]
+      },
+      "id": "ci.runs_tests",
+      "title": "CI runs tests"
+    },
+    {
+      "category": "command",
+      "description": "A build or compile command is discoverable from repository metadata.",
+      "detection": {
+        "definition": "Satisfied by any of: a `build` script in root `package.json`; a `build` target in a root `Makefile`, `makefile`, `GNUmakefile`, or `justfile`; a root `go.mod` (`go build ./...`); a root `Cargo.toml` (`cargo build`); a root `gradlew`, `build.gradle`, `build.gradle.kts`, `mvnw`, or `pom.xml`; a root `CMakeLists.txt` (`cmake --build`); a root `Package.swift` (`swift build`); a `[build-system]` table in root `pyproject.toml` (`python -m build`).",
+        "kind": "derived"
+      },
+      "id": "command.build",
+      "title": "Build command"
+    },
+    {
+      "category": "command",
+      "description": "A formatting command is discoverable from repository metadata.",
+      "detection": {
+        "definition": "Satisfied by any of: a `format` or `fmt` script in root `package.json`; a `format` or `fmt` target in a root Makefile or `justfile`; a root `go.mod` (`gofmt`); a root `Cargo.toml` (`cargo fmt`); `ruff` or `black` declared in root `pyproject.toml`.",
+        "kind": "derived"
+      },
+      "id": "command.format",
+      "title": "Format command"
+    },
+    {
+      "category": "command",
+      "description": "A lint command is discoverable from repository metadata.",
+      "detection": {
+        "definition": "Satisfied by any of: a `lint` script in root `package.json`; a `lint` target in a root Makefile or `justfile`; a root `Cargo.toml` (`cargo clippy`); `ruff`, `flake8`, or `pylint` declared in root `pyproject.toml`.",
+        "kind": "derived"
+      },
+      "id": "command.lint",
+      "title": "Lint command"
+    },
+    {
+      "category": "command",
+      "description": "A single test command is discoverable from repository metadata.",
+      "detection": {
+        "definition": "Satisfied by any of: a `test` script in root `package.json` or `composer.json`; a `test` or `check` target in a root `Makefile`, `makefile`, `GNUmakefile`, or `justfile`; a root `go.mod` (`go test ./...`); a root `Cargo.toml` (`cargo test`); `pytest` declared in root `pyproject.toml`, `setup.cfg`, `tox.ini`, or `requirements*.txt`, or a root `pytest.ini` or `conftest.py`; a root `tox.ini` or `noxfile.py`; a root `gradlew`, `build.gradle`, `build.gradle.kts`, `mvnw`, or `pom.xml`; a root `CMakeLists.txt` containing `enable_testing` or `add_test`; a root `Package.swift` (`swift test`); a root `Rakefile` or `.rspec`. Assessors report the discovered command but never execute it.",
+        "kind": "derived"
+      },
+      "id": "command.test",
+      "title": "Test command"
+    },
+    {
+      "category": "command",
+      "description": "A type-checking command is discoverable from repository metadata.",
+      "detection": {
+        "definition": "Satisfied by any of: a `typecheck` or `type-check` script in root `package.json`; a `typecheck` or `type-check` target in a root Makefile or `justfile`; `mypy`, `pyright`, or `basedpyright` declared in root `pyproject.toml`.",
+        "kind": "derived"
+      },
+      "id": "command.typecheck",
+      "title": "Typecheck command"
+    },
+    {
+      "category": "config",
+      "description": "A dedicated dependency-boundary enforcement configuration exists.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          ".importlinter",
+          ".dependency-cruiser.js",
+          ".dependency-cruiser.cjs",
+          ".dependency-cruiser.mjs",
+          ".dependency-cruiser.json",
+          ".dependency-cruiser.ts"
+        ]
+      },
+      "id": "config.architecture_boundaries",
+      "title": "Architecture boundary configuration file"
+    },
+    {
+      "category": "config",
+      "description": "A build or lint configuration declares module-boundary enforcement.",
+      "detection": {
+        "kind": "content",
+        "paths": [
+          "pyproject.toml",
+          "setup.cfg",
+          "package.json",
+          "eslint.config.*",
+          ".eslintrc",
+          ".eslintrc.*",
+          "pom.xml",
+          "build.gradle",
+          "build.gradle.kts",
+          ".golangci.yml",
+          ".golangci.yaml",
+          ".golangci.toml"
+        ],
+        "patterns": [
+          "\\[tool\\.importlinter",
+          "\\[importlinter",
+          "dependency-cruiser",
+          "eslint-plugin-boundaries",
+          "import/no-restricted-paths",
+          "enforce-module-boundaries",
+          "archunit",
+          "depguard"
+        ]
+      },
+      "id": "config.architecture_boundaries_declared",
+      "title": "Architecture boundary rules declared in tool configuration"
+    },
+    {
+      "category": "config",
+      "description": "A formatter configuration file exists.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          ".prettierrc",
+          ".prettierrc.*",
+          "prettier.config.*",
+          "biome.json",
+          "biome.jsonc",
+          "rustfmt.toml",
+          ".rustfmt.toml",
+          ".clang-format",
+          "dprint.json",
+          ".editorconfig"
+        ]
+      },
+      "id": "config.formatter",
+      "title": "Formatter configuration"
+    },
+    {
+      "category": "config",
+      "description": "Pre-commit or pre-push hooks are configured in the repository.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          ".pre-commit-config.yaml",
+          ".pre-commit-config.yml",
+          ".husky/pre-commit",
+          ".husky/pre-push",
+          "lefthook.yml",
+          "lefthook.yaml",
+          ".lefthook.yml",
+          ".lintstagedrc",
+          ".lintstagedrc.*",
+          "lint-staged.config.*",
+          ".githooks/pre-commit"
+        ]
+      },
+      "id": "config.git_hooks",
+      "title": "Git hook configuration"
+    },
+    {
+      "category": "config",
+      "description": "A linter configuration file exists.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          ".eslintrc",
+          ".eslintrc.*",
+          "eslint.config.*",
+          "biome.json",
+          "biome.jsonc",
+          ".golangci.yml",
+          ".golangci.yaml",
+          ".golangci.toml",
+          "ruff.toml",
+          ".ruff.toml",
+          ".flake8",
+          ".pylintrc",
+          "pylintrc",
+          "clippy.toml",
+          ".clippy.toml",
+          ".rubocop.yml",
+          "phpcs.xml",
+          "phpcs.xml.dist",
+          ".swiftlint.yml",
+          "checkstyle.xml",
+          ".shellcheckrc"
+        ]
+      },
+      "id": "config.linter",
+      "title": "Linter configuration file"
+    },
+    {
+      "category": "config",
+      "description": "A linter is configured inside a shared project configuration file.",
+      "detection": {
+        "kind": "content",
+        "paths": [
+          "pyproject.toml",
+          "setup.cfg",
+          "tox.ini",
+          "package.json"
+        ],
+        "patterns": [
+          "\\[tool\\.(ruff|pylint|flake8)",
+          "^\\s*\\[flake8\\]",
+          "\"eslintConfig\"\\s*:",
+          "\"eslint\"\\s*:",
+          "\"@biomejs/biome\"\\s*:"
+        ]
+      },
+      "id": "config.linter_declared",
+      "title": "Linter declared in project configuration"
+    },
+    {
+      "category": "config",
+      "description": "A mypy or pyright configuration file exists.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "mypy.ini",
+          ".mypy.ini",
+          "pyrightconfig.json"
+        ]
+      },
+      "id": "config.python_typecheck",
+      "title": "Python type checker configuration file"
+    },
+    {
+      "category": "config",
+      "description": "mypy, pyright, or basedpyright is configured in `pyproject.toml` or `setup.cfg`.",
+      "detection": {
+        "kind": "content",
+        "paths": [
+          "pyproject.toml",
+          "setup.cfg"
+        ],
+        "patterns": [
+          "^\\s*\\[tool\\.(mypy|pyright|basedpyright)\\]",
+          "^\\s*\\[mypy\\]"
+        ]
+      },
+      "id": "config.python_typecheck_declared",
+      "title": "Python type checker declared in project configuration"
+    },
+    {
+      "category": "config",
+      "description": "A Python type checker is configured in strict mode.",
+      "detection": {
+        "kind": "content",
+        "paths": [
+          "pyproject.toml",
+          "setup.cfg",
+          "mypy.ini",
+          ".mypy.ini",
+          "pyrightconfig.json"
+        ],
+        "patterns": [
+          "^\\s*strict\\s*=\\s*true",
+          "typeCheckingMode\"?\\s*[:=]\\s*\"strict\""
+        ]
+      },
+      "id": "config.python_typecheck_strict",
+      "title": "Strict Python type checking"
+    },
+    {
+      "category": "config",
+      "description": "A secret-scanning tool configuration or baseline is committed.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          ".gitleaks.toml",
+          ".secrets.baseline",
+          ".ggshield.yaml",
+          ".secretlintrc.json"
+        ]
+      },
+      "id": "config.secret_scanning",
+      "title": "Secret scanner configuration"
+    },
+    {
+      "category": "config",
+      "description": "A Git hook configuration runs a secret scanner.",
+      "detection": {
+        "kind": "content",
+        "paths": [
+          ".pre-commit-config.yaml",
+          ".pre-commit-config.yml",
+          "lefthook.yml",
+          "lefthook.yaml",
+          ".husky/pre-commit"
+        ],
+        "patterns": [
+          "gitleaks",
+          "detect-secrets",
+          "trufflehog",
+          "ggshield",
+          "secretlint"
+        ]
+      },
+      "id": "config.secret_scanning_hook",
+      "title": "Secret scanning hook"
+    },
+    {
+      "category": "config",
+      "description": "A root `tsconfig.json` enables TypeScript type checking.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "tsconfig.json"
+        ]
+      },
+      "id": "config.tsconfig",
+      "title": "TypeScript configuration"
+    },
+    {
+      "category": "config",
+      "description": "TypeScript strict mode is enabled.",
+      "detection": {
+        "kind": "content",
+        "paths": [
+          "tsconfig.json",
+          "tsconfig.base.json"
+        ],
+        "patterns": [
+          "\"strict\"\\s*:\\s*true"
+        ]
+      },
+      "id": "config.tsconfig_strict",
+      "title": "Strict TypeScript"
+    },
+    {
+      "category": "documentation",
+      "description": "Architecture decisions are recorded in a decision-record directory.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "docs/adr/*.md",
+          "docs/adrs/*.md",
+          "docs/ADR/*.md",
+          "docs/decisions/*.md",
+          "docs/architecture/decisions/*.md",
+          "doc/adr/*.md",
+          "adr/*.md",
+          "decisions/*.md"
+        ]
+      },
+      "id": "documentation.adr",
+      "title": "Architecture decision records"
+    },
+    {
+      "category": "documentation",
+      "description": "A dedicated architecture or design document exists.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "ARCHITECTURE.md",
+          "DESIGN.md",
+          "docs/ARCHITECTURE.md",
+          "docs/architecture.md",
+          "docs/architecture/*.md",
+          "docs/DESIGN.md",
+          "docs/design.md",
+          "docs/design/*.md",
+          "doc/architecture.md"
+        ]
+      },
+      "id": "documentation.architecture",
+      "title": "Architecture documentation"
+    },
+    {
+      "category": "documentation",
+      "description": "The contributing guide has a section on code style or conventions.",
+      "detection": {
+        "in": [
+          "file.contributing"
+        ],
+        "kind": "heading",
+        "patterns": [
+          "style",
+          "convention",
+          "coding standard",
+          "guideline",
+          "naming",
+          "pattern"
+        ]
+      },
+      "id": "documentation.contributing_conventions",
+      "title": "Contributing guide documents conventions"
+    },
+    {
+      "category": "documentation",
+      "description": "The contributing guide documents how a change goes from branch to merged pull request.",
+      "detection": {
+        "in": [
+          "file.contributing"
+        ],
+        "kind": "heading",
+        "patterns": [
+          "pull request",
+          "\\bprs?\\b",
+          "merge request",
+          "workflow",
+          "submitting",
+          "development process",
+          "making changes",
+          "how to contribute",
+          "review",
+          "branch",
+          "commit message"
+        ]
+      },
+      "id": "documentation.contributing_workflow",
+      "title": "Contributing guide documents the change workflow"
+    },
+    {
+      "category": "documentation",
+      "description": "A dedicated style guide or conventions document exists.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "STYLEGUIDE.md",
+          "STYLE_GUIDE.md",
+          "STYLE.md",
+          "CONVENTIONS.md",
+          "docs/STYLEGUIDE.md",
+          "docs/CONVENTIONS.md",
+          "docs/style-guide.md",
+          "docs/styleguide.md",
+          "docs/style.md",
+          "docs/conventions.md",
+          "docs/coding-standards.md"
+        ]
+      },
+      "id": "documentation.conventions_file",
+      "title": "Conventions document"
+    },
+    {
+      "category": "documentation",
+      "description": "The README has a section explaining installation, setup, development, or usage.",
+      "detection": {
+        "in": [
+          "file.readme"
+        ],
+        "kind": "heading",
+        "patterns": [
+          "install",
+          "setup",
+          "set up",
+          "getting started",
+          "quick ?start",
+          "usage",
+          "develop",
+          "build",
+          "running",
+          "how to use",
+          "requirements",
+          "prerequisites"
+        ]
+      },
+      "id": "documentation.readme_setup",
+      "title": "README explains setup and usage"
+    },
+    {
+      "category": "file",
+      "description": "A tool-agnostic `AGENTS.md` instruction file at the repository root.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "AGENTS.md"
+        ]
+      },
+      "id": "file.agents_md",
+      "title": "AGENTS.md"
+    },
+    {
+      "category": "file",
+      "description": "A Claude Code `CLAUDE.md` project instruction file.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "CLAUDE.md",
+          ".claude/CLAUDE.md"
+        ]
+      },
+      "id": "file.claude_md",
+      "title": "CLAUDE.md"
+    },
+    {
+      "category": "file",
+      "description": "A code ownership file maps paths to responsible owners.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "CODEOWNERS",
+          ".github/CODEOWNERS",
+          "docs/CODEOWNERS",
+          ".gitlab/CODEOWNERS"
+        ]
+      },
+      "id": "file.codeowners",
+      "title": "CODEOWNERS"
+    },
+    {
+      "category": "file",
+      "description": "A contributing guide exists.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "CONTRIBUTING.md",
+          "CONTRIBUTING",
+          ".github/CONTRIBUTING.md",
+          "docs/CONTRIBUTING.md"
+        ]
+      },
+      "id": "file.contributing",
+      "title": "Contributing guide"
+    },
+    {
+      "category": "file",
+      "description": "A repository-wide GitHub Copilot instruction file.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          ".github/copilot-instructions.md"
+        ]
+      },
+      "id": "file.copilot_instructions",
+      "title": "GitHub Copilot instructions"
+    },
+    {
+      "category": "file",
+      "description": "Cursor project rules.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          ".cursorrules",
+          ".cursor/rules/*.mdc",
+          ".cursor/rules/*.md"
+        ]
+      },
+      "id": "file.cursor_rules",
+      "title": "Cursor rules"
+    },
+    {
+      "category": "file",
+      "description": "A Gemini CLI `GEMINI.md` instruction file at the repository root.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "GEMINI.md"
+        ]
+      },
+      "id": "file.gemini_md",
+      "title": "GEMINI.md"
+    },
+    {
+      "category": "file",
+      "description": "Structured issue templates help agents read requirements from issues.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          ".github/ISSUE_TEMPLATE/*.md",
+          ".github/ISSUE_TEMPLATE/*.yml",
+          ".github/ISSUE_TEMPLATE/*.yaml",
+          ".gitlab/issue_templates/*.md"
+        ]
+      },
+      "id": "file.issue_templates",
+      "title": "Issue templates"
+    },
+    {
+      "category": "file",
+      "description": "A project-scoped MCP server configuration is committed.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          ".mcp.json",
+          ".cursor/mcp.json",
+          ".vscode/mcp.json"
+        ]
+      },
+      "id": "file.mcp_config",
+      "title": "Project MCP configuration"
+    },
+    {
+      "category": "file",
+      "description": "A pull or merge request template exists.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          ".github/pull_request_template.md",
+          ".github/PULL_REQUEST_TEMPLATE.md",
+          ".github/PULL_REQUEST_TEMPLATE/*.md",
+          "docs/pull_request_template.md",
+          "pull_request_template.md",
+          ".gitlab/merge_request_templates/*.md"
+        ]
+      },
+      "id": "file.pull_request_template",
+      "title": "Pull request template"
+    },
+    {
+      "category": "file",
+      "description": "A README at the repository root.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "README.md",
+          "README",
+          "README.rst",
+          "README.txt",
+          "README.adoc",
+          "Readme.md",
+          "readme.md"
+        ]
+      },
+      "id": "file.readme",
+      "title": "README"
+    },
+    {
+      "category": "mcp",
+      "description": "A committed MCP configuration contains what looks like a literal credential rather than an environment-variable reference.",
+      "detection": {
+        "in": [
+          "file.mcp_config"
+        ],
+        "kind": "content",
+        "patterns": [
+          "\"[^\"]*(api[_-]?key|token|secret|password|authorization)[^\"]*\"\\s*:\\s*\"(?![^\"]*[$][{(])(?![<{$])[^\"]{8,}\"",
+          "ghp_[a-z0-9]{20,}",
+          "github_pat_[a-z0-9_]{20,}",
+          "sk-[a-z0-9_-]{20,}",
+          "xox[abposr]-[a-z0-9-]{10,}",
+          "akia[a-z0-9]{16}"
+        ]
+      },
+      "id": "mcp.inline_secrets",
+      "title": "Inline secrets in MCP configuration"
+    },
+    {
+      "category": "metrics",
+      "description": "Agent instructions or the contributing guide document how agent effectiveness is measured.",
+      "detection": {
+        "in": [
+          "file.agents_md",
+          "file.claude_md",
+          "file.copilot_instructions",
+          "file.cursor_rules",
+          "file.gemini_md",
+          "file.contributing"
+        ],
+        "kind": "heading",
+        "patterns": [
+          "metric",
+          "evaluation",
+          "effectiveness",
+          "success rate",
+          "agent performance",
+          "measur"
+        ]
+      },
+      "id": "metrics.evaluation_declared",
+      "title": "Agent effectiveness tracking declared"
+    },
+    {
+      "category": "metrics",
+      "description": "The repository commits an evaluation suite for agent or prompt behavior.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "evals/**/*",
+          "eval/**/*",
+          "agent-evals/**/*",
+          "promptfooconfig.yaml",
+          "promptfooconfig.yml"
+        ]
+      },
+      "id": "metrics.evaluation_suite",
+      "title": "Agent evaluation suite"
+    },
+    {
+      "category": "project",
+      "description": "The repository contains source code in at least one recognized language.",
+      "detection": {
+        "definition": "Satisfied when any `project.language.<name>` evidence in this vocabulary is satisfied.",
+        "kind": "derived"
+      },
+      "id": "project.language",
+      "title": "Source language detected"
+    },
+    {
+      "category": "project",
+      "description": "C or C++ build metadata or sources.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "CMakeLists.txt",
+          "**/*.c",
+          "**/*.cc",
+          "**/*.cpp",
+          "**/*.hpp"
+        ]
+      },
+      "id": "project.language.cpp",
+      "title": "C/C++"
+    },
+    {
+      "category": "project",
+      "description": "Go module metadata or sources.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "go.mod",
+          "**/*.go"
+        ]
+      },
+      "id": "project.language.go",
+      "title": "Go"
+    },
+    {
+      "category": "project",
+      "description": "A Node.js-style package manifest or TypeScript configuration.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "package.json",
+          "tsconfig.json",
+          "deno.json"
+        ]
+      },
+      "id": "project.language.javascript",
+      "title": "JavaScript/TypeScript"
+    },
+    {
+      "category": "project",
+      "description": "Maven/Gradle metadata or Java/Kotlin sources.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "pom.xml",
+          "build.gradle",
+          "build.gradle.kts",
+          "gradlew",
+          "mvnw",
+          "**/*.java",
+          "**/*.kt"
+        ]
+      },
+      "id": "project.language.jvm",
+      "title": "JVM"
+    },
+    {
+      "category": "project",
+      "description": "Composer metadata or PHP sources.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "composer.json",
+          "**/*.php"
+        ]
+      },
+      "id": "project.language.php",
+      "title": "PHP"
+    },
+    {
+      "category": "project",
+      "description": "Python project metadata or sources.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "pyproject.toml",
+          "setup.py",
+          "setup.cfg",
+          "requirements.txt",
+          "**/*.py"
+        ]
+      },
+      "id": "project.language.python",
+      "title": "Python"
+    },
+    {
+      "category": "project",
+      "description": "Bundler metadata or Ruby sources.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "Gemfile",
+          "**/*.rb"
+        ]
+      },
+      "id": "project.language.ruby",
+      "title": "Ruby"
+    },
+    {
+      "category": "project",
+      "description": "Cargo metadata or Rust sources.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "Cargo.toml",
+          "**/*.rs"
+        ]
+      },
+      "id": "project.language.rust",
+      "title": "Rust"
+    },
+    {
+      "category": "project",
+      "description": "Swift package metadata or sources.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "Package.swift",
+          "**/*.swift"
+        ]
+      },
+      "id": "project.language.swift",
+      "title": "Swift"
+    },
+    {
+      "category": "project",
+      "description": "A dependency lockfile is tracked by version control.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "uv.lock",
+          "poetry.lock",
+          "pdm.lock",
+          "Pipfile.lock",
+          "requirements.lock",
+          "package-lock.json",
+          "npm-shrinkwrap.json",
+          "pnpm-lock.yaml",
+          "yarn.lock",
+          "bun.lock",
+          "bun.lockb",
+          "go.sum",
+          "Cargo.lock",
+          "Gemfile.lock",
+          "composer.lock",
+          "gradle.lockfile",
+          "Package.resolved"
+        ],
+        "scope": "tracked"
+      },
+      "id": "project.lockfile",
+      "title": "Committed dependency lockfile"
+    },
+    {
+      "category": "project",
+      "description": "A root dependency or package manifest exists.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "pyproject.toml",
+          "setup.py",
+          "requirements.txt",
+          "Pipfile",
+          "package.json",
+          "go.mod",
+          "Cargo.toml",
+          "pom.xml",
+          "build.gradle",
+          "build.gradle.kts",
+          "Gemfile",
+          "composer.json",
+          "Package.swift"
+        ]
+      },
+      "id": "project.package_manifest",
+      "title": "Dependency manifest"
+    },
+    {
+      "category": "project",
+      "description": "Test sources exist in conventional locations or with conventional names.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "tests/**/*",
+          "test/**/*",
+          "src/test/**/*",
+          "**/__tests__/**/*",
+          "**/*_test.go",
+          "**/test_*.py",
+          "**/*_test.py",
+          "**/*.test.*",
+          "**/*.spec.*",
+          "**/*_spec.rb",
+          "**/*Test.java",
+          "**/*Test.kt",
+          "**/*Tests.swift"
+        ]
+      },
+      "id": "project.test_files",
+      "title": "Test files"
+    },
+    {
+      "category": "project",
+      "description": "A package manifest declares a multi-package workspace.",
+      "detection": {
+        "kind": "content",
+        "paths": [
+          "package.json",
+          "Cargo.toml"
+        ],
+        "patterns": [
+          "\"workspaces\"\\s*:",
+          "^\\s*\\[workspace\\]"
+        ]
+      },
+      "id": "project.workspace_declared",
+      "title": "Workspace declared in a manifest"
+    },
+    {
+      "category": "project",
+      "description": "A dedicated multi-package workspace manifest exists.",
+      "detection": {
+        "kind": "path",
+        "paths": [
+          "pnpm-workspace.yaml",
+          "go.work",
+          "lerna.json",
+          "nx.json",
+          "turbo.json",
+          "rush.json"
+        ]
+      },
+      "id": "project.workspace_manifest",
+      "title": "Workspace manifest"
+    },
+    {
+      "category": "security",
+      "description": "The root `.gitignore` ignores `.env` files.",
+      "detection": {
+        "kind": "content",
+        "paths": [
+          ".gitignore"
+        ],
+        "patterns": [
+          "^\\s*/?(\\*\\*/)?\\.env(\\*|\\.\\*)?\\s*$",
+          "^\\s*\\*\\.env\\s*$"
+        ]
+      },
+      "id": "security.env_ignored",
+      "title": "Environment files ignored"
+    },
+    {
+      "category": "security",
+      "description": "Files that conventionally hold secrets or private keys are tracked by version control. Test fixtures and documented templates are excluded.",
+      "detection": {
+        "exclude": [
+          "**/.env.example",
+          "**/.env.sample",
+          "**/.env.template",
+          "**/.env.dist",
+          "**/.env.defaults",
+          "**/test/**/*",
+          "**/tests/**/*",
+          "**/testdata/**/*",
+          "**/fixtures/**/*"
+        ],
+        "kind": "path",
+        "paths": [
+          "**/.env",
+          "**/.env.*",
+          "**/*.pem",
+          "**/*.p12",
+          "**/*.pfx",
+          "**/*.jks",
+          "**/*.keystore",
+          "**/id_rsa",
+          "**/id_dsa",
+          "**/id_ecdsa",
+          "**/id_ed25519"
+        ],
+        "scope": "tracked"
+      },
+      "id": "security.tracked_secret_files",
+      "title": "Tracked secret-bearing files"
+    }
+  ],
+  "evidence_categories": [
+    {
+      "description": "Presence of well-known repository files.",
+      "id": "file"
+    },
+    {
+      "description": "Human-facing documentation and its structure.",
+      "id": "documentation"
+    },
+    {
+      "description": "Agent-facing instructions, skills, and agent tool configuration committed to the repository.",
+      "id": "agent"
+    },
+    {
+      "description": "Discoverable developer commands (test, build, lint, format, typecheck).",
+      "id": "command"
+    },
+    {
+      "description": "Languages, manifests, lockfiles, workspaces, and test files.",
+      "id": "project"
+    },
+    {
+      "description": "Tool configuration committed to the repository.",
+      "id": "config"
+    },
+    {
+      "description": "Continuous-integration configuration and what it runs.",
+      "id": "ci"
+    },
+    {
+      "description": "Security-relevant repository state.",
+      "id": "security"
+    },
+    {
+      "description": "Model Context Protocol configuration committed to the repository.",
+      "id": "mcp"
+    },
+    {
+      "description": "Declared practices for measuring agent effectiveness.",
+      "id": "metrics"
+    }
+  ],
+  "homepage": "https://github.com/szaher/agent-ready/tree/main/spec",
+  "maturity": {
+    "levels": [
+      {
+        "characteristics": [
+          "No agent instruction file.",
+          "Minimal or outdated README.",
+          "Conventions exist only in team members' heads.",
+          "Tests are not reliably runnable with a single command."
+        ],
+        "id": "unaware",
+        "rank": 0,
+        "sources": [
+          "content/module-1/03-agent-ready-maturity-model.mdx"
+        ],
+        "summary": "No preparation for AI agents. Agents guess at everything.",
+        "title": "Unaware"
+      },
+      {
+        "characteristics": [
+          "A README with accurate setup instructions.",
+          "A working build command where the ecosystem has a build step.",
+          "A test suite that runs with a single command.",
+          "Basic linting or formatting configured."
+        ],
+        "id": "foundational",
+        "rank": 1,
+        "sources": [
+          "content/module-1/03-agent-ready-maturity-model.mdx"
+        ],
+        "summary": "Agents can build and test the project but still guess at conventions.",
+        "title": "Foundational"
+      },
+      {
+        "characteristics": [
+          "An agent instruction file covering commands, architecture, conventions, and off-limits areas.",
+          "Type checking enabled where the language supports it.",
+          "Tests present, with conventions enforced by hooks or CI.",
+          "Basic secrets hygiene."
+        ],
+        "id": "structured",
+        "rank": 2,
+        "sources": [
+          "content/module-1/03-agent-ready-maturity-model.mdx",
+          "content/module-10/03-security-audit.mdx"
+        ],
+        "summary": "The repository explicitly communicates structure, conventions, and constraints to agents.",
+        "title": "Structured"
+      },
+      {
+        "characteristics": [
+          "Hierarchical instruction files for complex areas.",
+          "Task-specific workflows documented for agents.",
+          "Important architecture boundaries are explicit and machine-checkable."
+        ],
+        "id": "optimized",
+        "rank": 3,
+        "sources": [
+          "content/module-1/03-agent-ready-maturity-model.mdx",
+          "content/module-5/05-monorepo-and-large-codebases.mdx"
+        ],
+        "summary": "Agent integration is refined for complex, multi-step work.",
+        "title": "Optimized"
+      },
+      {
+        "characteristics": [
+          "End-to-end contribution workflow documentation.",
+          "CI gates for correctness, conventions, and security.",
+          "Agent effectiveness is tracked."
+        ],
+        "id": "autonomous",
+        "rank": 4,
+        "sources": [
+          "content/module-1/03-agent-ready-maturity-model.mdx",
+          "content/module-1/05-measuring-agent-effectiveness.mdx"
+        ],
+        "summary": "Agents can drive features end to end behind automated gates.",
+        "title": "Autonomous"
+      }
+    ],
+    "semantics": "Maturity is requirement-based and cumulative. A repository is at level N (N >= 1) only when every rule with severity `required` whose `required_from` rank is less than or equal to N has status `pass` or `not-applicable`. A required rule with status `fail` or `unknown` blocks its level and every higher level. The rank 0 level has no requirements and is the floor. The current level is the highest level whose requirements are all met. Recommended and advisory rules never affect the level. Diagnostic counts or percentages may be reported, but they must not determine maturity."
+  },
+  "name": "agent-ready",
+  "path_matching": {
+    "ignored_directories": [
+      ".git",
+      "node_modules",
+      "vendor",
+      "dist",
+      "build",
+      "target",
+      ".venv",
+      "venv",
+      "__pycache__"
+    ],
+    "semantics": "Paths are POSIX-style and relative to the repository root. They are case-sensitive and never absolute, and never contain `..`. In a glob, `*` matches any characters within one path segment, except that a `*` at the start of a segment does not match names beginning with `.`. `**` matches zero or more whole segments, and while matching `**` an assessor never enters a directory listed in `ignored_directories` or a directory whose name begins with `.`. Literal segments (including hidden ones such as `.github`) always match explicitly. Path detections default to `scope: worktree` (files present in the checkout) and `type: file`. `scope: tracked` considers only files tracked by version control when the repository is a Git repository, and falls back to the worktree otherwise. Heading detections match Markdown ATX headings (`#` to `######`). Content detections match individual lines. Every regular expression is matched case-insensitively and uses a portable subset: no inline flags, no lookbehind, no backreferences, no named groups."
+  },
+  "pillars": [
+    {
+      "description": "What the project is, why it exists, how it is structured, and the key decisions behind it. It lives in instruction files, architecture documentation, and READMEs.",
+      "id": "context",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-3/01-why-claude-md.mdx",
+        "content/module-8/01-the-context-challenge.mdx"
+      ],
+      "title": "Context"
+    },
+    {
+      "description": "The patterns a team follows, made explicit through documented style rules, exemplar code, and linter or formatter configuration.",
+      "id": "conventions",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-5/03-naming-conventions.mdx"
+      ],
+      "title": "Conventions"
+    },
+    {
+      "description": "What an agent must not do: off-limits areas, security boundaries, and architectural rules, stated upfront and verifiable where possible.",
+      "id": "constraints",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-7/01-why-safety-matters.mdx"
+      ],
+      "title": "Constraints"
+    },
+    {
+      "description": "Tests, type checkers, linters, and builds that let an agent verify its own work and self-correct.",
+      "id": "feedback",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-9/04-test-driven-agent-development.mdx"
+      ],
+      "title": "Feedback Loops"
+    }
+  ],
+  "remediation_classifications": [
+    {
+      "description": "Can be produced deterministically from repository facts without inventing project policy, for example generating a commands section from discovered commands.",
+      "id": "automatable"
+    },
+    {
+      "description": "Tooling can scaffold a starting point, but a human must supply or confirm the substantive content.",
+      "id": "assisted"
+    },
+    {
+      "description": "Requires a project or team decision. Tooling must not invent the answer. The rule states the decision needed in `remediation.decision`.",
+      "id": "human-required"
+    }
+  ],
+  "rules": [
+    {
+      "description": "The repository commits an agent permission or sandbox configuration.",
+      "dimension": "security",
+      "evaluation": {
+        "on_missing": "unknown",
+        "unknown_reason": "Agent permissions may be enforced at user or organization scope, outside the repository, so their absence here does not show they are missing."
+      },
+      "evidence": {
+        "any": [
+          "agent.permissions"
+        ]
+      },
+      "id": "constraints.agent_permissions",
+      "pillar": "constraints",
+      "rationale": "Prompts ask, permissions enforce. A committed project-level permission configuration gives every contributor's agent the same baseline guardrails.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which tools, commands, and paths agents may use in this repository.",
+        "summary": "Commit a project-level agent permission configuration with least-privilege defaults."
+      },
+      "required_from": "optimized",
+      "severity": "recommended",
+      "sources": [
+        "content/module-4/03-agent-tools-and-permissions.mdx",
+        "content/module-7/02-permission-models.mdx",
+        "content/module-10/03-security-audit.mdx"
+      ],
+      "title": "Agent permissions are configured in the repository"
+    },
+    {
+      "depends_on": [
+        "context.agent_instructions"
+      ],
+      "description": "The agent instruction file states how secrets and credentials must be handled.",
+      "dimension": "security",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "agent.instructions.secrets_policy"
+        ]
+      },
+      "id": "constraints.agent_secrets_policy",
+      "pillar": "constraints",
+      "rationale": "The security audit checklist asks that instruction files explicitly forbid reading or referencing secrets.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Add a secrets rule to the instruction file, for example never read or print `.env` files or credentials."
+      },
+      "required_from": "structured",
+      "severity": "advisory",
+      "sources": [
+        "content/module-10/03-security-audit.mdx"
+      ],
+      "title": "Instructions address secrets handling"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.language"
+        ]
+      },
+      "description": "Module dependency boundaries are declared in a tool that enforces them (import-linter, dependency-cruiser, eslint boundary rules, ArchUnit, depguard).",
+      "evaluation": {
+        "on_missing": "unknown",
+        "unknown_reason": "Architecture boundaries are project/team policy. The absence of an enforcement configuration does not show that a repository has no boundaries, and they cannot be inferred safely from code."
+      },
+      "evidence": {
+        "any": [
+          "config.architecture_boundaries",
+          "config.architecture_boundaries_declared"
+        ]
+      },
+      "id": "constraints.architecture_boundaries",
+      "pillar": "constraints",
+      "rationale": "Architectural rules such as \"the frontend must not import backend modules\" are what agents violate most confidently. At the Optimized level they must be stated upfront and be verifiable, not just described.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which modules or layers may depend on which, and which dependencies are forbidden.",
+        "summary": "Declare the boundaries in a dependency-enforcement tool so agents get feedback when they cross them."
+      },
+      "required_from": "optimized",
+      "severity": "required",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-5/05-monorepo-and-large-codebases.mdx"
+      ],
+      "title": "Important architecture boundaries are explicit and machine-checkable"
+    },
+    {
+      "depends_on": [
+        "context.agent_instructions"
+      ],
+      "description": "The agent instruction file states what the agent must not do: files or areas not to modify, and prohibited actions or approaches.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "agent.instructions.constraints",
+          "agent.instructions.prohibitions"
+        ]
+      },
+      "id": "constraints.documented",
+      "pillar": "constraints",
+      "rationale": "Without explicit constraints, agents will cheerfully modify files they should not touch or take approaches that violate team policy.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which files, areas, dependencies, and actions are off-limits for agents.",
+        "summary": "Add a \"Do / Do NOT\" section to the agent instruction file."
+      },
+      "required_from": "structured",
+      "severity": "required",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-3/02-anatomy-of-claude-md.mdx"
+      ],
+      "title": "Off-limits areas and prohibitions are stated"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "file.mcp_config"
+        ]
+      },
+      "description": "Project MCP configuration references credentials through environment variables rather than embedding them.",
+      "dimension": "security",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "none": [
+          "mcp.inline_secrets"
+        ]
+      },
+      "id": "constraints.mcp.no_inline_secrets",
+      "pillar": "constraints",
+      "rationale": "MCP configuration is committed and shared. A literal token there leaks to every clone and to every agent context that reads the file.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which credentials were exposed and how to rotate them.",
+        "summary": "Replace literal credentials with environment-variable references and rotate the exposed values."
+      },
+      "required_from": "structured",
+      "severity": "required",
+      "sources": [
+        "content/module-6/05-mcp-in-production.mdx",
+        "content/module-10/03-security-audit.mdx"
+      ],
+      "title": "Committed MCP configuration has no inline secrets"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.language"
+        ]
+      },
+      "description": "The root `.gitignore` ignores `.env` files.",
+      "dimension": "security",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "security.env_ignored"
+        ]
+      },
+      "id": "constraints.secrets.ignored",
+      "pillar": "constraints",
+      "rationale": "Ignoring environment files prevents the most common way secrets enter version control.",
+      "remediation": {
+        "classification": "automatable",
+        "summary": "Add `.env` and `.env.*` (keeping example templates) to `.gitignore`."
+      },
+      "required_from": "structured",
+      "severity": "required",
+      "sources": [
+        "content/module-7/05-designing-your-safety-framework.mdx",
+        "content/module-10/03-security-audit.mdx"
+      ],
+      "title": "Environment files are ignored"
+    },
+    {
+      "description": "A secret scanner runs as a Git hook or in CI, or has a committed configuration.",
+      "dimension": "security",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "config.secret_scanning",
+          "config.secret_scanning_hook",
+          "ci.runs_security"
+        ]
+      },
+      "id": "constraints.secrets.scanning",
+      "pillar": "constraints",
+      "rationale": "Agents generate and move a lot of text. Automated secret scanning catches leaks before they are pushed.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Add a secret-scanning pre-commit hook or CI job."
+      },
+      "required_from": "optimized",
+      "severity": "recommended",
+      "sources": [
+        "content/module-10/03-security-audit.mdx"
+      ],
+      "title": "Secret scanning is configured"
+    },
+    {
+      "description": "No `.env` files, private keys, or keystores are tracked by version control (documented templates and test fixtures excluded).",
+      "dimension": "security",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "none": [
+          "security.tracked_secret_files"
+        ]
+      },
+      "id": "constraints.secrets.untracked",
+      "pillar": "constraints",
+      "rationale": "Committed secrets are readable by every agent session and every clone, and they persist in history after deletion.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Whether each file holds real secrets, and how exposed values are rotated.",
+        "summary": "Stop tracking the files, rotate any exposed secrets, and consider purging them from history."
+      },
+      "required_from": "structured",
+      "severity": "required",
+      "sources": [
+        "content/module-10/03-security-audit.mdx"
+      ],
+      "title": "No secret-bearing files are tracked"
+    },
+    {
+      "description": "The repository has an agent instruction file that agents read first: AGENTS.md, CLAUDE.md, GitHub Copilot instructions, Cursor rules, or GEMINI.md.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "file.agents_md",
+          "file.claude_md",
+          "file.copilot_instructions",
+          "file.cursor_rules",
+          "file.gemini_md"
+        ]
+      },
+      "id": "context.agent_instructions",
+      "pillar": "context",
+      "rationale": "Agents have no institutional memory. The instruction file is the single highest-leverage artifact for orienting them, and its presence is the defining step from Foundational to Structured.",
+      "remediation": {
+        "classification": "automatable",
+        "summary": "Generate a managed AGENTS.md (or equivalent) section from discovered repository facts."
+      },
+      "required_from": "structured",
+      "severity": "required",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-3/01-why-claude-md.mdx"
+      ],
+      "title": "Agent instructions available"
+    },
+    {
+      "depends_on": [
+        "context.agent_instructions"
+      ],
+      "description": "The agent instruction file has a section telling the agent how to build, test, and lint.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "agent.instructions.commands"
+        ]
+      },
+      "id": "context.agent_instructions.commands",
+      "pillar": "context",
+      "rationale": "Exact, runnable commands are the most frequently needed instruction. Without them the agent guesses, and guessing breaks the feedback loop.",
+      "remediation": {
+        "classification": "automatable",
+        "summary": "Generate a commands section from the repository's discovered build, test, lint, and typecheck commands."
+      },
+      "required_from": "structured",
+      "severity": "required",
+      "sources": [
+        "content/module-3/02-anatomy-of-claude-md.mdx",
+        "content/module-3/03-writing-effective-instructions.mdx"
+      ],
+      "title": "Instructions document build and test commands"
+    },
+    {
+      "depends_on": [
+        "context.agent_instructions"
+      ],
+      "description": "Root-level agent instruction files stay within 100 non-blank lines.",
+      "dimension": "performance",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "agent.instructions.concise"
+        ]
+      },
+      "id": "context.agent_instructions.concise",
+      "pillar": "context",
+      "rationale": "Every line of a root instruction file is loaded into every session. Lean root files, with details in scoped files, leave context for the task.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Move low-frequency guidance into scoped instruction files or linked documents."
+      },
+      "required_from": "optimized",
+      "severity": "recommended",
+      "sources": [
+        "content/module-3/02-anatomy-of-claude-md.mdx",
+        "content/module-8/04-optimizing-context-budget.mdx",
+        "content/module-10/04-performance-optimization.mdx"
+      ],
+      "title": "Root instructions are concise"
+    },
+    {
+      "depends_on": [
+        "context.agent_instructions"
+      ],
+      "description": "Agent instructions reference existing repository paths to tell the agent where code lives.",
+      "dimension": "performance",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "agent.instructions.file_pointers"
+        ]
+      },
+      "id": "context.agent_instructions.file_pointers",
+      "pillar": "context",
+      "rationale": "Explicit file pointers replace exploratory searching and reading, which is one of the largest sources of wasted agent context.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Reference the key directories and entry-point files by path in the instruction file."
+      },
+      "required_from": "optimized",
+      "severity": "recommended",
+      "sources": [
+        "content/module-10/04-performance-optimization.mdx"
+      ],
+      "title": "Instructions point to concrete paths"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.workspace_manifest",
+          "project.workspace_declared"
+        ]
+      },
+      "depends_on": [
+        "context.agent_instructions"
+      ],
+      "description": "Repositories organized as multi-package workspaces provide instruction files scoped to sub-areas in addition to the root file.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "agent.instructions.nested"
+        ]
+      },
+      "id": "context.agent_instructions.hierarchical",
+      "pillar": "context",
+      "rationale": "A single root file cannot carry package-specific conventions without wasting context on every task. Scoped files load only where they apply.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Scaffold per-package instruction files. Package owners supply their package-specific guidance."
+      },
+      "required_from": "optimized",
+      "severity": "required",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-3/04-scoping-instructions.mdx",
+        "content/module-5/05-monorepo-and-large-codebases.mdx",
+        "content/module-8/05-context-at-scale.mdx"
+      ],
+      "title": "Scoped instructions for multi-package repositories"
+    },
+    {
+      "description": "Project structure and architecture are described, either in a dedicated architecture document or in a section of the agent instruction file.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "documentation.architecture",
+          "agent.instructions.architecture"
+        ]
+      },
+      "id": "context.architecture",
+      "pillar": "context",
+      "rationale": "Agents can read code but not the intent behind it. An architecture overview prevents changes that work locally but violate the system's shape.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Tooling can scaffold a structure map from the directory layout. A human must describe components, data flow, and key decisions."
+      },
+      "required_from": "structured",
+      "severity": "required",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-3/02-anatomy-of-claude-md.mdx"
+      ],
+      "title": "Architecture is described"
+    },
+    {
+      "description": "A CODEOWNERS file maps paths to the people or teams responsible for them.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "file.codeowners"
+        ]
+      },
+      "id": "context.codeowners",
+      "pillar": "context",
+      "rationale": "Ownership tells agents (and reviewers) whose conventions apply to an area and who must approve changes there. It matters most in large codebases.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which people or teams own which paths.",
+        "summary": "Add a CODEOWNERS file."
+      },
+      "required_from": "optimized",
+      "severity": "advisory",
+      "sources": [
+        "content/module-5/05-monorepo-and-large-codebases.mdx"
+      ],
+      "title": "Code ownership is mapped"
+    },
+    {
+      "description": "The path from change to merged pull request is documented, either in a contributing guide section or in a pull request template.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "documentation.contributing_workflow",
+          "file.pull_request_template"
+        ]
+      },
+      "id": "context.contribution_workflow",
+      "pillar": "context",
+      "rationale": "Autonomous agents drive features from issue to pull request. They need the same documented workflow a new contributor would.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Scaffold a pull request template and a CONTRIBUTING workflow section. Maintainers confirm the actual process."
+      },
+      "required_from": "autonomous",
+      "severity": "required",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-9/01-agent-workflows.mdx"
+      ],
+      "title": "End-to-end contribution workflow is documented"
+    },
+    {
+      "description": "Key architecture decisions are recorded as decision records (ADRs).",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "documentation.adr"
+        ]
+      },
+      "id": "context.decisions",
+      "pillar": "context",
+      "rationale": "Decision records explain why the code is the way it is, which stops agents from \"fixing\" deliberate trade-offs.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which past and future decisions are significant enough to record.",
+        "summary": "Start a docs/adr/ directory and record significant decisions."
+      },
+      "required_from": "optimized",
+      "severity": "recommended",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-5/04-documentation-as-context.mdx"
+      ],
+      "title": "Architecture decisions are recorded"
+    },
+    {
+      "description": "Issue templates structure how requirements are written.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "file.issue_templates"
+        ]
+      },
+      "id": "context.issue_templates",
+      "pillar": "context",
+      "rationale": "At the Autonomous level agents read issue descriptions directly. Structured templates make requirements consistent enough to act on.",
+      "remediation": {
+        "classification": "automatable",
+        "summary": "Add bug-report and feature-request issue templates."
+      },
+      "required_from": "autonomous",
+      "severity": "recommended",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx"
+      ],
+      "title": "Structured issue templates"
+    },
+    {
+      "description": "The repository has a README at its root.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "file.readme"
+        ]
+      },
+      "id": "context.readme",
+      "pillar": "context",
+      "rationale": "The README is the first place both humans and agents look to learn what a project is.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Scaffold a README skeleton. A human writes the project's purpose."
+      },
+      "required_from": "foundational",
+      "severity": "required",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-1/03-agent-ready-maturity-model.mdx"
+      ],
+      "title": "README present"
+    },
+    {
+      "depends_on": [
+        "context.readme"
+      ],
+      "description": "The README has a section explaining how to install, set up, build, or use the project.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "documentation.readme_setup"
+        ]
+      },
+      "id": "context.readme.setup",
+      "pillar": "context",
+      "rationale": "The course defines Foundational as \"a README with accurate setup instructions\". Agents follow it to get a working checkout.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Add a setup section built from discovered install, build, and test commands. A human verifies it."
+      },
+      "required_from": "foundational",
+      "severity": "required",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx"
+      ],
+      "title": "README explains setup and usage"
+    },
+    {
+      "description": "Common development tasks are documented step by step, as a workflow section in the instruction file or as repository agent skills or commands.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "agent.instructions.workflows",
+          "agent.skills"
+        ]
+      },
+      "id": "context.task_workflows",
+      "pillar": "context",
+      "rationale": "Step-by-step task guidance is what moves agents from following conventions to completing complex, multi-step tasks reliably.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which tasks are common enough to document, and the steps the team actually follows.",
+        "summary": "Document the most common development tasks as step-by-step workflows or repository skills."
+      },
+      "required_from": "optimized",
+      "severity": "required",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-9/01-agent-workflows.mdx"
+      ],
+      "title": "Common tasks are documented as workflows"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.language"
+        ]
+      },
+      "depends_on": [
+        "conventions.tooling"
+      ],
+      "description": "Continuous integration runs lint or format checks on every change.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "ci.runs_lint"
+        ]
+      },
+      "id": "conventions.ci_enforced",
+      "pillar": "conventions",
+      "rationale": "Autonomous agents need automated review gates that check convention adherence, not just correctness, before a human reviews.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Add the repository's existing lint and format checks to CI."
+      },
+      "required_from": "autonomous",
+      "severity": "required",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-9/02-ci-cd-integration.mdx"
+      ],
+      "title": "CI enforces conventions"
+    },
+    {
+      "description": "Code style and conventions are written down, in the agent instruction file, a style guide, or the contributing guide.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "agent.instructions.conventions",
+          "documentation.conventions_file",
+          "documentation.contributing_conventions"
+        ]
+      },
+      "id": "conventions.documented",
+      "pillar": "conventions",
+      "rationale": "Humans absorb conventions over months. Agents have none of that history, so conventions must be explicit or they will be guessed.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which conventions the team actually expects (naming, structure, error handling, testing patterns).",
+        "summary": "Document the team's most important coding conventions explicitly."
+      },
+      "required_from": "structured",
+      "severity": "required",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-5/03-naming-conventions.mdx"
+      ],
+      "title": "Coding conventions are documented"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.language"
+        ]
+      },
+      "description": "Git hooks or CI checks enforce linting or formatting.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "config.git_hooks",
+          "ci.runs_lint"
+        ]
+      },
+      "id": "conventions.enforced",
+      "pillar": "conventions",
+      "rationale": "Documented conventions drift. Automated enforcement turns them into feedback the agent receives before review.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Wire the existing lint and format commands into pre-commit hooks or CI."
+      },
+      "required_from": "structured",
+      "severity": "required",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx"
+      ],
+      "title": "Conventions are enforced automatically"
+    },
+    {
+      "description": "The agent instruction file points to examples or reference implementations to follow.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "agent.instructions.examples"
+        ]
+      },
+      "id": "conventions.exemplars",
+      "pillar": "conventions",
+      "rationale": "Examples are the agent's primary learning mechanism. \"Follow this file\" beats a paragraph of description.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which existing files represent the patterns the team wants repeated.",
+        "summary": "Add an examples section that points at well-written files to imitate."
+      },
+      "required_from": "optimized",
+      "severity": "recommended",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-1/03-agent-ready-maturity-model.mdx"
+      ],
+      "title": "Exemplar code is referenced"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.language"
+        ]
+      },
+      "description": "A linter or formatter is configured or discoverable.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "command.lint",
+          "command.format",
+          "config.linter",
+          "config.linter_declared",
+          "config.formatter"
+        ]
+      },
+      "id": "conventions.tooling",
+      "pillar": "conventions",
+      "rationale": "Linters and formatters enforce conventions mechanically, so the agent learns about violations without a human pointing them out.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Adopt the ecosystem's standard linter or formatter."
+      },
+      "required_from": "foundational",
+      "severity": "required",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-1/03-agent-ready-maturity-model.mdx"
+      ],
+      "title": "Linting or formatting configured"
+    },
+    {
+      "description": "The repository documents how agent effectiveness is measured (task completion, iterations, interventions), or commits an agent evaluation suite.",
+      "evaluation": {
+        "on_missing": "unknown",
+        "unknown_reason": "Teams may track agent effectiveness outside the repository (dashboards, issue trackers, local metrics), so its absence here does not show that it is not tracked."
+      },
+      "evidence": {
+        "any": [
+          "metrics.evaluation_declared",
+          "metrics.evaluation_suite"
+        ]
+      },
+      "id": "feedback.agent_effectiveness",
+      "pillar": "feedback",
+      "rationale": "The Autonomous level depends on measured agent performance. Without it, instruction updates are guesses rather than responses to observed failures.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which metrics the team tracks, where they live, and how often they are reviewed.",
+        "summary": "Document how agent effectiveness is measured and reviewed, or add an evaluation suite."
+      },
+      "required_from": "autonomous",
+      "severity": "required",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-1/05-measuring-agent-effectiveness.mdx",
+        "content/module-9/05-continuous-agent-improvement.mdx"
+      ],
+      "title": "Agent effectiveness is tracked"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.language.go",
+          "project.language.rust",
+          "project.language.jvm",
+          "project.language.cpp",
+          "project.language.swift",
+          {
+            "all": [
+              "project.language.javascript",
+              "config.tsconfig"
+            ]
+          }
+        ]
+      },
+      "description": "Ecosystems with a compile or build step expose a discoverable build command.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "command.build"
+        ]
+      },
+      "id": "feedback.build.available",
+      "pillar": "feedback",
+      "rationale": "A build that validates the code compiles is the cheapest structural check an agent can run.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Expose a single build command (for example a `build` script or Makefile target)."
+      },
+      "required_from": "foundational",
+      "severity": "required",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-1/03-agent-ready-maturity-model.mdx"
+      ],
+      "title": "Build command available"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.language"
+        ]
+      },
+      "description": "Continuous integration runs a security scanner (SAST, dependency, or secret scanning).",
+      "dimension": "security",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "ci.runs_security"
+        ]
+      },
+      "id": "feedback.ci.security",
+      "pillar": "feedback",
+      "rationale": "The Autonomous level requires automated review gates that validate security, not just correctness.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Add a security scanning job (for example CodeQL, Semgrep, Trivy, or a dependency audit) to CI."
+      },
+      "required_from": "autonomous",
+      "severity": "required",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-9/02-ci-cd-integration.mdx",
+        "content/module-10/03-security-audit.mdx"
+      ],
+      "title": "CI runs security checks"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.language"
+        ]
+      },
+      "depends_on": [
+        "feedback.tests.available"
+      ],
+      "description": "Continuous integration runs the test suite on every change.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "ci.runs_tests"
+        ]
+      },
+      "id": "feedback.ci.tests",
+      "pillar": "feedback",
+      "rationale": "Autonomous agents need automated correctness gates on every pull request.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Run the repository's test command in CI."
+      },
+      "required_from": "autonomous",
+      "severity": "required",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-9/02-ci-cd-integration.mdx"
+      ],
+      "title": "CI runs tests"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.package_manifest"
+        ]
+      },
+      "description": "A dependency lockfile is committed.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "project.lockfile"
+        ]
+      },
+      "id": "feedback.dependencies.locked",
+      "pillar": "feedback",
+      "rationale": "Reproducible installs make \"install, build, test from a clean clone\" behave the same for every agent session.",
+      "remediation": {
+        "classification": "automatable",
+        "summary": "Generate and commit the package manager's lockfile."
+      },
+      "required_from": "structured",
+      "severity": "recommended",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx"
+      ],
+      "title": "Dependencies are locked"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.language"
+        ]
+      },
+      "description": "The repository provides a discoverable single test command.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "command.test"
+        ]
+      },
+      "id": "feedback.tests.available",
+      "pillar": "feedback",
+      "rationale": "An agent that cannot run tests cannot verify its work. A single-command test suite is the core of the Foundational level.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Expose the test suite through one command (for example a `test` script or Makefile target)."
+      },
+      "required_from": "foundational",
+      "severity": "required",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-9/04-test-driven-agent-development.mdx"
+      ],
+      "title": "Runnable test suite"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.language"
+        ]
+      },
+      "depends_on": [
+        "feedback.tests.available"
+      ],
+      "description": "Test sources exist in conventional locations or with conventional names.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "any": [
+          "project.test_files"
+        ]
+      },
+      "id": "feedback.tests.present",
+      "pillar": "feedback",
+      "rationale": "A test command with no tests gives false confidence. At Structured, new code is expected to come with tests the agent can extend.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Add tests for the critical paths, following the ecosystem's conventional test layout."
+      },
+      "required_from": "structured",
+      "severity": "required",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-9/04-test-driven-agent-development.mdx"
+      ],
+      "title": "Tests exist"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.language.python",
+          "project.language.javascript",
+          "project.language.go",
+          "project.language.rust",
+          "project.language.jvm",
+          "project.language.swift",
+          "project.language.cpp"
+        ]
+      },
+      "description": "Languages with optional typing have a type checker configured: mypy or pyright for Python, `tsconfig.json` for JavaScript/TypeScript. Statically typed languages satisfy this inherently.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "all": [
+          {
+            "any": [
+              {
+                "none": [
+                  "project.language.python"
+                ]
+              },
+              "config.python_typecheck",
+              "config.python_typecheck_declared",
+              "command.typecheck"
+            ]
+          },
+          {
+            "any": [
+              {
+                "none": [
+                  "project.language.javascript"
+                ]
+              },
+              "config.tsconfig"
+            ]
+          }
+        ]
+      },
+      "id": "feedback.typecheck",
+      "pillar": "feedback",
+      "rationale": "Type checkers catch structural errors immediately, which shortens the agent's iteration loop.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Configure the ecosystem's type checker (mypy/pyright, TypeScript) and expose a typecheck command."
+      },
+      "required_from": "structured",
+      "severity": "required",
+      "sources": [
+        "content/module-1/02-what-is-agent-ready.mdx",
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-5/04-documentation-as-context.mdx"
+      ],
+      "title": "Type checking enabled"
+    },
+    {
+      "applies_when": {
+        "any": [
+          "project.language.python",
+          "project.language.javascript"
+        ]
+      },
+      "depends_on": [
+        "feedback.typecheck"
+      ],
+      "description": "Optionally typed languages run their type checker in strict mode.",
+      "evaluation": {
+        "on_missing": "fail"
+      },
+      "evidence": {
+        "all": [
+          {
+            "any": [
+              {
+                "none": [
+                  "project.language.python"
+                ]
+              },
+              "config.python_typecheck_strict"
+            ]
+          },
+          {
+            "any": [
+              {
+                "none": [
+                  "project.language.javascript"
+                ]
+              },
+              "config.tsconfig_strict"
+            ]
+          }
+        ]
+      },
+      "id": "feedback.typecheck.strict",
+      "pillar": "feedback",
+      "rationale": "Strict mode turns implicit types into explicit ones, which lowers the context an agent needs to infer types.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Enable strict mode incrementally and fix the reported issues."
+      },
+      "required_from": "optimized",
+      "severity": "advisory",
+      "sources": [
+        "content/module-1/03-agent-ready-maturity-model.mdx",
+        "content/module-8/04-optimizing-context-budget.mdx"
+      ],
+      "title": "Strict type checking"
+    }
+  ],
+  "schema_version": "1",
+  "severities": [
+    {
+      "description": "Gates maturity. A repository cannot claim the rule's `required_from` level, or any higher level, unless the rule passes or is not applicable.",
+      "id": "required"
+    },
+    {
+      "description": "Does not gate maturity. Assessors list it as a recommended improvement when planning toward a level at or above `required_from`.",
+      "id": "recommended"
+    },
+    {
+      "description": "Informational guidance. It never gates maturity, and plans list it only as optional follow-up.",
+      "id": "advisory"
+    }
+  ],
+  "spec_version": "1.0.0",
+  "statuses": [
+    {
+      "description": "The rule applies and its evidence expression is satisfied.",
+      "id": "pass"
+    },
+    {
+      "description": "The rule applies, its evidence expression is not satisfied, and the rule's evaluation policy treats missing evidence as a failure.",
+      "id": "fail"
+    },
+    {
+      "description": "The rule applies but the assessor cannot establish the outcome safely, either because the rule's evaluation policy is `on_missing: unknown` or because the assessor does not support an evidence type the rule needs. Unknown is never reported as fail.",
+      "id": "unknown"
+    },
+    {
+      "description": "The rule's `applies_when` expression is not satisfied for this repository.",
+      "id": "not-applicable"
+    }
+  ],
+  "title": "Agent Ready Specification"
+}
