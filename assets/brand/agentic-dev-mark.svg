@@ -1,17 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
   <title id="title">Agentic Dev mark</title>
-  <desc id="desc">Angular A mark representing an agent path through a repository.</desc>
+  <desc id="desc">Orange octopus agent mascot.</desc>
   <defs>
-    <linearGradient id="g1" x1="34" y1="30" x2="206" y2="224" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#06B6D4"/>
-      <stop offset=".48" stop-color="#2563EB"/>
-      <stop offset="1" stop-color="#7C3AED"/>
+    <linearGradient id="orange" x1="64" y1="38" x2="194" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF7A1A"/>
+      <stop offset="1" stop-color="#E94A18"/>
     </linearGradient>
-    <linearGradient id="g2" x1="74" y1="198" x2="168" y2="132" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#2563EB"/>
-      <stop offset="1" stop-color="#7C3AED"/>
+    <linearGradient id="dark" x1="80" y1="88" x2="180" y2="170" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2B1D2F"/>
+      <stop offset="1" stop-color="#111827"/>
     </linearGradient>
   </defs>
-  <path fill="url(#g1)" d="M34 214 102 43c8-20 36-20 44 0l76 171h-45l-19-45H91l-16 45H34Zm73-83h35l-18-45-17 45Z"/>
-  <path fill="url(#g2)" d="m99 180 43-28c8-5 18 1 18 10v4c0 5-2 9-7 12l-43 28c-8 5-18-1-18-10v-4c0-5 2-9 7-12Z"/>
+  <g stroke="#8A3518" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path fill="url(#orange)" d="M128 32c-46 0-76 33-76 76 0 31 13 48 31 60-5 22-19 29-32 23 4 24 31 35 52 16 8 13 17 19 25 19s17-6 25-19c21 19 48 8 52-16-13 6-27-1-32-23 18-12 31-29 31-60 0-43-30-76-76-76Z"/>
+    <path fill="none" d="M81 169c-12 9-27 12-41 5M99 183c-9 14-22 20-37 18M157 183c9 14 22 20 37 18M175 169c12 9 27 12 41 5"/>
+  </g>
+  <rect x="76" y="86" width="104" height="70" rx="31" fill="url(#dark)" stroke="#8A3518" stroke-width="7"/>
+  <circle cx="107" cy="120" r="12" fill="#F8FAFC"/>
+  <circle cx="149" cy="120" r="12" fill="#F8FAFC"/>
+  <circle cx="110" cy="120" r="5" fill="#111827"/>
+  <circle cx="152" cy="120" r="5" fill="#111827"/>
+  <path d="M111 140c10 7 24 7 34 0" fill="none" stroke="#F8FAFC" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="128" cy="50" r="5" fill="#FFB21A"/>
 </svg>
