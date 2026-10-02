@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/szaher/agentic-dev-env/schemas/repo-inspection-v1.schema.json",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/repo-inspection-v1.schema.json",
   "title": "agentic repo inspection v1",
   "type": "object",
   "required": [
