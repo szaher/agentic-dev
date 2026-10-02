@@ -29,6 +29,11 @@ from .providers import (
     update_provider, verify_provider,
 )
 from .remote import add as add_remote, get as get_remote, list_profiles as list_remotes, remove as remove_remote, status as remote_status, test as test_remote
+from .metrics import (
+    clear as clear_metrics, export as export_metrics, record as record_metric,
+    set_enabled as set_metrics_enabled, status as metrics_status,
+    summary as metrics_summary,
+)
 
 
 def _print_recommendations(path: str, task: str, max_skills: int, as_json: bool):
@@ -75,6 +80,15 @@ def _print_recommendations(path: str, task: str, max_skills: int, as_json: bool)
 
 def cmd_skills_suggest(args: argparse.Namespace) -> int:
     context, recs = _print_recommendations(args.path, args.task or "", args.max, args.json)
+    record_metric(
+        "skills.suggested",
+        {
+            "count": len(recs),
+            "recommended_count": sum(1 for item in recs if item.recommended),
+            "providers": sorted({item.skill.provider for item in recs}),
+        },
+        repository=context.root,
+    )
     if args.json:
         return 0
 
@@ -597,6 +611,14 @@ def cmd_capabilities_list(args: argparse.Namespace) -> int:
 
 def cmd_capabilities_suggest(args: argparse.Namespace) -> int:
     context, recs = suggest_for_repo(args.path, args.task or "")
+    record_metric(
+        "capabilities.suggested",
+        {
+            "count": len(recs),
+            "providers": sorted({item.provider for item in recs}),
+        },
+        repository=context.root,
+    )
     if args.json:
         print(json.dumps({
             "root": str(context.root),
@@ -917,6 +939,122 @@ def cmd_remote_test(args: argparse.Namespace) -> int:
         f"{'✓' if data['success'] else '!'} {args.name}: {data['host']}"
     ))
     return 0 if data["success"] else 1
+
+
+
+def _metric_value(raw: str):
+    lower = raw.lower()
+    if lower == "true":
+        return True
+    if lower == "false":
+        return False
+    if lower in {"null", "none"}:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        pass
+    try:
+        return float(raw)
+    except ValueError:
+        return raw
+
+
+def cmd_metrics_status(args: argparse.Namespace) -> int:
+    data = metrics_status()
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(f"enabled: {data['enabled']}")
+        print(f"events: {data['event_count']}")
+        print(f"storage: {data['storage']}")
+        print("network export: disabled")
+    return 0
+
+
+def cmd_metrics_enable(args: argparse.Namespace) -> int:
+    data = set_metrics_enabled(True)
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else "✓ local metrics enabled")
+    return 0
+
+
+def cmd_metrics_disable(args: argparse.Namespace) -> int:
+    data = set_metrics_enabled(False)
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else "✓ local metrics disabled")
+    return 0
+
+
+def cmd_metrics_summary(args: argparse.Namespace) -> int:
+    try:
+        data = metrics_summary(
+            since=args.since,
+            repository=args.path if args.path else None,
+        )
+    except ValueError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(f"events: {data['events']['total']}")
+        execution = data["execution"]
+        verification = data["verification"]
+        print(f"executions: {execution['count']} failures={execution['failures']} failure_rate={execution['failure_rate']}")
+        print(f"verification: {verification['count']} pass_rate={verification['pass_rate']} total_ms={verification['total_duration_ms']:.1f}")
+        print(f"time to first passing focused test ms: {verification['time_to_first_passing_focused_test_ms']}")
+        print(f"retries: {data['workflow']['retries']}")
+        print(f"skill activation ratio: {data['recommendations']['skill_activation_ratio']}")
+        print(f"capability enable ratio: {data['recommendations']['capability_enable_ratio']}")
+    return 0
+
+
+def cmd_metrics_export(args: argparse.Namespace) -> int:
+    try:
+        data = export_metrics(
+            args.output,
+            format=args.format,
+            since=args.since,
+            repository=args.path if args.path else None,
+        )
+    except ValueError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"✓ exported {data['event_count']} events to {data['output']}")
+    return 0
+
+
+def cmd_metrics_clear(args: argparse.Namespace) -> int:
+    try:
+        clear_metrics(yes=args.yes)
+    except PermissionError as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    print("✓ local metric events cleared")
+    return 0
+
+
+def cmd_metrics_record(args: argparse.Namespace) -> int:
+    fields = {}
+    for field in args.field:
+        if "=" not in field:
+            print(f"agentic: --field must be key=value: {field}", file=sys.stderr)
+            return 2
+        key, value = field.split("=", 1)
+        if not key.strip():
+            print("agentic: metric field key cannot be empty", file=sys.stderr)
+            return 2
+        fields[key.strip()] = _metric_value(value)
+    recorded = record_metric(
+        args.event,
+        fields,
+        repository=args.path if args.path else None,
+        session_id=args.session_id,
+    )
+    if not recorded:
+        print("metrics disabled; event not recorded")
+        return 0
+    print(f"✓ recorded {args.event}")
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1244,6 +1382,47 @@ def build_parser() -> argparse.ArgumentParser:
     obsstatus.set_defaults(func=cmd_infra_observability_status)
 
 
+
+
+    metrics = sub.add_parser("metrics", help="Local/off-by-default measurement and evaluation")
+    msub = metrics.add_subparsers(dest="metrics_command", required=True)
+
+    mstatus = msub.add_parser("status", help="Show local metrics state")
+    mstatus.add_argument("--json", action="store_true")
+    mstatus.set_defaults(func=cmd_metrics_status)
+
+    menable = msub.add_parser("enable", help="Enable local metrics collection")
+    menable.add_argument("--json", action="store_true")
+    menable.set_defaults(func=cmd_metrics_enable)
+
+    mdisable = msub.add_parser("disable", help="Disable local metrics collection")
+    mdisable.add_argument("--json", action="store_true")
+    mdisable.set_defaults(func=cmd_metrics_disable)
+
+    msummary = msub.add_parser("summary", help="Summarize collected local metrics")
+    msummary.add_argument("--since", default=None, help="Window such as 24h, 7d, or 4w")
+    msummary.add_argument("--path", default=None, help="Filter to one repository")
+    msummary.add_argument("--json", action="store_true")
+    msummary.set_defaults(func=cmd_metrics_summary)
+
+    mexport = msub.add_parser("export", help="Export events to a local file")
+    mexport.add_argument("--output", required=True)
+    mexport.add_argument("--format", choices=["json", "jsonl"], default="jsonl")
+    mexport.add_argument("--since", default=None)
+    mexport.add_argument("--path", default=None)
+    mexport.add_argument("--json", action="store_true")
+    mexport.set_defaults(func=cmd_metrics_export)
+
+    mclear = msub.add_parser("clear", help="Delete local metric events")
+    mclear.add_argument("--yes", action="store_true")
+    mclear.set_defaults(func=cmd_metrics_clear)
+
+    mrecord = msub.add_parser("record", help="Record a structured local event for integrations such as AgentFlow")
+    mrecord.add_argument("event")
+    mrecord.add_argument("--field", action="append", default=[], metavar="KEY=VALUE")
+    mrecord.add_argument("--path", default=None)
+    mrecord.add_argument("--session-id", default=None)
+    mrecord.set_defaults(func=cmd_metrics_record)
 
     remote = sub.add_parser("remote", help="SSH development profiles")
     rsub = remote.add_subparsers(dest="remote_command", required=True)
