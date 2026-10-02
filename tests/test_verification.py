@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import jsonschema
 
-from agentic_dev_env.verification import execute, plan
+from agentic_dev.verification import execute, plan
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,12 +45,12 @@ line-length = 100
     def schema(self) -> dict:
         return json.loads((ROOT / "schemas/verification-plan-v1.schema.json").read_text())
 
-    @patch("agentic_dev_env.verification.shutil.which", return_value=None)
+    @patch("agentic_dev.verification.shutil.which", return_value=None)
     def test_source_change_selects_repo_native_checks(self, which):
         root = self.repo()
         (root / "main.py").write_text("value = 2\n")
         with tempfile.TemporaryDirectory() as config:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 result = plan(root)
 
         jsonschema.validate(result, self.schema())
@@ -60,20 +60,20 @@ line-length = 100
         self.assertIn("uv run pyright", commands)
         self.assertEqual(result["changed_languages"], ["python"])
 
-    @patch("agentic_dev_env.verification.shutil.which", return_value=None)
+    @patch("agentic_dev.verification.shutil.which", return_value=None)
     def test_docs_only_change_skips_code_checks(self, which):
         root = self.repo()
         (root / "README.md").write_text("changed docs\n")
         subprocess.run(["git", "-C", str(root), "add", "README.md"], check=True)
         # untracked/working changes are intentionally part of the plan.
         with tempfile.TemporaryDirectory() as config:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 result = plan(root)
         self.assertEqual(result["checks"], [])
         self.assertTrue(result["skipped_checks"])
 
-    @patch("agentic_dev_env.verification.capability_status")
-    @patch("agentic_dev_env.verification.shutil.which", return_value=None)
+    @patch("agentic_dev.verification.capability_status")
+    @patch("agentic_dev.verification.shutil.which", return_value=None)
     def test_enabled_security_checks_join_plan(self, which, capability_state):
         capability_state.return_value = {
             "secret-scan": {"enabled": True},
@@ -88,8 +88,8 @@ line-length = 100
         caps = {item.get("capability") for item in result["checks"] if item["kind"] == "security"}
         self.assertEqual(caps, {"secret-scan", "sast"})
 
-    @patch("agentic_dev_env.verification._codegraph_affected")
-    @patch("agentic_dev_env.verification.shutil.which", return_value=None)
+    @patch("agentic_dev.verification._codegraph_affected")
+    @patch("agentic_dev.verification.shutil.which", return_value=None)
     def test_codegraph_affected_test_is_preserved_as_evidence(self, which, affected):
         affected.return_value = {
             "available": True,
