@@ -1,6 +1,6 @@
 # Execution backends and sandboxing
 
-`agentic-dev-env` separates **what should be verified** from **where the command runs**.
+`agentic-dev` separates **what should be verified** from **where the command runs**.
 
 Supported backends:
 
@@ -100,7 +100,7 @@ dagger --workspace <repo> workspace exec \
   -- sh -lc <command>
 ```
 
-`--no-apply` prevents Dagger workspace overlay changes from being written back by agentic-dev-env verification.
+`--no-apply` prevents Dagger workspace overlay changes from being written back by agentic-dev verification.
 
 Dagger manages its own engine/network behavior, therefore this backend requires `container.run` and `network.general`.
 
