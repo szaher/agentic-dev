@@ -1,6 +1,7 @@
 # AgentFlow / Agentic Dev boundary audit (v0.16, step 0)
 
-Status: **audit. No code changes in either project.** Tracking: #33.
+Status: **audit complete; decisions accepted** (maintainer review on #63, 2026-10-02).
+The audit made no code changes in either project. Tracking: #33.
 Audited: `szaher/agentflow` at `56b6e81` (agentflow-meta 0.1.0) against
 `agentic-dev` 0.15.0 (`a4c25e4`). All behaviour below was confirmed against
 source or by running the command.
@@ -98,43 +99,111 @@ visible to users and needs release notes.
 `repo inspect`, `doctor`, `verify plan`, `metric-event`, `execution-result`, and
 all `readiness-*` documents already have v1 schemas.
 
-## 4. Decisions needed (cross-project boundary)
+## 4. Accepted decisions (cross-project boundary)
 
-These decide who owns what, so they are the maintainer's call. Each has a
-recommendation.
+These are frozen for v0.16. The end state:
 
-1. **Is agentic-dev a hard prerequisite of AgentFlow?**
-   - (a) Required: AgentFlow deletes its detection code, and `agentflow doctor` fails with an install hint when `agentic` is missing or incompatible.
-   - (b) Optional: AgentFlow keeps its own detection as a fallback.
-   - **Recommend (a).** (b) keeps two sources of truth forever, which is exactly what v0.16 removes. Explicit `gates` in `.agentflow/config.json` stay as the escape hatch, with no detection.
-2. **Gate semantics: full vs change-aware.**
-   - **Recommend:** a gate stage runs **all discovered commands of the pattern's required kinds** (`verification.minimum`, e.g. `["lint","test"]`) for the whole project. That is today's AgentFlow behaviour, built on agentic-dev discovery (G7).
-   - Change-aware selection (`verify plan --base <run-start>`) is an opt-in pattern field. It can add checks to a gate but never drop one.
-   - Zero runnable checks for a required kind fails the gate.
-3. **Readiness scope for `requires.readiness`.**
-   - **Recommend `--scope local`** inside an AgentFlow run, because the agent works on the working tree.
-   - CI keeps `--scope ci`.
-   - The pattern requirement is a precondition checked at run start: it blocks with the `blockers` list and does not remediate. Running `ready make` is a separate, explicit human/agent action.
-4. **Instruction-file ownership (R1).**
-   - **Recommend:** AgentFlow's text becomes a managed block owned by AgentFlow (id `agentflow.workflow`), using agentic-dev's managed-block format and conflict rules.
-   - It is written either through a new generic, opt-in agentic-dev command (`agentic instructions block put --owner agentflow …`) or by AgentFlow following the documented marker contract.
-   - Never whole-file writes.
-5. **Skill placement (A5).**
-   - **Recommend:** AgentFlow ships its `agentflow-sdlc` skill as a provider package (provider-manifest-v1). agentic-dev installs it to each harness's directory.
-   - AgentFlow stops writing five copies itself.
-6. **Worktrees.**
-   - **Recommend:** opt-in per pattern (`isolation: worktree`). AgentFlow calls `agentic worktree create --json` per run or attempt, records the path in run state, and decides when `clean` is allowed.
-   - agentic-dev owns the Git mechanics only.
+```text
+Agent Ready   owns the standard
+Agentic Dev   owns repository/environment facts, verification mechanics,
+              shared-file mutation, capabilities, worktrees
+AgentFlow     owns workflow meaning, required gates, approvals, retries,
+              evidence, lifecycle
+```
 
-## 5. Proposed v0.16 slices (after decisions)
+1. **Agentic Dev is a hard runtime prerequisite of AgentFlow.**
+   - AgentFlow keeps no fallback for discovering repositories, tools, or verification commands, and no fallback for executing them.
+   - AgentFlow talks to Agentic Dev only through process + JSON contracts.
+   - Compatibility is negotiated through a machine-readable contract/feature handshake, never by parsing `agentic --version`.
+   - When the integration is released, AgentFlow's package declares an `agentic-dev` dependency.
+   - Explicit user gate commands remain supported, but they **execute through Agentic Dev**. There is no AgentFlow shell fallback.
+2. **Gates are full-project verification for every required kind.**
+   - The gate runs every discovered command of each kind the pattern requires.
+   - A required kind with zero runnable commands is a failure.
+   - Change-aware checks may only **augment** that baseline, never remove a required full check:
 
-Same order as v0.15: contracts first, then consumption.
+     ```text
+     required full checks  +  optional changed/affected checks
+     ```
 
-1. **agentic-dev contracts.** Unify command discovery (R4/G4). Give `verify run` a `no-checks` status with schema and exit code (G1/R2). Add a kind-filtered full verification mode (G7). Add schemas for worktree and capability status (G2/G3). Add a contract/compatibility document (G5). Add opencode coverage (G6).
-2. **AgentFlow consumes discovery + verification.** Delete `gates.detected_commands` and route gates through agentic-dev (Decision 2). Record the run base (R3). Fix `risk.classify` to include untracked files (R3; can ship immediately as an AgentFlow bug fix).
-3. **AgentFlow bootstrap via agentic-dev.** Managed instruction block (R1, Decision 4), skill provider (Decision 5), `doctor` delegation (A3).
-4. **Pattern requirements.** `requires.readiness`, `requires.capabilities`, `verification.minimum`, `isolation: worktree`. Metrics events (A15).
+   - The default is full-only, which preserves current behaviour. Augmentation is enabled per pattern.
+   - The run-start commit is recorded and passed as the change-aware `--base`.
+3. **`requires.readiness` is a blocking, non-remediating precondition.**
+   - It is checked with `local` scope in the **effective execution workspace**.
+   - A failed requirement blocks the run and reports the blockers.
+   - AgentFlow never calls `ready make` implicitly.
 
-Each AgentFlow slice ships with a contract test that runs the **installed**
-`agentic` binary and validates its JSON against agentic-dev's published
-schemas. There are no Python imports across projects.
+   ```text
+   create/select worktree (if the pattern enables isolation)
+       ↓
+   readiness + capability preconditions (in that workspace)
+       ↓
+   first workflow stage
+   ```
+
+4. **AgentFlow owns instruction content; Agentic Dev owns shared-file mutation.**
+   - Agentic Dev adds a generic managed-block process/JSON API, and AgentFlow places an `agentflow.workflow` block through it.
+   - AgentFlow does not reimplement the marker/hash/conflict protocol.
+   - Shared instruction files (`AGENTS.md`, `CLAUDE.md`, and other harness instruction files) are never rewritten wholesale.
+   - Files owned wholly by AgentFlow may still be replaced atomically.
+5. **AgentFlow owns the `agentflow-sdlc` skill content; Agentic Dev owns placement and activation.**
+   - The skill ships through the existing provider/skill mechanism.
+   - Provider-manifest v1 is not extended toward portable Agent artifacts; that is v0.17.
+   - The dedicated OpenCode reviewer file stays AgentFlow-owned for v0.16.
+6. **Worktrees are opt-in per pattern and default off.**
+   - There is **one worktree per run**, not one per attempt.
+   - Agentic Dev owns create/status/clean mechanics. AgentFlow owns lifecycle policy and stores the returned path, branch, and base in run state.
+   - Isolation is created before preconditions run.
+   - Worktrees are never force-cleaned automatically. Failed or blocked runs keep theirs; cleanup-on-success is optional pattern policy.
+
+Contract notes from the review:
+
+- **R2/G1:** `verify run` with no runnable checks, or a required kind with none, emits `status: "no-checks"` and `success: false`, and exits **1**. No new exit code is added. AgentFlow keys off the structured status, not only the exit code.
+- **R4/G4:** there is **one canonical command-discovery service** in Agentic Dev. `repo inspect`, readiness, and verification all consume it, and readiness keeps no hidden stronger discoverer.
+
+## 5. v0.16 plan
+
+Contracts first, then consumption. Prerequisites A and B come before the slices.
+
+**Prerequisite A: AgentFlow risk bug (R3).**
+- `risk.classify` includes untracked files.
+- A regression test pins the untracked `auth/tokens.py` case.
+- Ships now as a standalone AgentFlow fix. v0.16 may later replace this change discovery with Agentic Dev's.
+
+**Prerequisite B: Agent Ready Spec 1.0.1 command-evidence fix (R6).**
+- `agent.instructions.commands` means the instruction file documents at least one recognized **project command**, not merely a heading containing "commands".
+- This is a spec semantics bugfix, and the evidence becomes derived.
+- Agentic Dev re-vendors the bundle and updates the derived evidence.
+- It lands before AgentFlow relies on `requires.readiness`.
+
+**Slice 1: Agentic Dev contracts.**
+- Canonical command discovery (R4).
+- `verify run` schema with `no-checks` status (R2/G1).
+- Full kind-filtered verification (G7).
+- Worktree and capability-status schemas (G2/G3).
+- Compatibility handshake (G5).
+- Generic managed instruction-block API (decision 4).
+- OpenCode doctor coverage (G6).
+
+**Slice 2: AgentFlow discovery + gate consumption.**
+- Remove `detected_commands`.
+- Remove direct gate shell execution.
+- Record the run-start base.
+- Full required-kind verification.
+- Optional change-aware augmentation.
+
+**Slice 3: AgentFlow bootstrap integration.**
+- Managed `agentflow.workflow` block.
+- `agentflow-sdlc` skill provider.
+- `doctor` delegation.
+
+**Slice 4: pattern requirements.**
+- `requires.readiness`.
+- `requires.capabilities`.
+- `verification.minimum`.
+- Optional worktree isolation.
+- Metrics events.
+
+Each AgentFlow slice ships with a contract test. It runs the **installed**
+`agentic` binary and validates the JSON against Agentic Dev's published
+schemas. No Python imports cross projects.
