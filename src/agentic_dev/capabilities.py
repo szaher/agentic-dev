@@ -13,6 +13,7 @@ from .detect import RepoContext, detect_repo
 from .trust import check as trust_check
 from .providers import capability_entries as provider_capability_entries, provider_capability_command
 from .metrics import record as record_metric
+from .paths import config_dir
 
 
 @dataclass(frozen=True)
@@ -142,7 +143,7 @@ CAPABILITIES = (
 
 
 def _config_dir() -> Path:
-    return Path(os.environ.get("AGENTIC_DEV_CONFIG_DIR", Path.home() / ".config" / "agentic-dev"))
+    return config_dir()
 
 
 def _state_file() -> Path:
