@@ -14,6 +14,7 @@ from agentic_dev_env.execution import run as run_execution
 from agentic_dev_env.metrics import (
     clear, export, read_events, record, set_enabled, status, summary,
 )
+from agentic_dev_env.worktrees import create_worktree, clean_worktree
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -127,6 +128,27 @@ class MetricsTests(unittest.TestCase):
                 self.assertEqual(data["workflow"]["agentflow_stage_outcomes"]["review"]["passed"], 1)
                 self.assertEqual(data["changes"]["insertions"], 12)
                 self.assertEqual(data["changes"]["reverted_edits"], 1)
+
+
+    def test_worktree_lifecycle_emits_session_events(self):
+        with tempfile.TemporaryDirectory() as config, tempfile.TemporaryDirectory() as wtroot:
+            repo = self.make_repo()
+            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": config}):
+                set_enabled(True)
+                created = create_worktree(
+                    "metrics-session", repo,
+                    agent="codex", task="do something",
+                    worktree_root=wtroot,
+                )
+                clean_worktree("metrics-session", repo, force=True, delete_branch=True)
+                events = read_events(repository=repo)
+                types = [event["event_type"] for event in events]
+                self.assertIn("session.started", types)
+                self.assertIn("session.ended", types)
+                started = next(event for event in events if event["event_type"] == "session.started")
+                self.assertEqual(started["session_id"], "metrics-session")
+                self.assertTrue(started["data"]["has_task"])
+                self.assertNotIn("do something", json.dumps(started))
 
     def test_export_is_local_file_only_and_clear_requires_yes(self):
         with tempfile.TemporaryDirectory() as config, tempfile.TemporaryDirectory() as out:
