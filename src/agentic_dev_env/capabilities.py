@@ -12,6 +12,7 @@ from typing import Any
 from .detect import RepoContext, detect_repo
 from .trust import check as trust_check
 from .providers import capability_entries as provider_capability_entries, provider_capability_command
+from .metrics import record as record_metric
 
 
 @dataclass(frozen=True)
@@ -433,6 +434,17 @@ def enable(
         "trust_profile": selected.name,
     }
     _save_state(state)
+    record_metric(
+        "capability.enabled",
+        {
+            "name": name,
+            "category": cap.category,
+            "provider": cap.provider,
+            "mode": mode,
+            "target": target,
+        },
+        repository=path,
+    )
     print(f"✓ enabled {name} via {cap.provider} under trust profile {selected.name}")
     return 0
 
@@ -530,7 +542,7 @@ def run_capability(
             except json.JSONDecodeError as exc:
                 parse_error = str(exc)
                 payload = result.stdout
-        return {
+        output = {
             "schema_version": "1",
             "document_type": "agentic.capability-result",
             "capability": name,
@@ -545,6 +557,18 @@ def run_capability(
             "stderr": result.stderr.strip(),
             "parse_error": parse_error,
         }
+        record_metric(
+            "capability.completed",
+            {
+                "name": name,
+                "category": cap.category,
+                "provider": provider_name,
+                "success": output["success"],
+                "returncode": output["returncode"],
+            },
+            repository=root,
+        )
+        return output
     if cap.category != "security":
         raise ValueError("capability run is only implemented for security or command-backed provider capabilities")
     allowed, missing, selected = trust_check(
@@ -569,7 +593,7 @@ def run_capability(
     except json.JSONDecodeError as exc:
         parse_error = str(exc)
 
-    return {
+    output = {
         "schema_version": "1",
         "document_type": "agentic.capability-result",
         "capability": name,
@@ -584,6 +608,19 @@ def run_capability(
         "stderr": result.stderr.strip(),
         "parse_error": parse_error,
     }
+    record_metric(
+        "capability.completed",
+        {
+            "name": name,
+            "category": cap.category,
+            "provider": cap.provider,
+            "success": output["success"],
+            "returncode": output["returncode"],
+            "finding_count": output["finding_count"],
+        },
+        repository=root,
+    )
+    return output
 
 
 def status() -> dict:

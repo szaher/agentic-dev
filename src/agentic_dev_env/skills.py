@@ -11,6 +11,7 @@ from typing import Iterable
 
 from .detect import RepoContext, detect_repo
 from .providers import skill_entries as provider_skill_entries
+from .metrics import record as record_metric
 
 
 MANAGED_MARKER = "<!-- managed-by: agentic-dev-env -->"
@@ -191,6 +192,17 @@ def activate(
     (state_dir / "skills.json").write_text(json.dumps(state, indent=2) + "\n")
     if not shared:
         _git_exclude(root, "/.agentic/")
+    record_metric(
+        "skills.activated",
+        {
+            "count": len(set(names)),
+            "names": sorted(set(names)),
+            "target": target,
+            "shared": shared,
+            "providers": sorted({get_skill(name).provider for name in set(names)}),
+        },
+        repository=root,
+    )
     return installed
 
 

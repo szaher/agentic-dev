@@ -251,7 +251,7 @@ Potential features:
 
 ---
 
-## Milestone 9 — Measurement and evaluation
+## Milestone 9 — Measurement and evaluation ✅
 
 **Goal:** measure whether the environment actually improves coding-agent outcomes.
 
@@ -275,8 +275,8 @@ Telemetry should be local/off by default unless the user explicitly enables expo
 
 ## Immediate execution order
 
-Milestones 1–8 are complete. The remaining roadmap item is:
+Milestones 1–9 are complete.
 
-1. **Measurement and evaluation**
+The original roadmap is complete. Future work should be driven by measured usage, provider ecosystem needs, and AgentFlow integration rather than expanding the default tool surface indiscriminately.
 
 The inspection contract remains the API every higher-level AgentFlow integration can build on.

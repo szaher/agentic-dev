@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shlex
 import shutil
 import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
 from .detect import repo_root
 from .trust import check as trust_check
+from .metrics import record as record_metric
 
 
 BACKENDS = ("host", "container", "devcontainer", "dagger")
@@ -178,7 +181,8 @@ def _invoke(
     cwd: Path | None = None,
     shell: bool = False,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    started = time.perf_counter()
+    result = subprocess.run(
         argv,
         cwd=cwd,
         shell=shell,
@@ -186,6 +190,8 @@ def _invoke(
         text=True,
         check=False,
     )
+    result.agentic_duration_ms = (time.perf_counter() - started) * 1000
+    return result
 
 
 def _result(
@@ -197,6 +203,24 @@ def _result(
     completed: subprocess.CompletedProcess[str],
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    duration_ms = float(getattr(completed, "agentic_duration_ms", 0.0))
+    try:
+        tool = shlex.split(command)[0] if command.strip() else ""
+    except ValueError:
+        tool = ""
+    command_hash = hashlib.sha256(command.encode()).hexdigest()[:16]
+    record_metric(
+        "execution.completed",
+        {
+            "backend": backend,
+            "success": completed.returncode == 0,
+            "returncode": completed.returncode,
+            "duration_ms": duration_ms,
+            "tool": tool,
+            "command_hash": command_hash,
+        },
+        repository=root,
+    )
     return {
         "schema_version": "1",
         "document_type": "agentic.execution-result",
@@ -206,6 +230,7 @@ def _result(
         "argv": argv,
         "success": completed.returncode == 0,
         "returncode": completed.returncode,
+        "duration_ms": duration_ms,
         "stdout": completed.stdout,
         "stderr": completed.stderr,
         "metadata": metadata or {},

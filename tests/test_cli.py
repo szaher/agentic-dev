@@ -31,6 +31,26 @@ class CliIntegrationTests(unittest.TestCase):
         self.assertTrue(doctor.json)
 
 
+
+    def test_metrics_commands_parse(self):
+        parser = build_parser()
+        enabled = parser.parse_args(["metrics", "enable"])
+        self.assertEqual(enabled.metrics_command, "enable")
+
+        summary = parser.parse_args(["metrics", "summary", "--since", "7d", "--path", "."])
+        self.assertEqual(summary.since, "7d")
+        self.assertEqual(summary.path, ".")
+
+        event = parser.parse_args([
+            "metrics", "record", "agentflow.stage",
+            "--field", "stage=review",
+            "--field", "outcome=passed",
+            "--session-id", "run-1",
+        ])
+        self.assertEqual(event.event, "agentflow.stage")
+        self.assertEqual(event.field, ["stage=review", "outcome=passed"])
+        self.assertEqual(event.session_id, "run-1")
+
     def test_provider_and_remote_commands_parse(self):
         parser = build_parser()
         add_provider = parser.parse_args([

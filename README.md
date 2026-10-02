@@ -558,3 +558,39 @@ agentic remote test gpu-lab --json
 ```
 
 See [`docs/REMOTE.md`](docs/REMOTE.md).
+
+
+## Local measurement and evaluation
+
+Metrics are **off by default** and remain local:
+
+```bash
+agentic metrics status
+agentic metrics enable
+
+agentic metrics summary --since 7d --json
+```
+
+The built-in instrumentation measures execution failures/durations, verification duration and first passing test timing, change size, worktree sessions, recommendation uptake, capability outcomes, and CodeGraph use. AgentFlow or native agent integrations can add local structured events such as:
+
+```bash
+agentic metrics record agentflow.stage \
+  --session-id run-123 \
+  --field stage=review \
+  --field outcome=passed
+
+agentic metrics record context.used \
+  --session-id run-123 \
+  --field source=serena \
+  --field useful=true
+```
+
+Export is explicit and file-only:
+
+```bash
+agentic metrics export --output ./agentic-metrics.jsonl --since 7d
+```
+
+There is no network telemetry/export path.
+
+See [`docs/METRICS.md`](docs/METRICS.md).
