@@ -1,3 +1,3 @@
-"""agentic-dev-env CLI."""
+"""agentic-dev CLI."""
 
 __version__ = "0.13.0"
