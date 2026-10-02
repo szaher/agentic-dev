@@ -18,8 +18,8 @@ SENSITIVE_KEY = re.compile(
 
 def _config_dir() -> Path:
     return Path(os.environ.get(
-        "AGENTIC_DEV_ENV_CONFIG_DIR",
-        Path.home() / ".config" / "agentic-dev-env",
+        "AGENTIC_DEV_CONFIG_DIR",
+        Path.home() / ".config" / "agentic-dev",
     ))
 
 
