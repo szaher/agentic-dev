@@ -52,28 +52,10 @@
     },
     {
       "category": "agent",
-      "description": "An agent instruction file has a section documenting how to build, test, lint, or run the project.",
+      "description": "An agent instruction file documents at least one runnable project command, for example how to build, test, lint, or run the project.",
       "detection": {
-        "in": [
-          "file.agents_md",
-          "file.claude_md",
-          "file.copilot_instructions",
-          "file.cursor_rules",
-          "file.gemini_md"
-        ],
-        "kind": "heading",
-        "patterns": [
-          "command",
-          "build",
-          "test",
-          "lint",
-          "develop",
-          "getting started",
-          "setup",
-          "verif",
-          "check",
-          "\\brun"
-        ]
+        "definition": "Satisfied when an agent instruction file (the files matched by file.agents_md, file.claude_md, file.copilot_instructions, file.cursor_rules, and file.gemini_md) contains at least one project command. Command lines are inline code spans and the non-blank lines of fenced code blocks. Each command line is split into segments at `&&`, `||`, `;`, and `|`. In each segment a leading `$ ` prompt and leading `NAME=value` environment assignments are ignored, and the first word is the program. A segment is a project command when its program is one of `make`, `just`, `task`, `npm`, `npx`, `pnpm`, `yarn`, `bun`, `bunx`, `deno`, `nx`, `turbo`, `go`, `gofmt`, `golangci-lint`, `cargo`, `uv`, `poetry`, `pdm`, `hatch`, `pipenv`, `pytest`, `tox`, `nox`, `ruff`, `black`, `isort`, `flake8`, `pylint`, `mypy`, `pyright`, `basedpyright`, `eslint`, `prettier`, `biome`, `tsc`, `jest`, `vitest`, `playwright`, `gradle`, `mvn`, `cmake`, `ctest`, `bazel`, `bazelisk`, `swift`, `xcodebuild`, `dotnet`, `mix`, `sbt`, `stack`, `cabal`, `zig`, `rake`, `rspec`, `bundle`, `composer`, or `phpunit`; or `python`, `python3`, or `py` followed by `-m` and one of `pytest`, `unittest`, `mypy`, `ruff`, `black`, `build`, `tox`, `nox`, `pylint`, `flake8`, or `isort`; or a repository script invoked by path: it starts with `./`, exists as a file in the repository, and has no file extension or one of `.sh`, `.bash`, `.zsh`, `.ps1`, `.bat`, `.cmd`, `.py`, `.js`, `.mjs`, `.cjs`, `.ts`, `.rb`, or `.pl`. A heading alone, a mention of a data or documentation file, or a command of any other program (for example a workflow tool's own commands) is not evidence.",
+        "kind": "derived"
       },
       "id": "agent.instructions.commands",
       "title": "Instructions document commands"
@@ -1839,7 +1821,7 @@
       "depends_on": [
         "context.agent_instructions"
       ],
-      "description": "The agent instruction file has a section telling the agent how to build, test, and lint.",
+      "description": "The agent instruction file documents the project's runnable build, test, and lint commands.",
       "evaluation": {
         "on_missing": "fail"
       },
@@ -2670,7 +2652,7 @@
       "id": "advisory"
     }
   ],
-  "spec_version": "1.0.0",
+  "spec_version": "1.0.1",
   "statuses": [
     {
       "description": "The rule applies and its evidence expression is satisfied.",

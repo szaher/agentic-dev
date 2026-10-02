@@ -10,7 +10,7 @@
   <a href="https://github.com/szaher/agentic-dev/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/szaher/agentic-dev/ci.yml?branch=main&amp;label=CI"></a>
   <img alt="Python" src="https://img.shields.io/badge/Python-%3E%3D3.11-2563EB">
   <img alt="License" src="https://img.shields.io/badge/License-MIT-0F172A">
-  <img alt="Agent Ready Spec" src="https://img.shields.io/badge/Agent%20Ready%20Spec-v1.0.0-7C3AED">
+  <img alt="Agent Ready Spec" src="https://img.shields.io/badge/Agent%20Ready%20Spec-v1.0.1-7C3AED">
 </p>
 
 The goal is simple: make Claude Code, Codex, and similar agents spend less time rediscovering a repository and more time making correct changes with the right local tools.

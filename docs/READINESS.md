@@ -127,7 +127,7 @@ into a CI gate:
 
 ```bash
 agentic ready verify . --target structured \
-  --spec-version 1.0.0 --spec-sha256 <digest>   # optional pins
+  --spec-version 1.0.1 --spec-sha256 <digest>   # optional pins
 ```
 
 | Exit | Meaning |
@@ -166,7 +166,7 @@ By default Agentic Dev uses the spec bundle pinned into the distribution:
 
 ```text
 src/agentic_dev/readiness/specs/
-├── agent-ready-spec-1.0.0.json   copy of agent-ready spec/dist (canonical JSON)
+├── agent-ready-spec-1.0.1.json   copy of agent-ready spec/dist (canonical JSON)
 └── PIN.json                      spec_version, sha256, agent-ready source commit
 ```
 

@@ -290,6 +290,58 @@ class AssessmentTests(unittest.TestCase):
         files["AGENTS.md"] += "\n## Commands\n\n- `uv run pytest`\n"
         self.assertEqual(status(assess(self.repo(files)), "context.agent_instructions.commands"), "pass")
 
+    def commands_status(self, agents: str, extra: dict[str, str] | None = None) -> dict:
+        files = {**PYTHON_FOUNDATIONAL, **(extra or {}), "AGENTS.md": agents}
+        return result(assess(self.repo(files)), "context.agent_instructions.commands")
+
+    def test_a_commands_heading_alone_is_not_evidence(self):
+        # Spec 1.0.1 erratum: AgentFlow's "Useful commands" section lists only workflow commands.
+        agentflow = ("# Agentflow project instructions\n\n## Useful commands\n"
+                     "- `agentflow patterns`\n- `agentflow status`\n- `agentflow verify`\n")
+        self.assertEqual(self.commands_status(agentflow)["status"], "fail")
+        self.assertEqual(self.commands_status("# A\n\n## Testing\n\nRun the tests with pytest.\n")["status"], "fail")
+
+    def test_project_commands_in_code_are_evidence(self):
+        for text in (
+            "# A\n\n- Test: `uv run pytest`\n",
+            "# A\n\n```bash\n$ CI=1 make check\n```\n",
+            "# A\n\nUse `cd web && pnpm test`.\n",
+            "# A\n\n`python3 -m pytest -q`\n",
+            "# A\n\n~~~\ngo test ./...\n~~~\n",
+        ):
+            with self.subTest(text=text):
+                observed = self.commands_status(text)
+                self.assertEqual(observed["status"], "pass")
+        evidence = self.commands_status("# A\n\n## Commands\n\n- `uv run pytest`\n")["evidence"]
+        self.assertEqual(evidence, [{"line": 5, "source": "AGENTS.md", "type": "agent.instructions.commands",
+                                     "value": "uv run pytest"}])
+
+    def test_other_programs_and_missing_scripts_are_not_evidence(self):
+        for text in (
+            "# A\n\n`python -c 'print(1)'`\n",
+            "# A\n\n`python -m http.server`\n",
+            "# A\n\n`./scripts/missing.sh`\n",
+            "# A\n\n`../outside/test.sh`\n",
+            "# A\n\n`docker ps`\n",
+            "# A\n\nRead `.agentflow/config.json` first.\n",
+            "# A\n\nSee `./README.md`.\n",
+            "# A\n\n`scripts/test.sh`\n",
+        ):
+            with self.subTest(text=text):
+                existing = {".agentflow/config.json": "{}\n", "scripts/test.sh": "#!/bin/sh\n"}
+                self.assertEqual(self.commands_status(text, existing)["status"], "fail")
+
+    def test_existing_repository_scripts_are_evidence(self):
+        observed = self.commands_status("# A\n\n`./scripts/test.sh --fast`\n", {"scripts/test.sh": "#!/bin/sh\n"})
+        self.assertEqual(observed["status"], "pass")
+
+    def test_untracked_scripts_do_not_count_in_ci_scope(self):
+        files = {**PYTHON_FOUNDATIONAL, "AGENTS.md": "# A\n\n`./scripts/test.sh`\n"}
+        root = self.repo(files)
+        write(root, {"scripts/test.sh": "#!/bin/sh\n"})
+        self.assertEqual(status(assess(root), "context.agent_instructions.commands"), "pass")
+        self.assertEqual(status(assess(root, scope="ci"), "context.agent_instructions.commands"), "fail")
+
     def test_output_is_deterministic_and_has_no_absolute_paths(self):
         root = self.repo(PYTHON_FOUNDATIONAL)
         first = json.dumps(assess(root), sort_keys=True)

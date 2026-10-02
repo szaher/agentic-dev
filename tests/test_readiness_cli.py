@@ -13,6 +13,7 @@ from pathlib import Path
 import jsonschema
 
 from agentic_dev.cli import build_parser
+from agentic_dev.readiness import load_spec
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -96,7 +97,7 @@ class ReadyCliTests(unittest.TestCase):
         self.assertIn("Maturity: Foundational (level 1 of 4)", completed.stdout)
         self.assertIn("Target:   Structured — not met", completed.stdout)
         self.assertIn("✓ feedback.tests.available", completed.stdout)
-        self.assertIn("Spec: agent-ready 1.0.0", completed.stdout)
+        self.assertIn(f"Spec: agent-ready {load_spec().version}", completed.stdout)
 
     def test_explain_repository_and_rule(self):
         overview = run("ready", "explain", ".", cwd=self.root)
