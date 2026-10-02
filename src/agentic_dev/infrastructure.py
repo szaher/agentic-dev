@@ -260,8 +260,8 @@ def migration_check(
 
 def _db_state_dir() -> Path:
     base = Path(os.environ.get(
-        "AGENTIC_DEV_ENV_CONFIG_DIR",
-        Path.home() / ".config" / "agentic-dev-env",
+        "AGENTIC_DEV_CONFIG_DIR",
+        Path.home() / ".config" / "agentic-dev",
     ))
     return base / "infrastructure" / "databases"
 
@@ -292,7 +292,7 @@ def database_local_start(
     if engine not in {"postgres", "mysql"}:
         raise ValueError("local database engine must be postgres or mysql")
     if not image:
-        raise ValueError("--image is required; agentic-dev-env does not guess database image versions")
+        raise ValueError("--image is required; agentic-dev does not guess database image versions")
 
     slug = re.sub(r"[^A-Za-z0-9_.-]+", "-", name or f"{engine}-{secrets.token_hex(3)}")
     password = secrets.token_urlsafe(24)
