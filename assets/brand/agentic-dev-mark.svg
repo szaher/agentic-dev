@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Agentic Dev mark</title>
+  <desc id="desc">Angular A mark representing an agent path through a repository.</desc>
+  <defs>
+    <linearGradient id="g1" x1="34" y1="30" x2="206" y2="224" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#06B6D4"/>
+      <stop offset=".48" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="74" y1="198" x2="168" y2="132" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#g1)" d="M34 214 102 43c8-20 36-20 44 0l76 171h-45l-19-45H91l-16 45H34Zm73-83h35l-18-45-17 45Z"/>
+  <path fill="url(#g2)" d="m99 180 43-28c8-5 18 1 18 10v4c0 5-2 9-7 12l-43 28c-8 5-18-1-18-10v-4c0-5 2-9 7-12Z"/>
+</svg>
