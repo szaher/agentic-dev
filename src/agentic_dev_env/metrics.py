@@ -294,7 +294,13 @@ def summary(
             continue
         if event["event_type"] == "execution.completed":
             per_session[str(session)]["tool_calls"] += 1
+            per_session[str(session)]["agentic_executions"] += 1
             if not event["data"].get("success", False):
+                per_session[str(session)]["failed_tool_calls"] += 1
+        elif event["event_type"] == "tool.call":
+            per_session[str(session)]["tool_calls"] += 1
+            per_session[str(session)]["external_tool_calls"] += 1
+            if event["data"].get("success") is False:
                 per_session[str(session)]["failed_tool_calls"] += 1
         elif event["event_type"] == "retry":
             per_session[str(session)]["retries"] += 1
