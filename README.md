@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/agentic-dev-banner.svg" alt="Agentic Dev — Assess. Explain. Plan. Build agent-ready repositories." width="100%" />
+  <img src="assets/brand/agentic-dev-logo.svg" alt="Agentic Dev — Assess. Explain. Plan. Build agent-ready repositories." width="100%" />
 </p>
 
 <p align="center">
