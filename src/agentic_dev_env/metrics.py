@@ -247,10 +247,37 @@ def summary(
             outcome = str(event["data"].get("outcome") or "unknown")
             agentflow[stage][outcome] += 1
 
-    skill_suggested = sum(int(e["data"].get("count", 0)) for e in events if e["event_type"] == "skills.suggested")
-    skill_activated = sum(int(e["data"].get("count", 0)) for e in events if e["event_type"] == "skills.activated")
-    cap_suggested = sum(int(e["data"].get("count", 0)) for e in events if e["event_type"] == "capabilities.suggested")
-    cap_enabled = sum(1 for e in events if e["event_type"] == "capability.enabled")
+    skill_suggested_names = Counter()
+    skill_activated_names = Counter()
+    cap_suggested_names = Counter()
+    cap_enabled_names = Counter()
+    for event in events:
+        if event["event_type"] == "skills.suggested":
+            for name in event["data"].get("recommended_names") or event["data"].get("names") or []:
+                skill_suggested_names[str(name)] += 1
+        elif event["event_type"] == "skills.activated":
+            for name in event["data"].get("names") or []:
+                skill_activated_names[str(name)] += 1
+        elif event["event_type"] == "capabilities.suggested":
+            for name in event["data"].get("names") or []:
+                cap_suggested_names[str(name)] += 1
+        elif event["event_type"] == "capability.enabled":
+            name = event["data"].get("name")
+            if name:
+                cap_enabled_names[str(name)] += 1
+
+    skill_suggested = sum(skill_suggested_names.values())
+    skill_activated = sum(skill_activated_names.values())
+    skill_accepted = sum(
+        min(count, skill_activated_names.get(name, 0))
+        for name, count in skill_suggested_names.items()
+    )
+    cap_suggested = sum(cap_suggested_names.values())
+    cap_enabled = sum(cap_enabled_names.values())
+    cap_accepted = sum(
+        min(count, cap_enabled_names.get(name, 0))
+        for name, count in cap_suggested_names.items()
+    )
 
     change_insertions = sum(int(e["data"].get("insertions", 0)) for e in events if e["event_type"] == "change.measured")
     change_deletions = sum(int(e["data"].get("deletions", 0)) for e in events if e["event_type"] == "change.measured")
@@ -326,13 +353,15 @@ def summary(
         "recommendations": {
             "skills_suggested": skill_suggested,
             "skills_activated": skill_activated,
+            "skills_accepted_from_recommendations": skill_accepted,
             "skill_activation_ratio": (
-                skill_activated / skill_suggested if skill_suggested else None
+                skill_accepted / skill_suggested if skill_suggested else None
             ),
             "capabilities_suggested": cap_suggested,
             "capabilities_enabled": cap_enabled,
+            "capabilities_accepted_from_recommendations": cap_accepted,
             "capability_enable_ratio": (
-                cap_enabled / cap_suggested if cap_suggested else None
+                cap_accepted / cap_suggested if cap_suggested else None
             ),
         },
         "context": {
