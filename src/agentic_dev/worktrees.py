@@ -27,7 +27,7 @@ def default_root(repo: Path) -> Path:
     base = os.environ.get("AGENTIC_WORKTREE_ROOT")
     if base:
         return Path(base).expanduser().resolve() / repo.name
-    return Path.home() / ".local" / "share" / "agentic-dev-env" / "worktrees" / repo.name
+    return Path.home() / ".local" / "share" / "agentic-dev" / "worktrees" / repo.name
 
 
 def _exclude_local(root: Path, entry: str) -> None:
