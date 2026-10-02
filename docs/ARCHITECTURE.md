@@ -49,7 +49,7 @@ Machine state and repository state have different lifecycles.
 
 ### Machine bootstrap
 
-`setup-coding-agent-env.sh` manages things that should normally be shared across projects:
+`agentic-setup.sh` manages things that should normally be shared across projects:
 
 - CLI foundation;
 - runtime managers;
@@ -62,7 +62,7 @@ It should be run once and rerun when the workstation needs updating.
 
 ### Repository bootstrap
 
-`saad-tool-repo-init.sh` manages project-specific discovery:
+`agentic-repo-init.sh` manages project-specific discovery:
 
 - languages and frameworks;
 - package managers and lockfiles;
@@ -110,7 +110,7 @@ The initializer may create:
 ```text
 .codegraph/
 .serena/
-.saad-agent/repo.env
+.agentic/repo.env
 AGENTS.md
 CLAUDE.md
 ```
