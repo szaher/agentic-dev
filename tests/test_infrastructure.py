@@ -10,8 +10,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
-from agentic_dev_env import capabilities
-from agentic_dev_env.infrastructure import (
+from agentic_dev import capabilities
+from agentic_dev.infrastructure import (
     cloud_identity,
     cloud_write,
     cluster_run,
@@ -20,14 +20,14 @@ from agentic_dev_env.infrastructure import (
     database_local_start,
     observability_status,
 )
-from agentic_dev_env.trust import define_profile
+from agentic_dev.trust import define_profile
 
 
 class InfrastructureTests(unittest.TestCase):
     @contextmanager
     def config(self):
         with tempfile.TemporaryDirectory() as directory:
-            with patch.dict(os.environ, {"AGENTIC_DEV_ENV_CONFIG_DIR": directory}, clear=False):
+            with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": directory}, clear=False):
                 yield Path(directory)
 
     def enable(self, name: str, profile: str):
@@ -39,8 +39,8 @@ class InfrastructureTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 database_exec("sqlite", "DELETE FROM users", sqlite_file="db.sqlite", profile="development")
 
-    @patch("agentic_dev_env.infrastructure._capture")
-    @patch("agentic_dev_env.infrastructure.shutil.which")
+    @patch("agentic_dev.infrastructure._capture")
+    @patch("agentic_dev.infrastructure.shutil.which")
     def test_database_read_uses_sqlite_json_mode(self, which, capture):
         which.side_effect = lambda name: "/usr/bin/sqlite3" if name == "sqlite3" else None
         capture.return_value = subprocess.CompletedProcess(
@@ -55,8 +55,8 @@ class InfrastructureTests(unittest.TestCase):
         self.assertTrue(data["success"])
         self.assertEqual(data["result"][0]["count"], 2)
 
-    @patch("agentic_dev_env.infrastructure._capture")
-    @patch("agentic_dev_env.infrastructure.shutil.which")
+    @patch("agentic_dev.infrastructure._capture")
+    @patch("agentic_dev.infrastructure.shutil.which")
     def test_cluster_read_and_write_are_separate(self, which, capture):
         which.side_effect = lambda name: "/usr/bin/kubectl" if name == "kubectl" else None
         capture.return_value = subprocess.CompletedProcess(args=[], returncode=0, stdout="pod/a\n", stderr="")
@@ -74,8 +74,8 @@ class InfrastructureTests(unittest.TestCase):
             )
             self.assertEqual(write["mode"], "write")
 
-    @patch("agentic_dev_env.infrastructure._capture")
-    @patch("agentic_dev_env.infrastructure.shutil.which")
+    @patch("agentic_dev.infrastructure._capture")
+    @patch("agentic_dev.infrastructure.shutil.which")
     def test_cloud_identity_is_read_only_path(self, which, capture):
         which.side_effect = lambda name: "/usr/bin/aws" if name == "aws" else None
         capture.return_value = subprocess.CompletedProcess(
@@ -89,8 +89,8 @@ class InfrastructureTests(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertEqual(result["identity"]["Account"], "123")
 
-    @patch("agentic_dev_env.infrastructure._capture")
-    @patch("agentic_dev_env.infrastructure.shutil.which")
+    @patch("agentic_dev.infrastructure._capture")
+    @patch("agentic_dev.infrastructure.shutil.which")
     def test_cloud_write_requires_custom_write_permission(self, which, capture):
         which.side_effect = lambda name: "/usr/bin/aws" if name == "aws" else None
         capture.return_value = subprocess.CompletedProcess(args=[], returncode=0, stdout="{}", stderr="")
@@ -115,8 +115,8 @@ class InfrastructureTests(unittest.TestCase):
         self.assertEqual(result["environment"]["OTEL_SERVICE_NAME"], "checkout")
         self.assertEqual(result["environment"]["OTEL_EXPORTER_OTLP_HEADERS"], "<redacted>")
 
-    @patch("agentic_dev_env.infrastructure._capture")
-    @patch("agentic_dev_env.infrastructure.shutil.which")
+    @patch("agentic_dev.infrastructure._capture")
+    @patch("agentic_dev.infrastructure.shutil.which")
     def test_local_database_password_is_stored_mode_0600_and_redacted(self, which, capture):
         which.side_effect = lambda name: "/usr/bin/docker" if name == "docker" else None
         capture.side_effect = [
