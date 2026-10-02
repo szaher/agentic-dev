@@ -1,6 +1,6 @@
 # Optional capabilities
 
-`agentic-dev-env` keeps expensive, security-sensitive, or task-specific tools out of the default workstation setup. These are modeled as **optional capabilities**.
+`agentic-dev` keeps expensive, security-sensitive, or task-specific tools out of the default workstation setup. These are modeled as **optional capabilities**.
 
 Browser support is the first capability pack.
 
@@ -160,9 +160,9 @@ agentic capabilities disable browser-debug
 agentic capabilities disable browser-agent
 ```
 
-For MCP providers, agentic-dev-env removes the MCP registration it manages.
+For MCP providers, agentic-dev removes the MCP registration it manages.
 
-For Browser Use, disabling removes it from agentic-dev-env's enabled capability state but deliberately leaves the CLI installed. Package removal is a separate workstation-management action.
+For Browser Use, disabling removes it from agentic-dev's enabled capability state but deliberately leaves the CLI installed. Package removal is a separate workstation-management action.
 
 ## Security boundary
 
@@ -189,4 +189,4 @@ desktop
 external-services
 ```
 
-AgentFlow or another orchestration layer can later declare a required capability such as `browser-automation`; `agentic-dev-env` remains the owner of installing and reporting that capability.
+AgentFlow or another orchestration layer can later declare a required capability such as `browser-automation`; `agentic-dev` remains the owner of installing and reporting that capability.
