@@ -87,6 +87,7 @@ The intended integration boundary is process/API-level, not Python-internal impo
 AgentFlow
    |
    +-- agentic repo inspect . --json
+   +-- agentic ready assess . --json
    +-- agentic doctor --json
    |
    +-- consumes facts / commands / capabilities
@@ -95,6 +96,32 @@ AgentFlow
 
 This keeps AgentFlow independent of the implementation details of repository detection.
 
+
+## Agent Ready assessment
+
+```bash
+agentic ready assess . --json                      # agentic.readiness-assessment
+agentic ready explain . --json                     # agentic.readiness-explanation (subject: repository)
+agentic ready explain <rule-id> --path . --json    # agentic.readiness-explanation (subject: rule)
+agentic ready plan . --target optimized --json     # agentic.readiness-plan
+```
+
+Schemas: `schemas/readiness-assessment-v1.schema.json`, `schemas/readiness-explanation-v1.schema.json`, `schemas/readiness-plan-v1.schema.json`.
+
+Every document identifies the assessor, the exact Agent Ready spec (`name`, `version`, `sha256`, `source`), and the repository by directory name and Git `revision`. Absolute paths are never included, and evidence `source` values are repository-relative.
+
+Each entry in `requirements` has a `status`:
+
+| Status | Meaning |
+|---|---|
+| `pass` | the rule applies and its evidence is present (`evidence` lists it) |
+| `fail` | the rule applies and evidence is missing (`missing_evidence`) or prohibited evidence is present (`evidence`) |
+| `unknown` | the outcome cannot be established safely: the spec marks the rule as team policy, or this assessor does not support an evidence type (`unsupported_evidence`) |
+| `not-applicable` | the rule's applicability condition is not met (`applicability`) |
+
+`maturity.current` is requirement-based. A level is reached only when every required rule of that level and every lower level is `pass` or `not-applicable`, and `unknown` blocks like `fail`. `summary`, `pillars`, and `dimensions` counts are diagnostics and never determine maturity.
+
+The same repository content and the same spec version produce the same document, with no timestamps. Assessment is read-only: commands are never executed and nothing is written. Errors (unknown rule, target level, or spec) exit with status `2` and a message on stderr.
 
 ## Verification plan
 
