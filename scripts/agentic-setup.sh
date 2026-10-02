@@ -313,15 +313,19 @@ install_global_agent_policy() {
 
   start_marker='<!-- agentic-dev:start -->'
   end_marker='<!-- agentic-dev:end -->'
+  legacy_start_marker='<!-- agentic-dev-env:start -->'
+  legacy_end_marker='<!-- agentic-dev-env:end -->'
 
   update_policy_file() {
     local target="$1"
     mkdir -p "$(dirname "$target")"
     touch "$target"
     tmp="$(mktemp)"
-    awk -v start="$start_marker" -v end="$end_marker" '
-      $0 == start { skipping=1; next }
-      $0 == end { skipping=0; next }
+    awk \
+      -v start="$start_marker" -v end="$end_marker" \
+      -v legacy_start="$legacy_start_marker" -v legacy_end="$legacy_end_marker" '
+      $0 == start || $0 == legacy_start { skipping=1; next }
+      $0 == end || $0 == legacy_end { skipping=0; next }
       !skipping { print }
     ' "$target" > "$tmp"
     mv "$tmp" "$target"
