@@ -1,11 +1,11 @@
 # Roadmap
 
-This roadmap turns `agentic-dev-env` from a workstation bootstrap into a stable developer capability control plane for coding agents.
+This roadmap turns `agentic-dev` from a workstation bootstrap into a stable developer capability control plane for coding agents.
 
 The design boundary is:
 
 ```text
-agentic-dev-env
+agentic-dev
   owns environment, repository discovery, capabilities, skills, trust,
   execution options, and verification discovery
 
@@ -28,7 +28,7 @@ AgentFlow
 
 ## Milestone 1 — Stable inspection contract (v0.5)
 
-**Goal:** make `agentic-dev-env` consumable by AgentFlow and native integrations without parsing human-readable output.
+**Goal:** make `agentic-dev` consumable by AgentFlow and native integrations without parsing human-readable output.
 
 ### Deliverables
 
@@ -49,7 +49,7 @@ AgentFlow
 - deterministic output for the same filesystem/tool state;
 - schema validated in CI;
 - additive evolution within schema version 1;
-- AgentFlow can consume the output without importing agentic-dev-env internals.
+- AgentFlow can consume the output without importing agentic-dev internals.
 
 ---
 
