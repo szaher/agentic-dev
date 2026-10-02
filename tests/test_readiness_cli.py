@@ -45,6 +45,8 @@ class ReadyCliTests(unittest.TestCase):
     def setUpClass(cls):
         cls.root = Path(tempfile.mkdtemp(prefix="ready-cli-"))
         subprocess.run(["git", "init", "-q", str(cls.root)], check=True)
+        for key, value in (("maintenance.auto", "false"), ("gc.auto", "0")):
+            subprocess.run(["git", "-C", str(cls.root), "config", key, value], check=True)
         files = {
             "README.md": "# Demo\n\n## Setup\n\nRun `make test`.\n",
             "Makefile": "test:\n\tpytest\n\nlint:\n\truff check .\n",
