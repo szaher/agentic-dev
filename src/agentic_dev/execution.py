@@ -12,6 +12,7 @@ from typing import Any
 
 from .detect import repo_root
 from .trust import check as trust_check
+from .paths import config_dir
 from .metrics import record as record_metric
 
 
@@ -19,10 +20,7 @@ BACKENDS = ("host", "container", "devcontainer", "dagger")
 
 
 def _config_dir() -> Path:
-    return Path(os.environ.get(
-        "AGENTIC_DEV_CONFIG_DIR",
-        Path.home() / ".config" / "agentic-dev",
-    ))
+    return config_dir()
 
 
 def _user_file() -> Path:
