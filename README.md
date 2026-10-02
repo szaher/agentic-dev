@@ -1,6 +1,6 @@
 # Agentic Dev
 
-A macOS bootstrap, repository initializer, skill manager, and native integration layer for coding agents.
+A vendor-neutral development platform for making repositories agent-ready and preparing safe, reproducible environments for coding agents.
 
 The goal is simple: make Claude Code, Codex, and similar agents spend less time rediscovering a repository and more time making correct changes with the right local tools.
 
@@ -35,11 +35,11 @@ The model still reasons. Deterministic tools retrieve and verify. **Agent Skills
 
 ## What this repo provides
 
-Two scripts form the core workflow:
+The `agentic` CLI is the public command surface:
 
-- `agentic setup` — run once per Mac. Installs the common workstation foundation, optional language/toolchain support, and can wire supported tools into Claude Code and Codex.
-- `agentic repo init` — run per repository. Detects the languages, frameworks, package managers, runtime declarations, build/test commands, code-intelligence prerequisites, and relevant Agent Skills.
-- `agentic` — unified CLI for skill recommendation/activation, environment checks, repo workflows, and native Claude Code/Codex/Pi integrations.
+- `agentic setup` — run once per workstation. Installs the common foundation, optional language/toolchain support, and can wire supported tools into coding agents.
+- `agentic repo init` — run per repository. Detects languages, frameworks, package managers, runtime declarations, build/test commands, code-intelligence prerequisites, and relevant Agent Skills.
+- the rest of `agentic` manages skills, capabilities, trust, worktrees, verification, execution, providers, remotes, integrations, and local metrics.
 
 The repository initializer follows this rule:
 
@@ -49,25 +49,40 @@ It preserves existing `AGENTS.md`, `CLAUDE.md`, project version files, package-m
 
 ## Quick start
 
-### 1. Clone and install the toolkit
+### 1. Install Agentic Dev
+
+For normal use, install the Python distribution:
+
+```bash
+uv tool install agentic-dev
+agentic --version
+```
+
+For the `0.14.0a1` prerelease, use:
+
+```bash
+uv tool install --prerelease allow agentic-dev
+```
+
+The wheel includes the workstation/repository bootstrap helpers and policy template, so `agentic setup` and `agentic repo init` work from a PyPI installation.
+
+For development from source:
 
 ```bash
 git clone https://github.com/szaher/agentic-dev.git
 cd agentic-dev
 ./install.sh
-exec zsh
+exec "${SHELL:-zsh}"
 ```
 
-This installs the two commands into `~/.local/bin` and the shared policy template into `~/.config/agentic-dev`.
-
-You also get short aliases:
+The source installer puts `agentic` and its helper scripts in `~/.local/bin`. Pre-rename helper aliases are retained for one transition release, but new automation should use only:
 
 ```bash
 agentic setup
 agentic repo init
 ```
 
-The original script names remain available for compatibility.
+Existing user state is migrated non-destructively on first CLI startup. See [`docs/MIGRATION.md`](docs/MIGRATION.md).
 
 After workstation setup, verify the environment:
 
@@ -468,8 +483,9 @@ agentic-dev/
 │   ├── codex/
 │   └── pi/
 ├── scripts/
-│   ├── agentic setup
-│   └── agentic repo init
+│   ├── agentic-setup.sh
+│   ├── agentic-setup-linux.sh
+│   └── agentic-repo-init.sh
 ├── templates/
 │   └── global-agent-policy.md
 ├── docs/
