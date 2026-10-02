@@ -142,7 +142,7 @@ CAPABILITIES = (
 
 
 def _config_dir() -> Path:
-    return Path(os.environ.get("AGENTIC_DEV_ENV_CONFIG_DIR", Path.home() / ".config" / "agentic-dev-env"))
+    return Path(os.environ.get("AGENTIC_DEV_CONFIG_DIR", Path.home() / ".config" / "agentic-dev"))
 
 
 def _state_file() -> Path:
