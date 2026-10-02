@@ -69,7 +69,7 @@ def migrate_legacy_config() -> dict[str, Any]:
             previous = json.loads(marker.read_text())
         except (OSError, json.JSONDecodeError):
             previous = {}
-        return {"performed": False, "reason": "migration already recorded", **previous}
+        return {**previous, "performed": False, "reason": "migration already recorded"}
 
     if not source.exists():
         return {"performed": False, "reason": "no legacy config found"}
