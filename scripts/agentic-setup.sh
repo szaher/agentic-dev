@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 if [[ "$(uname -s)" == "Linux" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-  exec /usr/bin/env bash "$SCRIPT_DIR/setup-coding-agent-env-linux.sh" "$@"
+  exec /usr/bin/env bash "$SCRIPT_DIR/agentic-setup-linux.sh" "$@"
 fi
 
 # One-time macOS bootstrap for a high-quality local coding-agent workstation.
@@ -12,7 +12,7 @@ fi
 # Philosophy:
 # - install a small universal foundation once;
 # - optionally pre-install language/toolchain support;
-# - let saad-tool-repo-init.sh detect repo-specific needs later.
+# - let `agentic repo init` detect repo-specific needs later.
 
 BOLD='\033[1m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; BLUE='\033[0;34m'; RED='\033[0;31m'; RESET='\033[0m'
 
@@ -25,7 +25,7 @@ NO_GLOBAL_INSTRUCTIONS=0
 
 usage() {
   cat <<'USAGE'
-Usage: setup-coding-agent-env.sh [options]
+Usage: agentic setup [options]
 
 Options:
   --configure-agents        Configure detected coding agents for Serena/CodeGraph.
@@ -39,10 +39,10 @@ Options:
   -h, --help                Show help.
 
 Examples:
-  setup-coding-agent-env.sh
-  setup-coding-agent-env.sh --languages python,go,rust,node
-  setup-coding-agent-env.sh --scan-root ~/saad/projects
-  setup-coding-agent-env.sh --all-languages --configure-agents
+  agentic-setup.sh
+  agentic-setup.sh --languages python,go,rust,node
+  agentic-setup.sh --scan-root ~/saad/projects
+  agentic-setup.sh --all-languages --configure-agents
 USAGE
 }
 
@@ -300,9 +300,9 @@ install_global_agent_policy() {
   local script_dir policy_file="" candidate tmp start_marker end_marker
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
   for candidate in \
-    "${AGENTIC_DEV_ENV_POLICY_FILE:-}" \
+    "${AGENTIC_DEV_POLICY_FILE:-}" \
     "$script_dir/../templates/global-agent-policy.md" \
-    "$HOME/.config/agentic-dev-env/templates/global-agent-policy.md"; do
+    "$HOME/.config/agentic-dev/templates/global-agent-policy.md"; do
     [[ -n "$candidate" && -f "$candidate" ]] && { policy_file="$candidate"; break; }
   done
 
@@ -311,8 +311,8 @@ install_global_agent_policy() {
     return 0
   fi
 
-  start_marker='<!-- agentic-dev-env:start -->'
-  end_marker='<!-- agentic-dev-env:end -->'
+  start_marker='<!-- agentic-dev:start -->'
+  end_marker='<!-- agentic-dev:end -->'
 
   update_policy_file() {
     local target="$1"
@@ -373,5 +373,5 @@ Typical next steps:
   agentic integrations status
 
 Then, for each repository:
-  saad-tool-repo-init.sh .
+  agentic-repo-init.sh .
 NEXT
