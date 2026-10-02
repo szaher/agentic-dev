@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/capability-status-v1.schema.json",
+  "title": "agentic capability status v1",
+  "description": "Output of `agentic capabilities status --json`: a map from capability name to its state. It predates document envelopes, so it has no `document_type`; the same map is embedded as `capabilities` in doctor and repo-inspection documents.",
+  "type": "object",
+  "propertyNames": {
+    "pattern": "^[a-z][a-z0-9-]*$"
+  },
+  "additionalProperties": {
+    "type": "object",
+    "required": [
+      "category",
+      "provider",
+      "enabled",
+      "configuration",
+      "risk",
+      "required_permissions"
+    ],
+    "properties": {
+      "category": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "configuration": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "risk": {
+        "type": "string"
+      },
+      "required_permissions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -47,6 +47,11 @@ REGISTRY: tuple[Contract, ...] = (
     Contract("readiness-remediation", "1", ("agentic.readiness-remediation",)),
     Contract("readiness-verification", "1", ("agentic.readiness-verification",)),
     Contract("readiness-make", "1", ("agentic.readiness-make",)),
+    Contract("worktree", "1", ("agentic.worktree",)),
+    Contract("worktree-list", "1", ("agentic.worktrees",)),
+    Contract("worktree-status", "1", ("agentic.worktree-status",)),
+    Contract("worktree-clean", "1", ("agentic.worktree-clean",)),
+    Contract("capability-status", "1", ()),
 )
 
 FEATURES: tuple[str, ...] = (
@@ -58,6 +63,7 @@ FEATURES: tuple[str, ...] = (
     "verification.explicit-commands",
     "verification.full-kind-filter",
     "verification.no-checks-status",
+    "worktree.lifecycle",
 )
 
 # Process exit codes are part of the automation contract.

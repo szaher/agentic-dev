@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/worktree-clean-v1.schema.json",
+  "title": "agentic worktree clean v1",
+  "description": "Output of `agentic worktree clean NAME --json`. Cleaning never happens implicitly; a dirty worktree is refused unless --force is given.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "document_type",
+    "repository",
+    "worktree",
+    "branch",
+    "deleted_branch"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.worktree-clean"
+    },
+    "repository": {
+      "type": "string"
+    },
+    "worktree": {
+      "type": "string"
+    },
+    "branch": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "deleted_branch": {
+      "type": "boolean"
+    }
+  }
+}
