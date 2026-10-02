@@ -2,7 +2,7 @@
 
 Agentic development needs more than installed tools. Tools answer **what the agent can call**; skills encode **how to perform a class of engineering work well**.
 
-`agentic-dev-env` therefore detects repository and task context, recommends a small skill set, explains why each skill was suggested, and lets the user decide what to activate.
+`agentic-dev` therefore detects repository and task context, recommends a small skill set, explains why each skill was suggested, and lets the user decide what to activate.
 
 ## Native locations
 
