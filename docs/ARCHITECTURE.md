@@ -103,6 +103,27 @@ format -> lint -> typecheck/compiler -> focused tests -> broader tests -> git di
 
 A repository can replace any step with its own wrapper command. The initializer tries to discover and reuse existing `make`, package scripts, `mvnw`, `gradlew`, and similar conventions.
 
+## Readiness boundary
+
+Agent readiness is defined outside this repository, by the Agent Ready Specification in [szaher/agent-ready](https://github.com/szaher/agent-ready/tree/main/spec). Agentic Dev operationalizes it:
+
+```text
+agent-ready (spec v1: YAML -> canonical JSON bundle)
+      |  vendored, pinned by sha256 + source commit
+      v
+agentic_dev.readiness
+  spec.py       SpecSource: built-in pinned bundle | explicit local bundle
+  evidence.py   read-only repository view + evidence interpreter
+  assess.py     three-valued rule evaluation, explain/plan documents
+  maturity.py   requirement-based cumulative levels
+  render.py     text views over the JSON documents
+      |
+      v
+agentic ready assess|explain|plan [--json]   ->  AgentFlow / CI
+```
+
+`repo inspect` and `ready assess` stay separate. Inspection reports factual repository and environment observations. Readiness evaluates repository evidence against the spec. Readiness reuses inspection's command discovery as one evidence source, but it never reads workstation state (installed tools, metrics, credentials), which keeps assessments reproducible across machines. Readiness never writes to the repository. Remediation is classified (`automatable`, `assisted`, `human-required`) and only planned. See [READINESS.md](READINESS.md).
+
 ## Local state
 
 The initializer may create:

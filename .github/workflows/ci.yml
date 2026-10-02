@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install packaging tools
-        run: python -m pip install build twine
+        run: python -m pip install build twine 'jsonschema>=4.23'
       - name: Build wheel and source distribution
         run: python -m build
       - name: Validate distribution metadata
@@ -40,7 +40,7 @@ jobs:
           /tmp/agentic-wheel/bin/python -m pip install --upgrade pip
           /tmp/agentic-wheel/bin/python -m pip install "$(ls dist/*.whl)"
           cd /tmp
-          /tmp/agentic-wheel/bin/agentic --version | grep -F '0.14.0a1'
+          /tmp/agentic-wheel/bin/agentic --version | grep -F '0.14.0a2'
           /tmp/agentic-wheel/bin/agentic doctor --json >/dev/null
           /tmp/agentic-wheel/bin/agentic skills list >/dev/null
           /tmp/agentic-wheel/bin/python - <<'PY'
@@ -69,6 +69,12 @@ jobs:
           printf '# fixture\n' > "$tmprepo/README.md"
           /tmp/agentic-wheel/bin/agentic repo init "$tmprepo"             --check             --no-codegraph             --no-serena             --no-instructions             --no-install-language-deps             --no-runtime-install             --no-skills >/dev/null
 
+      - name: Agent Ready assessment from installed wheel
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/ci-readiness-smoke.sh /tmp/agentic-wheel/bin/agentic
+
       - name: Smoke test installed source distribution
         shell: bash
         run: |
@@ -77,7 +83,7 @@ jobs:
           /tmp/agentic-sdist/bin/python -m pip install --upgrade pip
           /tmp/agentic-sdist/bin/python -m pip install "$(ls dist/*.tar.gz)"
           cd /tmp
-          /tmp/agentic-sdist/bin/agentic --version | grep -F '0.14.0a1'
+          /tmp/agentic-sdist/bin/agentic --version | grep -F '0.14.0a2'
           /tmp/agentic-sdist/bin/python - <<'PY'
           from agentic_dev.cli import _helper_script
           from agentic_dev.skills import load_registry
@@ -85,3 +91,9 @@ jobs:
           assert _helper_script("agentic-repo-init.sh") is not None
           assert load_registry()
           PY
+
+      - name: Agent Ready assessment from installed sdist
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/ci-readiness-smoke.sh /tmp/agentic-sdist/bin/agentic
