@@ -307,7 +307,7 @@ class MaintenanceActionTests(RemediationCase):
 
     def propose_with(self, content: str, scenario: str = "foundational-python", **kwargs) -> dict:
         with patch.dict(MAINTENANCE_GENERATORS, {"readiness.ci-check": self.generator(content, **kwargs)}):
-            return propose(self.workspace / scenario, target="optimized")
+            return propose(self.workspace / scenario, target="optimized", maintenance=["readiness.ci-check"])
 
     def test_benign_ci_check_is_a_separate_safe_maintenance_action(self):
         baseline = propose(self.workspace / "foundational-python", target="optimized")

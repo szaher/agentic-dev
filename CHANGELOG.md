@@ -1,8 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.15.0a1 - Unreleased
 
-v0.15 (Agent Ready remediation + CI), slice 1: remediation contract.
+v0.15 (Agent Ready remediation + CI), in progress: slices 1–3.
+
+- Added `agentic ready verify --target LEVEL [--spec-version V] [--spec-sha256 H] [--scope ci|local] [--json]`, a CI gate with stable exit codes: `0` met, `1` not met (regression), `2` usage or spec error, `3` pinned spec mismatch. It emits the `readiness-verification-v1` contract, which names the blocking rules and reports the local vs CI-visible difference with the untracked files responsible.
+- Added the assessment `scope` (`local` / `ci`). In `ci` scope only tracked files are evidence, so untracked or Git-excluded local state (for example a locally generated `AGENTS.md`) never counts. Every readiness document reports its scope. `assess`, `explain`, and `plan` accept `--scope`.
+- Added the opt-in `readiness.ci-check` maintenance action (`ready apply --ci-check`). It writes a managed GitHub workflow that verifies today's CI-visible level, pinned to the exact Agentic Dev version and spec. It is evidence-neutral, read-only, and credential-free.
 
 - Added the remediation contract (`docs/REMEDIATION.md`) and `schemas/readiness-remediation-v1.schema.json`. Rule `remediations` (`safe-automatic` / `human-decision` / `unsupported`) are capped by the Agent Ready spec classification and never upgraded. Separate `maintenance_actions` provide operational scaffolding that must be evidence-neutral, never reference rules, use only allowlisted targets, and never add credentials, permissions, or installers. `changes` are managed blocks with normative apply, conflict, idempotency, and rollback semantics.
 - Added `agentic_dev.readiness.remediation.propose`, which builds a read-only remediation preview with change provenance and detected candidates (never selections) for policy decisions.

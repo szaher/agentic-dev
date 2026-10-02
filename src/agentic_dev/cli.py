@@ -26,6 +26,9 @@ from .verification import execute as execute_verification, plan as verification_
 from . import readiness
 from .readiness import render as readiness_render
 from .readiness.apply import ApplyError, run as readiness_run
+from .readiness.evidence import ScopeError
+from .readiness.remediation import CI_CHECK, ContractError
+from .readiness.verify import EXIT_USAGE, verify as readiness_verify
 from .providers import (
     add_provider, doctor as provider_doctor, installed as installed_providers,
     migrate as migrate_provider, remove_provider, update_all as update_all_providers,
@@ -388,7 +391,7 @@ def cmd_worktree_clean(args: argparse.Namespace) -> int:
 def _ready(args: argparse.Namespace, build, render) -> int:
     try:
         data = build()
-    except (readiness.SpecError, KeyError, FileNotFoundError) as exc:
+    except (readiness.SpecError, ScopeError, KeyError, FileNotFoundError) as exc:
         message = exc.args[0] if isinstance(exc, KeyError) and exc.args else str(exc)
         print(f"agentic ready: {message}", file=sys.stderr)
         return 2
@@ -402,7 +405,7 @@ def _ready(args: argparse.Namespace, build, render) -> int:
 def cmd_ready_assess(args: argparse.Namespace) -> int:
     return _ready(
         args,
-        lambda: readiness.assess(args.path, spec=args.spec, target=args.target),
+        lambda: readiness.assess(args.path, spec=args.spec, target=args.target, scope=args.scope),
         lambda data: readiness_render.assessment(data, verbose=args.verbose),
     )
 
@@ -412,11 +415,11 @@ def cmd_ready_explain(args: argparse.Namespace) -> int:
     def build() -> dict:
         spec = readiness.load_spec(args.spec)
         if subject in spec.rules:
-            return readiness.explain_rule(subject, args.path, spec=spec)
+            return readiness.explain_rule(subject, args.path, spec=spec, scope=args.scope)
         looks_like_rule = subject.split(".")[0] in spec.pillars and not Path(subject).exists()
         if looks_like_rule:
-            return readiness.explain_rule(subject, args.path, spec=spec)
-        return readiness.explain_repository(subject, spec=spec, target=args.target)
+            return readiness.explain_rule(subject, args.path, spec=spec, scope=args.scope)
+        return readiness.explain_repository(subject, spec=spec, target=args.target, scope=args.scope)
 
     def render(data: dict) -> str:
         if data["subject"] == "rule":
@@ -429,15 +432,16 @@ def cmd_ready_explain(args: argparse.Namespace) -> int:
 def cmd_ready_plan(args: argparse.Namespace) -> int:
     return _ready(
         args,
-        lambda: readiness.plan(args.path, spec=args.spec, target=args.target),
+        lambda: readiness.plan(args.path, spec=args.spec, target=args.target, scope=args.scope),
         readiness_render.plan,
     )
 
 
 def _ready_change(args: argparse.Namespace, *, dry_run: bool, show_diff: bool) -> int:
     try:
-        data = readiness_run(args.path, spec=args.spec, target=args.target, dry_run=dry_run)
-    except (readiness.SpecError, FileNotFoundError) as exc:
+        data = readiness_run(args.path, spec=args.spec, target=args.target, dry_run=dry_run,
+                             maintenance=(CI_CHECK,) if args.ci_check else ())
+    except (readiness.SpecError, ContractError, FileNotFoundError) as exc:
         print(f"agentic ready: {exc}", file=sys.stderr)
         return 2
     except ApplyError as exc:
@@ -448,6 +452,20 @@ def _ready_change(args: argparse.Namespace, *, dry_run: bool, show_diff: bool) -
     else:
         print(readiness_render.remediation_run(data, show_diff=show_diff), end="")
     return 1 if data["result"]["status"] == "conflict" else 0
+
+
+def cmd_ready_verify(args: argparse.Namespace) -> int:
+    try:
+        data = readiness_verify(args.path, target=args.target, spec=args.spec, scope=args.scope,
+                                spec_version=args.spec_version, spec_sha256=args.spec_sha256)
+    except (readiness.SpecError, ScopeError, FileNotFoundError) as exc:
+        print(f"agentic ready: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(readiness_render.verification(data))
+    return data["exit_code"]
 
 
 def cmd_ready_diff(args: argparse.Namespace) -> int:
@@ -1210,8 +1228,13 @@ def build_parser() -> argparse.ArgumentParser:
                              help="explicit Agent Ready spec bundle (file or spec/dist directory); default: built-in")
         command.add_argument("--json", action="store_true")
 
+    def scope_option(command: argparse.ArgumentParser, default: str) -> None:
+        command.add_argument("--scope", choices=["local", "ci"], default=default,
+                             help=f"evidence scope: local working tree, or ci = tracked files only (default: {default})")
+
     rassess = rsub.add_parser("assess", help="Assess maturity and every requirement")
     rassess.add_argument("path", nargs="?", default=".")
+    scope_option(rassess, "local")
     rassess.add_argument("--verbose", action="store_true", help="also list not-applicable rules")
     ready_common(rassess)
     rassess.set_defaults(func=cmd_ready_assess)
@@ -1219,16 +1242,20 @@ def build_parser() -> argparse.ArgumentParser:
     rexplain = rsub.add_parser("explain", help="Explain the maturity outcome or a single rule")
     rexplain.add_argument("subject", nargs="?", default=".", help="repository path or rule id")
     rexplain.add_argument("--path", default=".", help="repository to evaluate a rule against")
+    scope_option(rexplain, "local")
     ready_common(rexplain)
     rexplain.set_defaults(func=cmd_ready_explain)
 
     rplan = rsub.add_parser("plan", help="Read-only remediation plan toward a target level")
     rplan.add_argument("path", nargs="?", default=".")
+    scope_option(rplan, "local")
     ready_common(rplan)
     rplan.set_defaults(func=cmd_ready_plan)
 
     rdiff = rsub.add_parser("diff", help="Preview safe managed-block changes as a unified diff (writes nothing)")
     rdiff.add_argument("path", nargs="?", default=".")
+    rdiff.add_argument("--ci-check", action="store_true",
+                       help="also propose the readiness CI check workflow (maintenance action)")
     ready_common(rdiff)
     rdiff.set_defaults(func=cmd_ready_diff)
 
@@ -1244,8 +1271,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rapply.add_argument("path", nargs="?", default=".")
     rapply.add_argument("--dry-run", action="store_true", help="plan and show the diff without writing")
+    rapply.add_argument("--ci-check", action="store_true",
+                        help="also add/update the readiness CI check workflow (maintenance action, opt-in)")
     ready_common(rapply)
     rapply.set_defaults(func=cmd_ready_apply)
+
+    rverify = rsub.add_parser(
+        "verify",
+        help="Fail when readiness is below a target level (for CI)",
+        description=(
+            "Verify that a repository meets a target maturity level. Defaults to the ci scope: only files "
+            "tracked by Git count, so local or Git-excluded state never makes CI pass. Exit codes: 0 target "
+            "met, 1 target not met, 2 usage or spec error, 3 pinned spec mismatch."
+        ),
+    )
+    rverify.add_argument("path", nargs="?", default=".")
+    rverify.add_argument("--target", required=True, metavar="LEVEL", help="maturity level that must be met")
+    rverify.add_argument("--spec", default=None, metavar="PATH", help="explicit spec bundle (default: built-in)")
+    rverify.add_argument("--spec-version", default=None, help="fail (exit 3) unless the spec version equals this")
+    rverify.add_argument("--spec-sha256", default=None, help="fail (exit 3) unless the spec digest equals this")
+    scope_option(rverify, "ci")
+    rverify.add_argument("--json", action="store_true")
+    rverify.set_defaults(func=cmd_ready_verify)
 
     skills = sub.add_parser("skills", help="Context-aware Agent Skills")
     ssub = skills.add_subparsers(dest="skills_command", required=True)

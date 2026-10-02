@@ -15,8 +15,10 @@
     "maturity",
     "remediations",
     "maintenance_actions",
+    "maintenance_skipped",
     "changes",
-    "summary"
+    "summary",
+    "scope"
   ],
   "properties": {
     "schema_version": {
@@ -153,6 +155,34 @@
               "type": "null"
             }
           ]
+        }
+      }
+    },
+    "scope": {
+      "enum": [
+        "local",
+        "ci"
+      ],
+      "description": "local: the working tree. ci: only files tracked by Git (what a CI checkout contains); untracked or Git-excluded local state is never evidence."
+    },
+    "maintenance_skipped": {
+      "type": "array",
+      "description": "Requested maintenance actions that were not proposed, and why.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/maintenanceId"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     }

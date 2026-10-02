@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/readiness-verification-v1.schema.json",
+  "title": "agentic readiness verification v1",
+  "description": "Result of `agentic ready verify --json`. Readiness as a maintained repository property, checked in CI. Exit codes: 0 target met, 1 target not met, 2 usage/spec error (no document), 3 pinned spec mismatch.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "document_type",
+    "assessor",
+    "spec",
+    "repository",
+    "scope",
+    "target",
+    "passed",
+    "exit_code",
+    "pin",
+    "maturity",
+    "blockers",
+    "local"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.readiness-verification"
+    },
+    "assessor": {
+      "$ref": "#/$defs/assessor"
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    },
+    "repository": {
+      "$ref": "#/$defs/repository"
+    },
+    "scope": {
+      "enum": [
+        "local",
+        "ci"
+      ],
+      "description": "ci (default): only files tracked by Git count as evidence."
+    },
+    "target": {
+      "$ref": "#/$defs/level"
+    },
+    "passed": {
+      "type": "boolean"
+    },
+    "exit_code": {
+      "enum": [
+        0,
+        1,
+        3
+      ]
+    },
+    "pin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spec_version",
+        "spec_sha256",
+        "matched",
+        "problems"
+      ],
+      "properties": {
+        "spec_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spec_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "matched": {
+          "type": "boolean"
+        },
+        "problems": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "maturity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current",
+        "target",
+        "target_met"
+      ],
+      "properties": {
+        "current": {
+          "$ref": "#/$defs/level"
+        },
+        "target": {
+          "$ref": "#/$defs/level"
+        },
+        "target_met": {
+          "type": "boolean"
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "required_from",
+          "status",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/ruleId"
+          },
+          "title": {
+            "type": "string"
+          },
+          "required_from": {
+            "$ref": "#/$defs/level"
+          },
+          "status": {
+            "enum": [
+              "fail",
+              "unknown"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "local": {
+      "description": "For ci scope: the local (working tree) view and every rule whose status differs.",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maturity",
+            "target_met",
+            "differences"
+          ],
+          "properties": {
+            "maturity": {
+              "$ref": "#/$defs/level"
+            },
+            "target_met": {
+              "type": "boolean"
+            },
+            "differences": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "rule_id",
+                  "severity",
+                  "required_from",
+                  "local_status",
+                  "ci_status",
+                  "local_only_evidence"
+                ],
+                "properties": {
+                  "rule_id": {
+                    "$ref": "#/$defs/ruleId"
+                  },
+                  "severity": {
+                    "$ref": "#/$defs/severity"
+                  },
+                  "required_from": {
+                    "$ref": "#/$defs/level"
+                  },
+                  "local_status": {
+                    "enum": [
+                      "pass",
+                      "fail",
+                      "unknown",
+                      "not-applicable"
+                    ]
+                  },
+                  "ci_status": {
+                    "enum": [
+                      "pass",
+                      "fail",
+                      "unknown",
+                      "not-applicable"
+                    ]
+                  },
+                  "local_only_evidence": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Untracked files that provide the local evidence."
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "assessor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "agentic-dev"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "sha256",
+        "source"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source": {
+          "enum": [
+            "builtin",
+            "path"
+          ]
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "revision"
+      ],
+      "description": "Identifies the checkout without exposing absolute paths.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40,64}$"
+        }
+      }
+    },
+    "level": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "ruleId": {
+      "type": "string",
+      "pattern": "^(context|conventions|constraints|feedback)(\\.[a-z][a-z0-9_]*)+$"
+    },
+    "severity": {
+      "enum": [
+        "required",
+        "recommended",
+        "advisory"
+      ]
+    }
+  }
+}

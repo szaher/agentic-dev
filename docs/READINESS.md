@@ -30,6 +30,10 @@ agentic ready plan . --target optimized --json  # agentic.readiness-plan v1
 
 agentic ready diff .                            # preview safe managed-block changes (writes nothing)
 agentic ready apply . --target structured       # apply safe changes, all-or-nothing
+agentic ready apply . --ci-check                # also add the readiness CI check (opt-in)
+
+agentic ready verify . --target structured      # CI gate: tracked files only; exit 0/1/2/3
+agentic ready assess . --scope ci               # what CI can see
 ```
 
 Every command accepts `--json` and `--spec PATH` (see [Spec source](#spec-source)).
@@ -115,6 +119,46 @@ The path you pass is resolved to its Git top-level directory, like
 `agentic repo inspect`. A non-Git directory is assessed as-is (tracked-file
 checks then fall back to the files present).
 
+## CI: `ready verify`
+
+Readiness is a repository property that can regress. `ready verify` turns it
+into a CI gate:
+
+```bash
+agentic ready verify . --target structured \
+  --spec-version 1.0.0 --spec-sha256 <digest>   # optional pins
+```
+
+| Exit | Meaning |
+|---|---|
+| `0` | target met (and the pin, if any, matched) |
+| `1` | target not met: a regression or an unmet goal |
+| `2` | usage or spec error (for example a missing `--target`, or the `ci` scope outside a Git repository) |
+| `3` | pinned spec mismatch: the installed assessor's spec version or digest differs from the pin |
+
+`verify` defaults to the **`ci` scope**: only files tracked by Git are evidence.
+Local, untracked, or Git-excluded state, such as the `AGENTS.md` that
+`agentic repo init` creates and excludes locally, can never make CI pass. Run
+locally, it also reports the local view and every rule whose status differs,
+naming the untracked files responsible:
+
+```text
+Local readiness:      Structured
+CI-visible readiness: Foundational
+
+Difference (local evidence CI cannot see):
+  context.agent_instructions: local pass, CI fail
+    local evidence: AGENTS.md (not tracked by Git)
+```
+
+Every readiness document reports its `scope`. `assess`, `explain`, and `plan`
+accept `--scope ci` too.
+
+`agentic ready apply --ci-check` writes a managed workflow
+(`.github/workflows/agentic-readiness.yml`) that runs `verify` with today's
+CI-visible level as the floor, the exact Agentic Dev version, and the pinned spec.
+See [REMEDIATION.md](REMEDIATION.md#maintenance-catalog).
+
 ## Spec source
 
 By default Agentic Dev uses the spec bundle pinned into the distribution:
@@ -168,7 +212,7 @@ The contract for *applying* fixes (managed blocks, idempotency, conflicts, rollb
 dependency order, then recommended and optional items. It only *describes*
 remediation. `agentic ready diff` and `agentic ready apply` perform the
 `safe-automatic` part as managed blocks (see [REMEDIATION.md](REMEDIATION.md)).
-CI regression gates (`ready verify`) follow later in v0.15.
+CI regression gates use `ready verify` (above).
 
 ## Machine-readable contracts
 

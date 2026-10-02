@@ -202,12 +202,13 @@ def _counts(results: list[dict[str, Any]]) -> dict[str, int]:
     return counts
 
 
-def _context(path: str | Path, spec: Spec | str | Path | None) -> tuple[Spec, EvidenceCollector]:
+def _context(path: str | Path, spec: Spec | str | Path | None,
+             scope: str = "local") -> tuple[Spec, EvidenceCollector]:
     resolved = spec if isinstance(spec, Spec) else load_spec(spec)
     root = repo_root(path)
     if not root.is_dir():
         raise FileNotFoundError(f"repository path does not exist: {Path(path).name or path}")
-    return resolved, EvidenceCollector.for_repository(root, resolved)
+    return resolved, EvidenceCollector.for_repository(root, resolved, scope)
 
 
 def _header(document_type: str, spec: Spec, collector: EvidenceCollector) -> dict[str, Any]:
@@ -217,6 +218,7 @@ def _header(document_type: str, spec: Spec, collector: EvidenceCollector) -> dic
         "assessor": {"name": "agentic-dev", "version": __version__},
         "spec": spec.identity(),
         "repository": {"name": collector.repo.root.name, "revision": collector.repo.revision},
+        "scope": collector.repo.scope,
     }
 
 
@@ -225,10 +227,14 @@ def assess(
     *,
     spec: Spec | str | Path | None = None,
     target: str | None = None,
+    scope: str = "local",
 ) -> dict[str, Any]:
-    """Assess a repository against the Agent Ready spec. Never modifies the repository."""
+    """Assess a repository against the Agent Ready spec. Never modifies the repository.
 
-    resolved, collector = _context(path, spec)
+    ``scope="ci"`` uses only files tracked by Git (what CI sees).
+    """
+
+    resolved, collector = _context(path, spec, scope)
     assessor = Assessor(resolved, collector)
     results = [assessor.rule_result(resolved.rules[rule_id]) for rule_id in sorted(resolved.rules)]
     statuses = {result["id"]: result["status"] for result in results}
@@ -265,10 +271,11 @@ def explain_repository(
     *,
     spec: Spec | str | Path | None = None,
     target: str | None = None,
+    scope: str = "local",
 ) -> dict[str, Any]:
     """Why the repository has its maturity level, level by level."""
 
-    assessment = assess(path, spec=spec, target=target)
+    assessment = assess(path, spec=spec, target=target, scope=scope)
     by_id = {result["id"]: result for result in assessment["requirements"]}
     levels = []
     for level in assessment["maturity"]["levels"]:
@@ -278,7 +285,7 @@ def explain_repository(
             if by_id[rid]["severity"] == "required" and by_id[rid]["required_from"] == level["id"]
         ]
         levels.append({**level, "requirements": requirements})
-    document = {key: assessment[key] for key in ("schema_version", "assessor", "spec", "repository")}
+    document = {key: assessment[key] for key in ("schema_version", "assessor", "spec", "repository", "scope")}
     document.update({
         "document_type": EXPLANATION,
         "subject": "repository",
@@ -295,6 +302,7 @@ def explain_rule(
     path: str | Path = ".",
     *,
     spec: Spec | str | Path | None = None,
+    scope: str = "local",
 ) -> dict[str, Any]:
     """A rule's definition, its evidence semantics, and its status in the repository."""
 
@@ -304,11 +312,11 @@ def explain_rule(
         hint = f" Rules in this pillar: {', '.join(close)}." if close else ""
         raise KeyError(f"unknown rule {rule_id!r} in {resolved.name} {resolved.version}.{hint}")
     rule = resolved.rules[rule_id]
-    assessment = assess(path, spec=resolved)
+    assessment = assess(path, spec=resolved, scope=scope)
     result = next(r for r in assessment["requirements"] if r["id"] == rule_id)
     refs = [ref for ref, _ in references(rule.get("applies_when"))] + [ref for ref, _ in references(rule["evidence"])]
     definition = {key: rule[key] for key in sorted(rule)}
-    document = {key: assessment[key] for key in ("schema_version", "assessor", "spec", "repository")}
+    document = {key: assessment[key] for key in ("schema_version", "assessor", "spec", "repository", "scope")}
     document.update({
         "document_type": EXPLANATION,
         "subject": "rule",
@@ -374,11 +382,12 @@ def plan(
     *,
     spec: Spec | str | Path | None = None,
     target: str | None = None,
+    scope: str = "local",
 ) -> dict[str, Any]:
     """A read-only remediation plan toward ``target`` (default: the next level)."""
 
     resolved = spec if isinstance(spec, Spec) else load_spec(spec)
-    assessment = assess(path, spec=resolved, target=target)
+    assessment = assess(path, spec=resolved, target=target, scope=scope)
     state = assessment["maturity"]
     goal_rank = state["target_rank"]
     open_items = [
@@ -394,7 +403,7 @@ def plan(
     classes = {"automatable": 0, "assisted": 0, "human-required": 0}
     for step in required:
         classes[step["classification"]] += 1
-    document = {key: assessment[key] for key in ("schema_version", "assessor", "spec", "repository")}
+    document = {key: assessment[key] for key in ("schema_version", "assessor", "spec", "repository", "scope")}
     document.update({
         "document_type": PLAN,
         "read_only": True,

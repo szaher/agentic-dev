@@ -287,3 +287,38 @@ def remediation_run(document: dict[str, Any], *, show_diff: bool) -> str:
         lines.append("Apply with: agentic ready apply <path>" + (
             f" --target {state['target']}" if state["target"] else ""))
     return "\n".join(lines).rstrip() + "\n"
+
+
+def verification(document: dict[str, Any]) -> str:
+    state = document["maturity"]
+    verdict = "PASSED" if document["passed"] else ("SPEC PIN MISMATCH" if not document["pin"]["matched"] else "FAILED")
+    view = "CI-visible (tracked files only)" if document["scope"] == "ci" else "local working tree"
+    lines = [
+        f"Agent Ready verify — {document['repository']['name']}: {verdict}",
+        _spec_line(document),
+    ]
+    pin = document["pin"]
+    if pin["spec_version"] or pin["spec_sha256"]:
+        lines.append(f"Pinned spec: {'matches' if pin['matched'] else 'DOES NOT MATCH'}")
+        lines += [f"  - {problem}" for problem in pin["problems"]]
+    lines += [
+        "",
+        f"Scope:   {view}",
+        f"Target:  {_title(state['target'])} — {'met' if state['target_met'] else 'not met'}",
+        f"Current: {_title(state['current'])}",
+    ]
+    if document["blockers"]:
+        lines += ["", "Blocking:"]
+        lines += [f"  {SYMBOL[b['status']]} {b['id']} ({b['required_from']}) — {b['reason']}" for b in document["blockers"]]
+    local = document["local"]
+    if local is not None:
+        lines += ["", f"Local readiness:      {_title(local['maturity'])}",
+                  f"CI-visible readiness: {_title(state['current'])}"]
+        if local["differences"]:
+            lines += ["", "Difference (local evidence CI cannot see):"]
+            for diff in local["differences"]:
+                lines.append(f"  {diff['rule_id']}: local {diff['local_status']}, CI {diff['ci_status']}")
+                if diff["local_only_evidence"]:
+                    lines.append(f"    local evidence: {', '.join(diff['local_only_evidence'])} (not tracked by Git)")
+    lines += ["", f"Exit code: {document['exit_code']}"]
+    return "\n".join(lines)

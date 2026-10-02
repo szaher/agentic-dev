@@ -153,6 +153,10 @@ class ReadyCliTests(unittest.TestCase):
             ("ready", "diff", ".", "--target", "autonomous", "--json"),
             ("ready", "apply", ".", "--dry-run"),
             ("ready", "apply", ".", "--dry-run", "--target", "optimized", "--json"),
+            ("ready", "apply", ".", "--dry-run", "--ci-check"),
+            ("ready", "assess", ".", "--scope", "ci", "--json"),
+            ("ready", "verify", ".", "--target", "foundational"),
+            ("ready", "verify", ".", "--target", "foundational", "--json", "--scope", "local"),
         ]
         for command in commands:
             completed = run(*command, cwd=self.root)

@@ -177,12 +177,13 @@ def run(
     spec: Spec | str | Path | None = None,
     target: str | None = None,
     dry_run: bool = True,
+    maintenance: tuple[str, ...] | list[str] = (),
 ) -> dict[str, Any]:
     """Preview (default) or apply the permitted changes toward ``target``."""
 
     resolved = spec if isinstance(spec, Spec) else load_spec(spec)
     root = repo_root(path)
-    document = propose(root, spec=resolved, target=target)
+    document = propose(root, spec=resolved, target=target, maintenance=maintenance)
     plans = plan_changes(root, document)
     owners = {change["id"]: change["owner"] for change in document["changes"]}
     tracked = {change["id"]: change["target"]["tracked"] for change in document["changes"]}
