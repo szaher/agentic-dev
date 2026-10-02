@@ -5,6 +5,8 @@ import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+
+from .paths import config_dir
 from typing import Iterable
 
 
@@ -59,10 +61,7 @@ BUILTIN_PROFILES: dict[str, TrustProfile] = {
 
 
 def _config_dir() -> Path:
-    return Path(os.environ.get(
-        "AGENTIC_DEV_CONFIG_DIR",
-        Path.home() / ".config" / "agentic-dev",
-    ))
+    return config_dir()
 
 
 def _user_file() -> Path:
