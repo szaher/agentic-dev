@@ -1,9 +1,9 @@
 ---
 name: agentic-repo
-description: Use agentic-dev-env to inspect the current repository, recommend focused engineering skills, and diagnose the local coding-agent environment.
+description: Use agentic-dev to inspect the current repository, recommend focused engineering skills, and diagnose the local coding-agent environment.
 ---
 
-# Agentic Dev Env for Pi
+# Agentic Dev for Pi
 
 Use the `agentic` CLI or the package commands exposed by this integration.
 
