@@ -322,3 +322,48 @@ def verification(document: dict[str, Any]) -> str:
                     lines.append(f"    local evidence: {', '.join(diff['local_only_evidence'])} (not tracked by Git)")
     lines += ["", f"Exit code: {document['exit_code']}"]
     return "\n".join(lines)
+
+
+def make_run(document: dict[str, Any]) -> str:
+    state = document["maturity"]
+    headline = {
+        "target-met": "target met",
+        "needs-decision": "stopped: needs human decisions",
+        "no-safe-progress": "stopped: no safe automatic progress left",
+        "conflict": "stopped: conflict (nothing written in that round)",
+        "rolled-back": "stopped: a write failed and was rolled back",
+        "round-limit": "stopped: round limit reached",
+    }[document["status"]]
+    mode = " — dry run, nothing was written" if document["dry_run"] else ""
+    lines = [
+        f"Agent Ready make — {document['repository']['name']}: {headline}{mode}",
+        _spec_line(document),
+        "",
+        f"Maturity: {_title(state['before'])}  →  {_title(state['after'])}   (target {_title(state['target'])})",
+    ]
+    if state["ci_visible"]:
+        lines.append(f"CI-visible (tracked files): {_title(state['ci_visible'])}")
+    for round_ in document["rounds"]:
+        written = ", ".join(round_["written"]) or "nothing"
+        lines.append(f"  round {round_['round']}: {round_['status']:<8} wrote {written}  → {_title(round_['maturity_after'])}")
+        for change in round_["changes"]:
+            if change["outcome"] in {"conflict", "refused"}:
+                lines.append(f"      {change['outcome']}: {change['path']} — {change['reason']}")
+    if document["error"]:
+        lines.append(f"  error: {document['error']}")
+    if document["diffs"]:
+        lines += [""] + [diff.rstrip("\n") for diff in document["diffs"] if diff]
+    if document["uncommitted"] and not document["dry_run"]:
+        lines += ["", "Not tracked by Git yet (commit so CI sees them): " + ", ".join(document["uncommitted"])]
+    remaining = document["remaining"]
+    if remaining["human_decision"]:
+        lines += ["", "Needs a human decision (make never guesses these):"]
+        for item in remaining["human_decision"]:
+            lines.append(f"  - {item['rule_id']} [{item['severity']}, {item['required_from']}]: {item['question']}")
+            for candidate in item["candidates"][:5]:
+                lines.append(f"      candidate: {candidate['value']} ({candidate['basis']})")
+    if remaining["unsupported"]:
+        lines += ["", "Unsupported (no safe automatic change):"]
+        lines += [f"  - {item['rule_id']}: {item['reason']}" for item in remaining["unsupported"]]
+    lines += ["", f"Exit code: {document['exit_code']}"]
+    return "\n".join(lines)

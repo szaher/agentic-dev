@@ -2,7 +2,7 @@
 
 Status: **contract v1**. Defined in v0.15 slice 1 (#53), executed by `ready diff` /
 `ready apply` (#54). The CI check maintenance action and the assessment scope ship
-with `ready verify` (#55). `ready make` (#56) builds on all of these. Every
+with `ready verify` (#55). `ready make` (#56) orchestrates all of them. Every
 command implements this contract and must not extend it ad hoc.
 
 > **The readiness spec controls what may be remediated. Agentic Dev controls how
@@ -40,6 +40,33 @@ The `--json` document is the remediation document with `mode` (`dry-run` or
 `applied`), per-change `outcomes` (`create`, `append`, `replace`, `unchanged`,
 `conflict`, `refused`, plus the file diff and `ci_visible`), and a `result`
 (`planned`, `applied`, `no-op`, `conflict`, files `written`, `maturity_after`).
+
+### `ready make --target`
+
+```bash
+agentic ready make . --target structured            # rounds of apply -> reassess
+agentic ready make . --target optimized --dry-run   # the whole run, in a throwaway copy
+```
+
+Each round applies permitted changes with `ready apply` semantics, then
+reassesses. Make **never guesses**: when a round makes no change, no safe
+progress remains, so it stops and lists every outstanding human decision (with
+candidates) and every unsupported item. `--dry-run` runs the real loop in a
+temporary copy of the repository (including `.git`, without ignored
+directories), reports the resulting diffs, and deletes the copy. The repository
+itself is never touched. Rounds are bounded (`--max-rounds`, default 5).
+
+| Exit | `status` |
+|---|---|
+| `0` | `target-met` |
+| `1` | `conflict`: the round wrote nothing |
+| `2` | usage or spec error (no document) |
+| `3` | `rolled-back`: a write failed, and that run was restored |
+| `4` | `needs-decision`, `no-safe-progress`, or `round-limit` |
+
+Contract: `agentic.readiness-make` v1 (`schemas/readiness-make-v1.schema.json`):
+before and after maturity, the CI-visible level, per-round writes, files not yet
+tracked by Git, and the remaining decisions.
 
 ### Refreshing managed blocks
 

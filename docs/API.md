@@ -133,6 +133,10 @@ The same repository content and the same spec version produce the same document,
 
 In v0.15 slice 1 it is a library preview (`agentic_dev.readiness.remediation.propose`). `ready diff`/`ready apply` build on it. See [REMEDIATION.md](REMEDIATION.md).
 
+### Readiness make
+
+`agentic ready make --target LEVEL --json` emits `agentic.readiness-make` v1 (`schemas/readiness-make-v1.schema.json`): `status` (`target-met`, `needs-decision`, `no-safe-progress`, `conflict`, `rolled-back`, `round-limit`), `exit_code` (`0`, `1`, `3`, `4`; `2` is a usage error with no document), `dry_run`, `maturity` (`before`, `after`, `target_met`, `ci_visible`), `rounds`, `written`, `uncommitted`, `diffs` (dry run), and `remaining` (`human_decision` with candidates, `unsupported`).
+
 ### Readiness verification
 
 `agentic ready verify --target LEVEL --json` emits `agentic.readiness-verification` v1 (`schemas/readiness-verification-v1.schema.json`). It carries `scope` (default `ci`: tracked files only), `target`, `passed`, `exit_code` (`0` met, `1` not met, `3` pinned spec mismatch; `2` is a usage error with no document), `pin` (`spec_version`, `spec_sha256`, `matched`, `problems`), `maturity`, `blockers`, and, for the `ci` scope, `local`: the working-tree maturity and per-rule `differences` with their `local_only_evidence`. Every readiness document (assessment, explanation, plan, remediation, verification) carries `"scope": "local" | "ci"`.

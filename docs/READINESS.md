@@ -33,6 +33,7 @@ agentic ready apply . --target structured       # apply safe changes, all-or-not
 agentic ready apply . --ci-check                # also add the readiness CI check (opt-in)
 
 agentic ready verify . --target structured      # CI gate: tracked files only; exit 0/1/2/3
+agentic ready make . --target structured        # apply -> reassess until met or a decision is needed
 agentic ready assess . --scope ci               # what CI can see
 ```
 

@@ -29,6 +29,7 @@ from .readiness.apply import ApplyError, run as readiness_run
 from .readiness.evidence import ScopeError
 from .readiness.remediation import CI_CHECK, ContractError
 from .readiness.verify import EXIT_USAGE, verify as readiness_verify
+from .readiness.make import make as readiness_make
 from .providers import (
     add_provider, doctor as provider_doctor, installed as installed_providers,
     migrate as migrate_provider, remove_provider, update_all as update_all_providers,
@@ -465,6 +466,20 @@ def cmd_ready_verify(args: argparse.Namespace) -> int:
         print(json.dumps(data, indent=2, sort_keys=True))
     else:
         print(readiness_render.verification(data))
+    return data["exit_code"]
+
+
+def cmd_ready_make(args: argparse.Namespace) -> int:
+    try:
+        data = readiness_make(args.path, target=args.target, spec=args.spec, dry_run=args.dry_run,
+                              maintenance=(CI_CHECK,) if args.ci_check else (), max_rounds=args.max_rounds)
+    except (readiness.SpecError, ScopeError, ContractError, FileNotFoundError) as exc:
+        print(f"agentic ready: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(readiness_render.make_run(data))
     return data["exit_code"]
 
 
@@ -1293,6 +1308,25 @@ def build_parser() -> argparse.ArgumentParser:
     scope_option(rverify, "ci")
     rverify.add_argument("--json", action="store_true")
     rverify.set_defaults(func=cmd_ready_verify)
+
+    rmake = rsub.add_parser(
+        "make",
+        help="Plan, apply safe fixes, and reassess until the target is met or a human decision is needed",
+        description=(
+            "Rounds of plan -> safe automatic remediation (managed blocks) -> reassess. Never guesses: "
+            "stops and lists human decisions with candidates. --dry-run previews the whole run in a "
+            "throwaway copy. Exit codes: 0 target met, 1 conflict, 2 usage error, 3 rolled back, "
+            "4 stopped (needs a decision, no safe progress, or round limit)."
+        ),
+    )
+    rmake.add_argument("path", nargs="?", default=".")
+    rmake.add_argument("--target", required=True, metavar="LEVEL")
+    rmake.add_argument("--dry-run", action="store_true", help="run in a throwaway copy and show the diffs")
+    rmake.add_argument("--ci-check", action="store_true", help="also add/update the readiness CI check (opt-in)")
+    rmake.add_argument("--max-rounds", type=int, default=5)
+    rmake.add_argument("--spec", default=None, metavar="PATH", help="explicit spec bundle (default: built-in)")
+    rmake.add_argument("--json", action="store_true")
+    rmake.set_defaults(func=cmd_ready_make)
 
     skills = sub.add_parser("skills", help="Context-aware Agent Skills")
     ssub = skills.add_subparsers(dest="skills_command", required=True)
