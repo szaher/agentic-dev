@@ -3,8 +3,8 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from agentic_dev_env.cli import build_parser
-from agentic_dev_env import integrations
+from agentic_dev.cli import build_parser
+from agentic_dev import integrations
 
 
 class CliIntegrationTests(unittest.TestCase):
@@ -77,10 +77,10 @@ class CliIntegrationTests(unittest.TestCase):
         install = parser.parse_args(["integrations", "install", "all"])
         self.assertEqual(install.target, "all")
 
-    @patch("agentic_dev_env.integrations.install_pi", return_value=0)
-    @patch("agentic_dev_env.integrations.install_codex", return_value=0)
-    @patch("agentic_dev_env.integrations.install_claude", return_value=0)
-    @patch("agentic_dev_env.integrations.shutil.which")
+    @patch("agentic_dev.integrations.install_pi", return_value=0)
+    @patch("agentic_dev.integrations.install_codex", return_value=0)
+    @patch("agentic_dev.integrations.install_claude", return_value=0)
+    @patch("agentic_dev.integrations.shutil.which")
     def test_install_all_skips_missing_agents(self, which, claude, codex, pi):
         which.side_effect = lambda name: "/bin/" + name if name in {"claude", "pi"} else None
         self.assertEqual(integrations.install("all"), 0)
