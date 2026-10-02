@@ -22,6 +22,7 @@ from .execution import configure as configure_execution, run as run_execution, s
 from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
 from .trust import define_profile, document as trust_document, get_profile, set_current
 from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
+from . import instructions as instruction_blocks
 from .contracts import UnknownContract, document as contracts_document, schema as contract_schema
 from .verification import FULL_KINDS, execute as execute_verification, full_plan as full_verification_plan, plan as verification_plan
 from . import readiness
@@ -285,6 +286,47 @@ def cmd_repo_inspect(args: argparse.Namespace) -> int:
     print("Recommended skills: " + (", ".join(recommended) if recommended else "none"))
     enabled_caps = [name for name, item in document["capabilities"].items() if item["enabled"]]
     print("Enabled capabilities: " + (", ".join(enabled_caps) if enabled_caps else "none"))
+    return 0
+
+
+def _block_content(source: str) -> str:
+    if source == "-":
+        return sys.stdin.buffer.read().decode("utf-8")
+    return Path(source).read_bytes().decode("utf-8")
+
+
+def cmd_instructions_block(args: argparse.Namespace) -> int:
+    try:
+        if args.block_command == "put":
+            data = instruction_blocks.put(args.path, file=args.file, owner=args.owner, block=args.id,
+                                          content=_block_content(args.content_file), dry_run=args.dry_run)
+        else:
+            data = instruction_blocks.remove(args.path, file=args.file, owner=args.owner, block=args.id,
+                                             dry_run=args.dry_run)
+    except (instruction_blocks.UsageError, OSError, UnicodeDecodeError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return instruction_blocks.EXIT_USAGE
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        note = " (dry run, nothing written)" if data["dry_run"] else ""
+        print(f"{data['block_id']} in {data['file']}: {data['status']}{note}")
+        if data["reason"]:
+            print(f"  {data['reason']}")
+        if data["diff"] and args.dry_run:
+            print(data["diff"].rstrip("\n"))
+    return data["exit_code"]
+
+
+def cmd_instructions_block_list(args: argparse.Namespace) -> int:
+    data = instruction_blocks.list_blocks(args.path)
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return 0
+    for item in data["blocks"]:
+        print(f"{item['file']}: {item['block_id']}{'' if item['intact'] else ' (edited by hand)'}")
+    if not data["blocks"]:
+        print("no managed blocks")
     return 0
 
 
@@ -1808,6 +1850,37 @@ def build_parser() -> argparse.ArgumentParser:
     iinstall = isub.add_parser("install", help="Install/configure a native integration")
     iinstall.add_argument("target", choices=["all", "claude", "codex", "pi"])
     iinstall.set_defaults(func=cmd_integrations_install)
+
+    instructions = sub.add_parser(
+        "instructions",
+        help="Managed blocks in shared agent instruction files (for tools such as AgentFlow)",
+    )
+    isub = instructions.add_subparsers(dest="instructions_command", required=True)
+    iblock = isub.add_parser(
+        "block",
+        help="Place, update, remove, or list a tool-owned managed block",
+        description=("A tool owns the content of one block `<owner>.<id>` in a shared instruction file; "
+                     "Agentic Dev owns the mutation. Hand-edited blocks are never overwritten, content "
+                     "outside the block is preserved, and repeating a request is a no-op. Exit codes: 0 ok, "
+                     "1 conflict/refused (nothing written), 2 usage, 3 rolled back."),
+    )
+    ibsub = iblock.add_subparsers(dest="block_command", required=True)
+    for name, text in (("put", "Create or update a block"), ("remove", "Remove a block")):
+        command = ibsub.add_parser(name, help=text)
+        command.add_argument("--path", default=".", help="repository (default: current directory)")
+        command.add_argument("--file", required=True, choices=instruction_blocks.INSTRUCTION_FILES)
+        command.add_argument("--owner", required=True, help="tool that owns the block, e.g. agentflow")
+        command.add_argument("--id", required=True, help="block id within the owner, e.g. workflow")
+        if name == "put":
+            command.add_argument("--content-file", required=True, metavar="PATH",
+                                 help="file with the block content, or - for stdin")
+        command.add_argument("--dry-run", action="store_true", help="show the change without writing")
+        command.add_argument("--json", action="store_true")
+        command.set_defaults(func=cmd_instructions_block)
+    iblist = ibsub.add_parser("list", help="List managed blocks in the supported instruction files")
+    iblist.add_argument("--path", default=".")
+    iblist.add_argument("--json", action="store_true")
+    iblist.set_defaults(func=cmd_instructions_block_list)
 
     contracts = sub.add_parser(
         "contracts",

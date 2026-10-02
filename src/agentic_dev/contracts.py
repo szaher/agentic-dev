@@ -52,10 +52,13 @@ REGISTRY: tuple[Contract, ...] = (
     Contract("worktree-status", "1", ("agentic.worktree-status",)),
     Contract("worktree-clean", "1", ("agentic.worktree-clean",)),
     Contract("capability-status", "1", ()),
+    Contract("instruction-block", "1", ("agentic.instruction-block",)),
+    Contract("instruction-block-list", "1", ("agentic.instruction-blocks",)),
 )
 
 FEATURES: tuple[str, ...] = (
     "commands.canonical-discovery",
+    "instructions.managed-block",
     "readiness.scope-ci",
     "readiness.spec-pin",
     "repo-inspection.discovered-commands",
@@ -69,6 +72,8 @@ FEATURES: tuple[str, ...] = (
 # Process exit codes are part of the automation contract.
 EXIT_CODES: dict[str, dict[str, str]] = {
     "verify run": {"0": "passed", "1": "failed, or no-checks", "2": "usage error"},
+    "instructions block": {"0": "ok (created, appended, replaced, unchanged, removed, absent)",
+                           "1": "conflict or refused (nothing written)", "2": "usage error", "3": "rolled back"},
     "ready diff": {"0": "ok", "1": "conflict (nothing written)", "2": "usage error", "3": "rolled back"},
     "ready apply": {"0": "ok", "1": "conflict (nothing written)", "2": "usage error", "3": "rolled back"},
     "ready verify": {"0": "target met", "1": "target not met", "2": "usage or spec error",
