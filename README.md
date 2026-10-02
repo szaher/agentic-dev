@@ -1,8 +1,21 @@
-# Agentic Dev
+<p align="center">
+  <img src="assets/brand/agentic-dev-logo.svg" alt="Agentic Dev — Assess. Explain. Plan. Build agent-ready repositories." width="100%" />
+</p>
 
-A vendor-neutral development platform for making repositories agent-ready and preparing safe, reproducible environments for coding agents.
+<p align="center">
+  <strong>Vendor-neutral tooling for making repositories agent-ready and preparing safe, reproducible environments for coding agents.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/szaher/agentic-dev/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/szaher/agentic-dev/ci.yml?branch=main&amp;label=CI"></a>
+  <img alt="Python" src="https://img.shields.io/badge/Python-%3E%3D3.11-2563EB">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-0F172A">
+  <img alt="Agent Ready Spec" src="https://img.shields.io/badge/Agent%20Ready%20Spec-v1.0.0-7C3AED">
+</p>
 
 The goal is simple: make Claude Code, Codex, and similar agents spend less time rediscovering a repository and more time making correct changes with the right local tools.
+
+> **Assess. Explain. Plan. Build agent-ready repositories.**
 
 A strong model is not enough by itself. Good agentic development also needs fast deterministic search, semantic code navigation, dependency awareness, current documentation, reproducible runtimes, isolated Git workflows, and a verification loop. This repo wires those pieces together without forcing one language, framework, or package manager on every project.
 
@@ -52,7 +65,7 @@ It preserves existing `AGENTS.md`, `CLAUDE.md`, project version files, package-m
 
 ### 1. Install Agentic Dev
 
-For normal use, install the Python distribution:
+For normal use, install the Python distribution once a stable release is published:
 
 ```bash
 uv tool install agentic-dev
@@ -64,6 +77,8 @@ For prereleases, use:
 ```bash
 uv tool install --prerelease allow agentic-dev
 ```
+
+Until the first stable PyPI release is published, install from source using the development instructions below.
 
 The wheel includes the workstation/repository bootstrap helpers and policy template, so `agentic setup` and `agentic repo init` work from a PyPI installation.
 
@@ -662,3 +677,8 @@ AgentFlow       -> governs and orchestrates development workflows
 ```
 
 See the full [Roadmap v2](docs/ROADMAP.md).
+
+
+## Brand assets
+
+The canonical logo, mark, README banner, palette, and usage rules live in [`assets/brand/`](assets/brand/) and [`docs/BRAND.md`](docs/BRAND.md).
