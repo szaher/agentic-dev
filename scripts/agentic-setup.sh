@@ -297,10 +297,12 @@ mkdir -p "$HOME/Developer" "$HOME/Developer/worktrees" "$HOME/.config/coding-age
 install_global_agent_policy() {
   [[ "$NO_GLOBAL_INSTRUCTIONS" -eq 0 ]] || return 0
 
-  local script_dir policy_file="" candidate tmp start_marker end_marker
+  local script_dir policy_file="" candidate tmp start_marker end_marker config_base
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+  config_base="${AGENTIC_DEV_CONFIG_DIR:-${AGENTIC_DEV_ENV_CONFIG_DIR:-}}"
   for candidate in \
     "${AGENTIC_DEV_POLICY_FILE:-}" \
+    "${config_base:+$config_base/templates/global-agent-policy.md}" \
     "$script_dir/../templates/global-agent-policy.md" \
     "$HOME/.config/agentic-dev/templates/global-agent-policy.md"; do
     [[ -n "$candidate" && -f "$candidate" ]] && { policy_file="$candidate"; break; }
