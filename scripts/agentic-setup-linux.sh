@@ -170,10 +170,22 @@ install_policy_file() {
 }
 
 if [ "$NO_GLOBAL_INSTRUCTIONS" -eq 0 ]; then
-  policy="$HOME/.config/agentic-dev/templates/global-agent-policy.md"
-  if [ -f "$policy" ]; then
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+  policy=""
+  for candidate in \
+    "${AGENTIC_DEV_POLICY_FILE:-}" \
+    "$script_dir/../templates/global-agent-policy.md" \
+    "$HOME/.config/agentic-dev/templates/global-agent-policy.md"; do
+    if [ -n "$candidate" ] && [ -f "$candidate" ]; then
+      policy="$candidate"
+      break
+    fi
+  done
+  if [ -n "$policy" ]; then
     have claude && install_policy_file "$HOME/.claude/CLAUDE.md" "$policy"
     have codex && install_policy_file "$HOME/.codex/AGENTS.md" "$policy"
+  else
+    warn "Global agent policy template not found."
   fi
 fi
 
