@@ -84,7 +84,9 @@ def cmd_skills_suggest(args: argparse.Namespace) -> int:
         "skills.suggested",
         {
             "count": len(recs),
+            "names": [item.skill.name for item in recs],
             "recommended_count": sum(1 for item in recs if item.recommended),
+            "recommended_names": [item.skill.name for item in recs if item.recommended],
             "providers": sorted({item.skill.provider for item in recs}),
         },
         repository=context.root,
@@ -615,6 +617,7 @@ def cmd_capabilities_suggest(args: argparse.Namespace) -> int:
         "capabilities.suggested",
         {
             "count": len(recs),
+            "names": [item.name for item in recs],
             "providers": sorted({item.provider for item in recs}),
         },
         repository=context.root,
