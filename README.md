@@ -1,4 +1,4 @@
-# agentic-dev-env
+# Agentic Dev
 
 A macOS bootstrap, repository initializer, skill manager, and native integration layer for coding agents.
 
@@ -16,7 +16,7 @@ grep -> read large file -> grep again -> infer relationships -> edit -> hope
 
 That works on small tasks, but it scales poorly. The agent can waste context reconstructing symbol relationships, miss call paths, use stale external APIs, install the wrong runtime, or let multiple agents collide in the same checkout.
 
-`agentic-dev-env` creates a local toolchain where each job has a better tool:
+`Agentic Dev` creates a local toolchain where each job has a better tool:
 
 ```text
 exact search          -> rg / fd
@@ -37,8 +37,8 @@ The model still reasons. Deterministic tools retrieve and verify. **Agent Skills
 
 Two scripts form the core workflow:
 
-- `setup-coding-agent-env.sh` — run once per Mac. Installs the common workstation foundation, optional language/toolchain support, and can wire supported tools into Claude Code and Codex.
-- `saad-tool-repo-init.sh` — run per repository. Detects the languages, frameworks, package managers, runtime declarations, build/test commands, code-intelligence prerequisites, and relevant Agent Skills.
+- `agentic setup` — run once per Mac. Installs the common workstation foundation, optional language/toolchain support, and can wire supported tools into Claude Code and Codex.
+- `agentic repo init` — run per repository. Detects the languages, frameworks, package managers, runtime declarations, build/test commands, code-intelligence prerequisites, and relevant Agent Skills.
 - `agentic` — unified CLI for skill recommendation/activation, environment checks, repo workflows, and native Claude Code/Codex/Pi integrations.
 
 The repository initializer follows this rule:
@@ -52,19 +52,19 @@ It preserves existing `AGENTS.md`, `CLAUDE.md`, project version files, package-m
 ### 1. Clone and install the toolkit
 
 ```bash
-git clone https://github.com/szaher/agentic-dev-env.git
-cd agentic-dev-env
+git clone https://github.com/szaher/agentic-dev.git
+cd agentic-dev
 ./install.sh
 exec zsh
 ```
 
-This installs the two commands into `~/.local/bin` and the shared policy template into `~/.config/agentic-dev-env`.
+This installs the two commands into `~/.local/bin` and the shared policy template into `~/.config/agentic-dev`.
 
 You also get short aliases:
 
 ```bash
-agentic-dev-setup
-agentic-repo-init
+agentic setup
+agentic repo init
 ```
 
 The original script names remain available for compatibility.
@@ -86,7 +86,7 @@ agentic doctor --json
 Recommended for a workstation that already contains multiple repositories:
 
 ```bash
-agentic-dev-setup \
+agentic setup \
   --scan-root ~/saad/projects \
   --configure-agents
 ```
@@ -94,32 +94,32 @@ agentic-dev-setup \
 A minimal setup is simply:
 
 ```bash
-agentic-dev-setup
+agentic setup
 ```
 
 To preinstall support for selected ecosystems:
 
 ```bash
-agentic-dev-setup --languages python,go,rust,node
+agentic setup --languages python,go,rust,node
 ```
 
 Or a broader workstation:
 
 ```bash
-agentic-dev-setup --all-languages --configure-agents
+agentic setup --all-languages --configure-agents
 ```
 
 ### 3. Initialize each repository
 
 ```bash
 cd ~/saad/projects/my-project
-agentic-repo-init .
+agentic repo init .
 ```
 
 Read-only inspection first:
 
 ```bash
-agentic-repo-init . --check
+agentic repo init . --check
 ```
 
 Stable machine-readable repository inspection:
@@ -134,7 +134,7 @@ This reports repository facts/evidence, package managers, polyglot build/test/li
 Project dependency installation is deliberately opt-in:
 
 ```bash
-agentic-repo-init . --install-project-deps
+agentic repo init . --install-project-deps
 ```
 
 ### 4. Add context-aware Agent Skills
@@ -142,13 +142,13 @@ agentic-repo-init . --install-project-deps
 The initializer now recommends a small set of skills after repository discovery:
 
 ```bash
-agentic-repo-init .
+agentic repo init .
 ```
 
 Add task context to improve the recommendation:
 
 ```bash
-agentic-repo-init . \
+agentic repo init . \
   --task "review the API change for backwards compatibility"
 ```
 
@@ -336,11 +336,11 @@ The scripts are intentionally conservative.
 Useful switches:
 
 ```bash
-agentic-repo-init . --no-codegraph
-agentic-repo-init . --no-serena
-agentic-repo-init . --no-instructions
-agentic-repo-init . --no-install-language-deps
-agentic-repo-init . --no-runtime-install
+agentic repo init . --no-codegraph
+agentic repo init . --no-serena
+agentic repo init . --no-instructions
+agentic repo init . --no-install-language-deps
+agentic repo init . --no-runtime-install
 ```
 
 ## Why these tools
@@ -454,10 +454,10 @@ See [`docs/INFRASTRUCTURE.md`](docs/INFRASTRUCTURE.md).
 ## Repository layout
 
 ```text
-agentic-dev-env/
+agentic-dev/
 ├── install.sh
 ├── pyproject.toml
-├── src/agentic_dev_env/
+├── src/agentic_dev/
 │   ├── cli.py
 │   ├── capabilities.py
 │   ├── detect.py
@@ -468,8 +468,8 @@ agentic-dev-env/
 │   ├── codex/
 │   └── pi/
 ├── scripts/
-│   ├── setup-coding-agent-env.sh
-│   └── saad-tool-repo-init.sh
+│   ├── agentic setup
+│   └── agentic repo init
 ├── templates/
 │   └── global-agent-policy.md
 ├── docs/
@@ -543,7 +543,7 @@ See [`docs/PROVIDERS.md`](docs/PROVIDERS.md).
 The workstation bootstrap now dispatches natively on macOS or Linux/WSL:
 
 ```bash
-setup-coding-agent-env.sh --configure-agents
+agentic setup --configure-agents
 ```
 
 SSH development profiles describe remote machines without storing passwords or private-key contents:
@@ -609,7 +609,7 @@ The product boundary is deliberate:
 
 ```text
 agent-ready     -> defines the readiness standard
-agentic-dev-env -> assesses and prepares the environment
+agentic-dev -> assesses and prepares the environment
 AgentFlow       -> governs and orchestrates development workflows
 ```
 
