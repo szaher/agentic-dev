@@ -107,7 +107,7 @@ def install_codex() -> int:
 
     # Current Codex authoring flow registers local/Git marketplaces from the CLI,
     # then installs the selected plugin from /plugins or the desktop Plugins Directory.
-    print("→ Open Codex, run /plugins, choose the agentic-dev marketplace, and install Agentic Dev Env.")
+    print("→ Open Codex, run /plugins, choose the agentic-dev marketplace, and install Agentic Dev.")
     return 0
 
 
