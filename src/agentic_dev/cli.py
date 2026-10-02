@@ -19,7 +19,7 @@ from .infrastructure import (
     database_schema, migration_check, observability_status, status as infrastructure_status,
 )
 from .execution import configure as configure_execution, run as run_execution, status as execution_status
-from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
+from .skills import TARGETS as SKILL_TARGETS, activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
 from .trust import define_profile, document as trust_document, get_profile, set_current
 from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
 from . import instructions as instruction_blocks
@@ -205,6 +205,7 @@ def cmd_skills_status(args: argparse.Namespace) -> int:
     print("Claude: " + (", ".join(found["claude"]) or "none"))
     print("Codex:  " + (", ".join(found["codex"]) or "none"))
     print("Pi:     " + (", ".join(found["pi"]) or "none"))
+    print("OpenCode: " + (", ".join(found["opencode"]) or "none"))
     return 0
 
 
@@ -376,6 +377,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print(f"  {'✓' if shutil.which('claude') else '!'} {'claude':<14} {shutil.which('claude') or 'not installed'}")
     print(f"  {'✓' if shutil.which('codex') else '!'} {'codex':<14} {shutil.which('codex') or 'not installed'}")
     print(f"  {'✓' if shutil.which('pi') else '!'} {'pi':<14} {shutil.which('pi') or 'not installed'}")
+    print(f"  {'✓' if shutil.which('opencode') else '!'} {'opencode':<14} {shutil.which('opencode') or 'not installed'}")
     print("\nNative integrations:")
     for item in integration_status():
         mark = "✓" if item.configured else ("·" if not item.available else "!")
@@ -1300,7 +1302,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--no-skills", action="store_true")
     init.add_argument("--skills-yes", action="store_true")
     init.add_argument("--skills-shared", action="store_true")
-    init.add_argument("--skills-target", choices=["both", "all", "claude", "codex", "pi"], default="both")
+    init.add_argument("--skills-target", choices=list(SKILL_TARGETS), default="both")
     init.set_defaults(func=cmd_repo_init)
 
     inspect_cmd = repo_sub.add_parser("inspect", help="Inspect repository context without modifying it")
@@ -1422,7 +1424,7 @@ def build_parser() -> argparse.ArgumentParser:
     suggest.add_argument("--yes", action="store_true", help="Activate recommended skills without prompting")
     suggest.add_argument("--no-prompt", action="store_true")
     suggest.add_argument("--shared", action="store_true", help="Make activated skills commit-worthy instead of local-only")
-    suggest.add_argument("--target", choices=["both", "all", "claude", "codex", "pi"], default="both")
+    suggest.add_argument("--target", choices=list(SKILL_TARGETS), default="both")
     suggest.add_argument("--force", action="store_true")
     suggest.add_argument("--json", action="store_true")
     suggest.set_defaults(func=cmd_skills_suggest)
@@ -1440,14 +1442,14 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("names", nargs="+")
     add.add_argument("--path", default=".")
     add.add_argument("--shared", action="store_true")
-    add.add_argument("--target", choices=["both", "all", "claude", "codex", "pi"], default="both")
+    add.add_argument("--target", choices=list(SKILL_TARGETS), default="both")
     add.add_argument("--force", action="store_true")
     add.set_defaults(func=cmd_skills_add)
 
     rm = ssub.add_parser("remove", help="Remove agentic-dev managed skills")
     rm.add_argument("names", nargs="+")
     rm.add_argument("--path", default=".")
-    rm.add_argument("--target", choices=["both", "all", "claude", "codex", "pi"], default="both")
+    rm.add_argument("--target", choices=list(SKILL_TARGETS), default="both")
     rm.set_defaults(func=cmd_skills_remove)
 
     status = ssub.add_parser("status", help="Show active project skills")

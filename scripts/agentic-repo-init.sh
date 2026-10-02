@@ -34,7 +34,7 @@ Options:
   --no-skills                 Skip skill recommendation/activation.
   --skills-yes                Activate recommended skills without prompting.
   --skills-shared             Make selected skills commit-worthy instead of local-only.
-  --skills-target TARGET      both, all, claude, codex, or pi (default: both).
+  --skills-target TARGET      both, all, claude, codex, pi, or opencode (default: both).
   -h, --help                  Show help.
 USAGE
 }
@@ -74,7 +74,7 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail "$REPO is not inside
 REPO="$(git rev-parse --show-toplevel)"
 cd "$REPO"
 REPO_NAME="$(basename "$REPO")"
-case "$SKILLS_TARGET" in both|all|claude|codex|pi) ;; *) fail "--skills-target must be one of: both, all, claude, codex, pi" ;; esac
+case "$SKILLS_TARGET" in both|all|claude|codex|pi|opencode) ;; *) fail "--skills-target must be one of: both, all, claude, codex, pi, opencode" ;; esac
 
 LANGUAGES=(); SERENA_LANGUAGES=(); FRAMEWORKS=(); PACKAGE_MANAGERS=(); TOOLS=(); MISSING=()
 add_unique() {

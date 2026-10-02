@@ -23,7 +23,7 @@ CORE_TOOLS = (
     "git", "gh", "rg", "fd", "ast-grep", "serena", "codegraph",
     "repomix", "mise", "uv", "jq", "yq", "just",
 )
-AGENT_TOOLS = ("claude", "codex", "pi")
+AGENT_TOOLS = ("claude", "codex", "pi", "opencode")
 
 
 def _package_managers(root: Path) -> list[str]:

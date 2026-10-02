@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from agentic_dev.detect import detect_repo
-from agentic_dev.skills import activate, installed_skills, recommend, remove
+from agentic_dev.skills import activate, installed_skills, recommend, remove, skill_roots
 
 
 class SkillTests(unittest.TestCase):
@@ -72,6 +72,18 @@ version = "0.1.0"
         self.assertIn("/.codex/skills/python-engineering/", text)
         self.assertIn("/.pi/skills/python-engineering/", text)
         self.assertIn("/.agentic/", text)
+
+    def test_opencode_target(self):
+        root = self.make_repo()
+        activate(root, ["python-engineering"], shared=False, target="opencode")
+        self.assertTrue((root / ".opencode/skills/python-engineering/SKILL.md").exists())
+        self.assertEqual(installed_skills(root)["opencode"], ["python-engineering"])
+        self.assertEqual([p.relative_to(root).as_posix() for p in skill_roots(root, "all")],
+                         [".claude/skills", ".codex/skills", ".pi/skills", ".opencode/skills"])
+        self.assertEqual(remove(root, ["python-engineering"], target="opencode"),
+                         [root / ".opencode/skills/python-engineering"])
+        from agentic_dev.inspection import tool_status
+        self.assertIn("opencode", tool_status())
 
     def test_shared_activation_is_not_added_to_local_exclude(self):
         root = self.make_repo()

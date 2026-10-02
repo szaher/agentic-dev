@@ -149,6 +149,24 @@ def _managed(path: Path) -> bool:
         return False
 
 
+# Harness -> project skill directory. ``both`` means Claude + Codex (OpenCode also
+# reads .claude/skills); ``all`` covers every harness.
+SKILL_DIRS = {
+    "claude": (".claude", "skills"),
+    "codex": (".codex", "skills"),
+    "pi": (".pi", "skills"),
+    "opencode": (".opencode", "skills"),
+}
+TARGETS = ("both", "all", *SKILL_DIRS)
+
+
+def skill_roots(root: Path, target: str) -> list[Path]:
+    if target not in TARGETS:
+        raise ValueError(f"unknown skills target {target!r}; choose one of: {', '.join(TARGETS)}")
+    harnesses = {"both": ("claude", "codex"), "all": tuple(SKILL_DIRS)}.get(target, (target,))
+    return [root.joinpath(*SKILL_DIRS[name]) for name in harnesses]
+
+
 def activate(
     root: Path,
     names: Iterable[str],
@@ -157,13 +175,7 @@ def activate(
     target: str = "both",
     force: bool = False,
 ) -> list[Path]:
-    roots: list[Path] = []
-    if target in {"both", "all", "claude"}:
-        roots.append(root / ".claude" / "skills")
-    if target in {"both", "all", "codex"}:
-        roots.append(root / ".codex" / "skills")
-    if target in {"all", "pi"}:
-        roots.append(root / ".pi" / "skills")
+    roots = skill_roots(root, target)
 
     installed: list[Path] = []
     for name in names:
@@ -207,13 +219,7 @@ def activate(
 
 
 def remove(root: Path, names: Iterable[str], target: str = "both") -> list[Path]:
-    roots: list[Path] = []
-    if target in {"both", "all", "claude"}:
-        roots.append(root / ".claude" / "skills")
-    if target in {"both", "all", "codex"}:
-        roots.append(root / ".codex" / "skills")
-    if target in {"all", "pi"}:
-        roots.append(root / ".pi" / "skills")
+    roots = skill_roots(root, target)
 
     removed: list[Path] = []
     for name in names:
@@ -230,12 +236,9 @@ def remove(root: Path, names: Iterable[str], target: str = "both") -> list[Path]
 
 
 def installed_skills(root: Path) -> dict[str, list[str]]:
-    found = {"claude": [], "codex": [], "pi": []}
-    for target, base in [
-        ("claude", root / ".claude" / "skills"),
-        ("codex", root / ".codex" / "skills"),
-        ("pi", root / ".pi" / "skills"),
-    ]:
+    found: dict[str, list[str]] = {name: [] for name in SKILL_DIRS}
+    for target, parts in SKILL_DIRS.items():
+        base = root.joinpath(*parts)
         if base.is_dir():
             found[target] = sorted(p.name for p in base.iterdir() if (p / "SKILL.md").exists())
     return found
