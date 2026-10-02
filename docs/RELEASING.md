@@ -74,6 +74,10 @@ agentic ready diff . --ci-check   # must pin agentic-dev==X.Y.Z, spec version, s
 Then commit the generated `.github/workflows/agentic-readiness.yml` in a
 throwaway GitHub repository and confirm the workflow installs `X.Y.Z` from PyPI
 and passes.
+Also push a regression (for example `git rm AGENTS.md`) and confirm the check
+fails with exit code `1`. Runners can see a stale PyPI index for a few minutes
+after publication (`No matching distribution found for agentic-dev==X.Y.Z`);
+that is not a release failure, so re-run the job.
 
 A temporary Git repository should also successfully run:
 

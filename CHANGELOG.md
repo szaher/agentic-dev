@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- `ready plan` no longer says automated remediation is unavailable; it points to `ready diff` and `ready make`.
+- `ready diff --ci-check` now suggests the matching `ready apply ... --ci-check` command.
+
 ## 0.15.0 - 2026-10-02
 
 v0.15 (Agent Ready remediation + CI): slices 1–4.
