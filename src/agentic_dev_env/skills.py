@@ -196,6 +196,7 @@ def activate(
         "skills.activated",
         {
             "count": len(set(names)),
+            "names": sorted(set(names)),
             "target": target,
             "shared": shared,
             "providers": sorted({get_skill(name).provider for name in set(names)}),
