@@ -1,9 +1,8 @@
 # Readiness remediation contract
 
-Status: **contract v1, preview only** (v0.15 slice 1, #53). This document defines
-*what* may be changed and *how* changes must behave before any command performs
-them. `ready diff` / `ready apply` (#54), `ready verify` (#55), and `ready make`
-(#56) implement this contract and must not extend it ad hoc.
+Status: **contract v1**. Defined in v0.15 slice 1 (#53), executed by `ready diff` /
+`ready apply` (#54). `ready verify` (#55) and `ready make` (#56) build on it. Every
+command implements this contract and must not extend it ad hoc.
 
 > **The readiness spec controls what may be remediated. Agentic Dev controls how
 > safely it performs permitted remediation. Maintenance actions only maintain
@@ -13,6 +12,43 @@ them. `ready diff` / `ready apply` (#54), `ready verify` (#55), and `ready make`
 assessment (v0.14)  ->  remediation document (this contract)  ->  apply (#54)
 "what is missing?"      "what can safely be changed, and how?"    managed-block writes
 ```
+
+## Commands
+
+```bash
+agentic ready diff .                       # unified diff of every permitted change; writes nothing
+agentic ready apply . --dry-run            # same plan, plus the full remediation report
+agentic ready apply . --target structured  # write the permitted changes, all-or-nothing
+agentic ready apply . --json               # agentic.readiness-remediation, mode "applied"
+```
+
+| Exit code | `ready diff` / `ready apply` |
+|---|---|
+| `0` | planned, applied, or nothing to change |
+| `1` | conflict or refusal: **nothing was written** |
+| `2` | usage or spec error (unknown target, invalid spec, missing path) |
+| `3` | a write failed and the whole run was rolled back |
+
+Only changes owned by `safe-automatic` remediations or maintenance actions are
+written. `human-decision` items are listed with their candidates, and
+`unsupported` items with their reason. Neither is ever applied. Files are left
+uncommitted for review. Changes to files Git does not track are flagged as
+improving local readiness only.
+
+The `--json` document is the remediation document with `mode` (`dry-run` or
+`applied`), per-change `outcomes` (`create`, `append`, `replace`, `unchanged`,
+`conflict`, `refused`, plus the file diff and `ci_visible`), and a `result`
+(`planned`, `applied`, `no-op`, `conflict`, files `written`, `maturity_after`).
+
+### Refreshing managed blocks
+
+Once a rule passes it is no longer open. Its managed block would then never be
+updated, even after new facts appear (for example a new `typecheck` target). A
+passing rule whose own generated block is **stale** therefore gets a
+`safe-automatic` remediation with `status: "pass"`, which only refreshes that
+block. The rule already passes, so a refresh cannot satisfy anything new. A
+hand-edited block that is not stale is left alone. A hand-edited block that is
+stale is a conflict.
 
 ## Two kinds of change, kept structurally separate
 
@@ -233,8 +269,10 @@ For one change, compare the file on disk with the preview:
 
 Bytes outside the managed block are always preserved exactly.
 
-**Transactions and rollback.** A run snapshots every file it will touch (bytes
-or absence) before writing. Each file is written to a temporary file in the same
+**Transactions and rollback.** A run plans every change in memory first. Any
+conflict or refusal means nothing is written. Otherwise it snapshots every file
+it will touch (bytes or absence) and re-verifies each file's bytes immediately
+before writing it. Each file is written to a temporary file in the same
 directory and atomically renamed, preserving its mode. If any change in the run
 fails or conflicts, every file touched so far is restored from its snapshot, and
 created files are deleted. A run never leaves partial writes. A second run with
@@ -301,7 +339,9 @@ Maintenance actions: none in slice 1. The readiness CI check
 (`readiness.ci-check`, owning `.github/workflows/agentic-readiness.yml`) arrives
 with `ready verify` in #55.
 
-## Open questions for later slices
+## Decisions
 
-- **Applying a saved preview** (`ready apply --from preview.json`) relies on the
-  `target` preconditions above. Whether to support it is decided in #54.
+- **No `ready apply --from preview.json` in v0.15.** Every run re-proposes from
+  the current repository, then checks the `target` preconditions when planning
+  and again immediately before each write. A saved preview could be added later
+  on top of the same preconditions.

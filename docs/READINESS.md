@@ -27,6 +27,9 @@ agentic ready explain context.architecture --path ../service
 
 agentic ready plan .                            # read-only plan to the next level
 agentic ready plan . --target optimized --json  # agentic.readiness-plan v1
+
+agentic ready diff .                            # preview safe managed-block changes (writes nothing)
+agentic ready apply . --target structured       # apply safe changes, all-or-nothing
 ```
 
 Every command accepts `--json` and `--spec PATH` (see [Spec source](#spec-source)).
@@ -97,8 +100,9 @@ Each result lists the matching heading and line so a person can judge quality.
 
 ## Guarantees
 
-- **Read-only.** `assess`, `explain`, and `plan` never write to the repository:
-  no files, no Git index, no `.agentic/`. A regression test snapshots every file
+- **Read-only.** `assess`, `explain`, `plan`, `diff`, and `apply --dry-run` never
+  write to the repository: no files, no Git index, no `.agentic/`. Only
+  `ready apply` writes, and only permitted managed blocks. A regression test snapshots every file
   (including `.git`) around all commands.
 - **Deterministic.** Rules and evidence are id-sorted. There are no timestamps.
   Identical content gives identical output across checkouts.
@@ -162,8 +166,9 @@ The contract for *applying* fixes (managed blocks, idempotency, conflicts, rollb
 
 `agentic ready plan` lists the required rules blocking the target in level and
 dependency order, then recommended and optional items. It only *describes*
-remediation. Applying it (`ready apply`) and CI regression gates are planned for
-v0.15.
+remediation. `agentic ready diff` and `agentic ready apply` perform the
+`safe-automatic` part as managed blocks (see [REMEDIATION.md](REMEDIATION.md)).
+CI regression gates (`ready verify`) follow later in v0.15.
 
 ## Machine-readable contracts
 

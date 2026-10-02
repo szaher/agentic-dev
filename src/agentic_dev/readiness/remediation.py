@@ -289,6 +289,8 @@ def check_document(document: dict[str, Any], spec: Spec) -> None:
                 raise ContractError(f"{rule_id}: safe-automatic remediations must reference changes")
         elif remediation["change_ids"]:
             raise ContractError(f"{rule_id}: only safe-automatic remediations may reference changes")
+        if remediation["status"] == "pass" and remediation["remediation_class"] != SAFE:
+            raise ContractError(f"{rule_id}: passing rules only appear to refresh their own managed blocks")
         if remediation["remediation_class"] == HUMAN and not remediation["decision"]:
             raise ContractError(f"{rule_id}: human-decision remediations must state the decision")
         for change_id in remediation["change_ids"]:
@@ -527,6 +529,20 @@ def _classify(ctx: Context, requirement: dict[str, Any]) -> tuple[str, list[dict
     return HUMAN, [], "The spec marks this as human-required: it is a project or team decision."
 
 
+def _stale(ctx: Context, change: dict[str, Any]) -> bool:
+    """Whether the file already holds this managed block with different generated content."""
+
+    from .managed import locate
+
+    if not change["target"]["exists"]:
+        return False
+    lines = ctx.collector.repo.text(change["path"]).split("\n")
+    found = locate(lines, change["format"], change["block_id"])
+    if found is None:
+        return False
+    return isinstance(found, str) or found.marker_sha256 != change["content_sha256"]
+
+
 def propose(
     path: str = ".",
     *,
@@ -566,6 +582,35 @@ def propose(
             "reason": reason,
             "change_ids": sorted({change["id"] for change in generated}),
             "decision": _decision(ctx, requirement) if remediation_class == HUMAN else None,
+            "depends_on": requirement["depends_on"],
+        })
+
+    # Passing rules whose own managed block has gone stale (for example a new
+    # command was discovered) get a refresh. The rule already passes, so a
+    # refresh cannot satisfy anything new. Hand-edited blocks are left alone
+    # unless they are stale, in which case apply reports a conflict.
+    for requirement in assessment["requirements"]:
+        if (requirement["status"] != "pass" or requirement["id"] not in SAFE_GENERATORS
+                or resolved.rank(requirement["required_from"]) > state["target_rank"]):
+            continue
+        generated, _ = SAFE_GENERATORS[requirement["id"]](ctx)
+        stale = [change for change in generated if _stale(ctx, change)]
+        if not stale:
+            continue
+        for change in stale:
+            owned = changes.setdefault(change["id"], change)
+            owned["owner"]["rules"] = sorted({*owned["owner"]["rules"], requirement["id"]})
+        remediations.append({
+            "rule_id": requirement["id"],
+            "title": requirement["title"],
+            "severity": requirement["severity"],
+            "required_from": requirement["required_from"],
+            "status": "pass",
+            "spec_classification": requirement["remediation"]["classification"],
+            "remediation_class": SAFE,
+            "reason": "Refreshes the managed block Agentic Dev generated earlier; the rule already passes.",
+            "change_ids": sorted({change["id"] for change in stale}),
+            "decision": None,
             "depends_on": requirement["depends_on"],
         })
 

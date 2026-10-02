@@ -25,6 +25,7 @@ from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree
 from .verification import execute as execute_verification, plan as verification_plan
 from . import readiness
 from .readiness import render as readiness_render
+from .readiness.apply import ApplyError, run as readiness_run
 from .providers import (
     add_provider, doctor as provider_doctor, installed as installed_providers,
     migrate as migrate_provider, remove_provider, update_all as update_all_providers,
@@ -431,6 +432,30 @@ def cmd_ready_plan(args: argparse.Namespace) -> int:
         lambda: readiness.plan(args.path, spec=args.spec, target=args.target),
         readiness_render.plan,
     )
+
+
+def _ready_change(args: argparse.Namespace, *, dry_run: bool, show_diff: bool) -> int:
+    try:
+        data = readiness_run(args.path, spec=args.spec, target=args.target, dry_run=dry_run)
+    except (readiness.SpecError, FileNotFoundError) as exc:
+        print(f"agentic ready: {exc}", file=sys.stderr)
+        return 2
+    except ApplyError as exc:
+        print(f"agentic ready: {exc}", file=sys.stderr)
+        return 3
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(readiness_render.remediation_run(data, show_diff=show_diff), end="")
+    return 1 if data["result"]["status"] == "conflict" else 0
+
+
+def cmd_ready_diff(args: argparse.Namespace) -> int:
+    return _ready_change(args, dry_run=True, show_diff=True)
+
+
+def cmd_ready_apply(args: argparse.Namespace) -> int:
+    return _ready_change(args, dry_run=args.dry_run, show_diff=args.dry_run)
 
 
 def _verification_args(args: argparse.Namespace) -> tuple[str, str | None, list[str] | None]:
@@ -1201,6 +1226,26 @@ def build_parser() -> argparse.ArgumentParser:
     rplan.add_argument("path", nargs="?", default=".")
     ready_common(rplan)
     rplan.set_defaults(func=cmd_ready_plan)
+
+    rdiff = rsub.add_parser("diff", help="Preview safe managed-block changes as a unified diff (writes nothing)")
+    rdiff.add_argument("path", nargs="?", default=".")
+    ready_common(rdiff)
+    rdiff.set_defaults(func=cmd_ready_diff)
+
+    rapply = rsub.add_parser(
+        "apply",
+        help="Apply safe automatic remediation as managed blocks",
+        description=(
+            "Write only safe-automatic changes, as managed blocks, all-or-nothing. Hand-edited blocks and files "
+            "changed since planning are never overwritten (exit 1). Human decisions are listed, never applied. "
+            "Exit codes: 0 applied/no-op, 1 conflict (nothing written), 2 usage or spec error, "
+            "3 write failed and was rolled back."
+        ),
+    )
+    rapply.add_argument("path", nargs="?", default=".")
+    rapply.add_argument("--dry-run", action="store_true", help="plan and show the diff without writing")
+    ready_common(rapply)
+    rapply.set_defaults(func=cmd_ready_apply)
 
     skills = sub.add_parser("skills", help="Context-aware Agent Skills")
     ssub = skills.add_subparsers(dest="skills_command", required=True)

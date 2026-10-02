@@ -36,9 +36,11 @@
     },
     "mode": {
       "enum": [
-        "preview"
+        "preview",
+        "dry-run",
+        "applied"
       ],
-      "description": "preview never modifies anything. ready apply (v0.15 slice 2) adds applied results."
+      "description": "preview: proposal only. dry-run: planned outcomes and diffs, nothing written (ready diff, ready apply --dry-run). applied: changes were written (ready apply)."
     },
     "maturity": {
       "type": "object",
@@ -110,6 +112,48 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/change"
+      }
+    },
+    "outcomes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/outcome"
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "written",
+        "maturity_after"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "planned",
+            "applied",
+            "no-op",
+            "conflict"
+          ],
+          "description": "conflict: at least one change was refused or conflicted, so nothing was written."
+        },
+        "written": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relpath"
+          }
+        },
+        "maturity_after": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
       }
     }
   },
@@ -448,8 +492,10 @@
         "status": {
           "enum": [
             "fail",
-            "unknown"
-          ]
+            "unknown",
+            "pass"
+          ],
+          "description": "pass only for refreshing a stale managed block a passing rule already owns."
         },
         "spec_classification": {
           "enum": [
@@ -587,6 +633,22 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "pass"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "remediation_class": {
+                "const": "safe-automatic"
+              }
+            }
+          }
         }
       ]
     },
@@ -664,6 +726,131 @@
           }
         ]
       }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "change_id",
+        "path",
+        "owner",
+        "outcome",
+        "reason",
+        "ci_visible",
+        "diff"
+      ],
+      "properties": {
+        "change_id": {
+          "type": "string"
+        },
+        "path": {
+          "$ref": "#/$defs/relpath"
+        },
+        "owner": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "rules"
+              ],
+              "properties": {
+                "type": {
+                  "const": "remediation"
+                },
+                "rules": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "$ref": "#/$defs/ruleId"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "id"
+              ],
+              "properties": {
+                "type": {
+                  "const": "maintenance-action"
+                },
+                "id": {
+                  "$ref": "#/$defs/maintenanceId"
+                }
+              }
+            }
+          ],
+          "description": "Exactly one owner. Maintenance-owned changes never name rules."
+        },
+        "outcome": {
+          "enum": [
+            "create",
+            "append",
+            "replace",
+            "unchanged",
+            "conflict",
+            "refused"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ci_visible": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether Git tracks the target. false means the change improves local readiness only."
+        },
+        "diff": {
+          "type": "string",
+          "description": "Unified diff for the file (attached to the file's first change)."
+        }
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "enum": [
+              "dry-run",
+              "applied"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "outcomes",
+          "result"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "outcomes"
+              ]
+            },
+            {
+              "required": [
+                "result"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
 }

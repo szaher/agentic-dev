@@ -225,3 +225,65 @@ def plan(document: dict[str, Any]) -> str:
     )
     lines.append("Automated remediation is not performed in this version; this plan only describes it.")
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _owner(owner: dict[str, Any]) -> str:
+    if owner["type"] == "maintenance-action":
+        return f"maintenance {owner['id']}"
+    return "fixes " + ", ".join(owner["rules"])
+
+
+def remediation_run(document: dict[str, Any], *, show_diff: bool) -> str:
+    """Text for ``ready diff`` and ``ready apply``."""
+
+    result = document["result"]
+    applied = document["mode"] == "applied" and result["status"] == "applied"
+    header = {
+        "planned": "dry run: nothing was written",
+        "applied": "applied",
+        "no-op": "nothing to change",
+        "conflict": "conflict: nothing was written",
+    }[result["status"]]
+    state = document["maturity"]
+    lines = [
+        f"Agent Ready remediation — {document['repository']['name']} ({header})",
+        _spec_line(document),
+        "",
+        f"Current: {_title(state['current'])}" + (
+            f"  →  {_title(result['maturity_after'])}" if result["maturity_after"] else ""),
+        f"Target:  {_title(state['target'])}",
+    ]
+    if document["outcomes"]:
+        lines += ["", "Changes (managed blocks only):"]
+        for outcome in document["outcomes"]:
+            note = f" — {outcome['reason']}" if outcome["reason"] else ""
+            lines.append(f"  {outcome['outcome']:<9} {outcome['path']:<28} {_owner(outcome['owner'])}{note}")
+    if show_diff:
+        diffs = [o["diff"] for o in document["outcomes"] if o["diff"]]
+        if diffs:
+            lines += [""] + [diff.rstrip("\n") for diff in diffs]
+    local_only = sorted({o["path"] for o in document["outcomes"]
+                         if o["ci_visible"] is False and o["outcome"] not in {"conflict", "refused"}})
+    if local_only:
+        lines += ["", "Not tracked by Git (local readiness only until committed; check it is not git-excluded):"]
+        lines += [f"  - {path}" for path in local_only]
+    decisions = [r for r in document["remediations"] if r["remediation_class"] == "human-decision"]
+    if decisions:
+        lines += ["", "Needs a human decision (never applied automatically):"]
+        for item in decisions:
+            lines.append(f"  - {item['rule_id']} [{item['severity']}]: {item['decision']['question']}")
+            for candidate in item["decision"]["candidates"][:5]:
+                lines.append(f"      candidate: {candidate['value']} ({candidate['basis']})")
+    unsupported = [r for r in document["remediations"] if r["remediation_class"] == "unsupported"]
+    if unsupported:
+        lines += ["", "Unsupported (no safe automatic change in this version):"]
+        lines += [f"  - {item['rule_id']}: {item['reason']}" for item in unsupported]
+    lines.append("")
+    if result["status"] == "conflict":
+        lines.append("Resolve the conflicts above, then run again. Hand-edited managed blocks are never overwritten.")
+    elif applied:
+        lines.append(f"Wrote: {', '.join(result['written'])}. Review with `git diff`; nothing was committed.")
+    elif result["status"] == "planned":
+        lines.append("Apply with: agentic ready apply <path>" + (
+            f" --target {state['target']}" if state["target"] else ""))
+    return "\n".join(lines).rstrip() + "\n"
