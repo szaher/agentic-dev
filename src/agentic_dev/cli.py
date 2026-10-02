@@ -201,13 +201,13 @@ def cmd_skills_status(args: argparse.Namespace) -> int:
 def _exec_script(name: str, argv: list[str]) -> int:
     path = shutil.which(name)
     if not path:
-        print(f"{name} is not installed. Run ./install.sh from agentic-dev-env.", file=sys.stderr)
+        print(f"{name} is not installed. Run ./install.sh from agentic-dev.", file=sys.stderr)
         return 2
     return subprocess.call([path, *argv])
 
 
 def cmd_setup(args: argparse.Namespace) -> int:
-    return _exec_script("setup-coding-agent-env.sh", args.args)
+    return _exec_script("agentic-setup.sh", args.args)
 
 
 def cmd_repo_init(args: argparse.Namespace) -> int:
@@ -231,7 +231,7 @@ def cmd_repo_init(args: argparse.Namespace) -> int:
         argv += ["--task", args.task]
     if args.skills_target:
         argv += ["--skills-target", args.skills_target]
-    return _exec_script("saad-tool-repo-init.sh", argv)
+    return _exec_script("agentic-repo-init.sh", argv)
 
 
 def cmd_repo_inspect(args: argparse.Namespace) -> int:
@@ -1125,7 +1125,7 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("--force", action="store_true")
     add.set_defaults(func=cmd_skills_add)
 
-    rm = ssub.add_parser("remove", help="Remove agentic-dev-env managed skills")
+    rm = ssub.add_parser("remove", help="Remove agentic-dev managed skills")
     rm.add_argument("names", nargs="+")
     rm.add_argument("--path", default=".")
     rm.add_argument("--target", choices=["both", "all", "claude", "codex", "pi"], default="both")
