@@ -19,7 +19,7 @@ cp -R "$ROOT/src/agentic_dev" "$PYTHON_APP_DIR/agentic_dev"
 cat > "$BIN_DIR/agentic" <<'WRAPPER'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-APP_DIR="${AGENTIC_DEV_CONFIG_DIR:-$HOME/.config/agentic-dev}/python"
+APP_DIR="${AGENTIC_DEV_CONFIG_DIR:-${AGENTIC_DEV_ENV_CONFIG_DIR:-$HOME/.config/agentic-dev}}/python"
 export PYTHONPATH="$APP_DIR${PYTHONPATH:+:$PYTHONPATH}"
 
 for candidate in python3.13 python3.12 python3.11 python3; do
