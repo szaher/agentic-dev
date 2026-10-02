@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import jsonschema
 
-from agentic_dev_env.inspection import doctor_document, inspect_repository
+from agentic_dev.inspection import doctor_document, inspect_repository
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,8 +24,8 @@ class InspectionContractTests(unittest.TestCase):
     def schema(self, name: str) -> dict:
         return json.loads((ROOT / "schemas" / name).read_text())
 
-    @patch("agentic_dev_env.inspection.integration_status", return_value=[])
-    @patch("agentic_dev_env.inspection.capability_status", return_value={})
+    @patch("agentic_dev.inspection.integration_status", return_value=[])
+    @patch("agentic_dev.inspection.capability_status", return_value={})
     def test_repo_inspection_validates_and_is_read_only(self, caps, integrations):
         root = self.make_repo()
         (root / "pyproject.toml").write_text(
@@ -59,8 +59,8 @@ line-length = 100
         self.assertFalse((root / ".serena").exists())
         self.assertFalse((root / ".codegraph").exists())
 
-    @patch("agentic_dev_env.inspection.integration_status", return_value=[])
-    @patch("agentic_dev_env.inspection.capability_status", return_value={})
+    @patch("agentic_dev.inspection.integration_status", return_value=[])
+    @patch("agentic_dev.inspection.capability_status", return_value={})
     def test_polyglot_commands_are_arrays_not_single_winner(self, caps, integrations):
         root = self.make_repo()
         (root / "go.mod").write_text("module example.com/demo\ngo 1.25\n")
@@ -72,9 +72,9 @@ line-length = 100
         self.assertIn("go build ./...", doc["commands"]["build"])
         self.assertIn("cargo build", doc["commands"]["build"])
 
-    @patch("agentic_dev_env.inspection.integration_status", return_value=[])
-    @patch("agentic_dev_env.inspection.capability_status", return_value={})
-    @patch("agentic_dev_env.inspection.shutil.which")
+    @patch("agentic_dev.inspection.integration_status", return_value=[])
+    @patch("agentic_dev.inspection.capability_status", return_value={})
+    @patch("agentic_dev.inspection.shutil.which")
     def test_doctor_document_validates(self, which, caps, integrations):
         which.side_effect = lambda name: f"/usr/local/bin/{name}" if name in {"git", "rg"} else None
         doc = doctor_document()
