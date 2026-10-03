@@ -306,7 +306,7 @@ A public release happens when at least one of these is true:
 - users need a bug or security fix;
 - enough meaningful functionality has accumulated that upgrading is worthwhile.
 
-The package version is chosen at release time, not dictated by the milestone number. After the MVP, releases follow a deliberate train (every few weeks) rather than one per milestone.
+The public version is chosen only when a release is prepared, not dictated by the milestone number. Between releases, `main` is not assigned the next public version, and unreleased builds stay distinguishable from the last published release. After the MVP, releases follow a deliberate train (every few weeks) rather than one per milestone.
 
 During development, AgentFlow depends on a pinned `agentic-dev` commit in CI. At the first public release, Agentic Dev publishes first, and AgentFlow then declares a released version range.
 

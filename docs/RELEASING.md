@@ -51,8 +51,11 @@ one **Unreleased** section. Publish only when at least one of these is true:
 - users need a bug or security fix;
 - enough meaningful functionality has accumulated that upgrading is worthwhile.
 
-The version is chosen at release time. Between releases, `main` keeps the last
-released version; consumers such as AgentFlow decide compatibility from
+The public version is chosen only when a release is prepared. Between releases,
+`main` is not assigned the next public release version, and unreleased source and
+artifact builds must stay distinguishable from the last published release (for
+example a local development identifier such as `X.Y.Z+dev` on top of the last
+release). Consumers such as AgentFlow decide compatibility from
 `agentic contracts --json`, never from the version. A release PR changes
 `pyproject.toml`, `agentic_dev.__version__`, the installed-artifact version checks
 in `.github/workflows/ci.yml`, and the `CHANGELOG.md` heading (with the release
