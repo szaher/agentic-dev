@@ -1308,6 +1308,10 @@ def cmd_metrics_record(args: argparse.Namespace) -> int:
         repository=args.path if args.path else None,
         session_id=args.session_id,
     )
+    if args.json:
+        print(json.dumps({"schema_version": "1", "document_type": "agentic.metric-record",
+                          "recorded": recorded is not None, "event": recorded}, indent=2, sort_keys=True))
+        return 0
     if not recorded:
         print("metrics disabled; event not recorded")
         return 0
@@ -1805,6 +1809,8 @@ def build_parser() -> argparse.ArgumentParser:
     mrecord.add_argument("--field", action="append", default=[], metavar="KEY=VALUE")
     mrecord.add_argument("--path", default=None)
     mrecord.add_argument("--session-id", default=None)
+    mrecord.add_argument("--json", action="store_true",
+                         help="report the outcome (agentic.metric-record): the event, or recorded=false when disabled")
     mrecord.set_defaults(func=cmd_metrics_record)
 
     remote = sub.add_parser("remote", help="SSH development profiles")

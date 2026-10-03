@@ -121,7 +121,7 @@ AgentFlow
 
 ### Worktrees and capabilities
 
-`agentic worktree create|list|status|clean --json` emit `agentic.worktree`, `agentic.worktrees`, `agentic.worktree-status`, and `agentic.worktree-clean` (contracts `worktree`, `worktree-list`, `worktree-status`, `worktree-clean`). Agentic Dev owns the Git mechanics; cleaning is always explicit and refuses dirty worktrees without `--force`.
+`agentic worktree create|list|status|clean --json` emit `agentic.worktree`, `agentic.worktrees`, `agentic.worktree-status`, and `agentic.worktree-clean` (contracts `worktree`, `worktree-list`, `worktree-status`, `worktree-clean`). Agentic Dev owns the Git mechanics; cleaning is always explicit and refuses dirty worktrees without `--force`. Exit codes: `worktree create` 0 created, 2 nothing created (path or branch exists, bad base); `worktree clean` 0 removed, 2 nothing removed (uncommitted changes without `--force`, the primary worktree, or an error).
 
 `agentic capabilities status --json` is a bare map from capability name to state (contract `capability-status`). It predates document envelopes, so it has no `document_type`.
 
@@ -322,8 +322,10 @@ agentic metrics summary --json
 External local integrations such as AgentFlow can submit schema-v1 events through:
 
 ```bash
-agentic metrics record <event-type> --field key=value
+agentic metrics record <event-type> --field key=value [--session-id ID] [--path REPO] [--json]
 ```
+
+With `--json` it emits `agentic.metric-record` (contract `metric-record`, feature `metrics.record-report`): `recorded: false` and `event: null` when metrics are disabled, otherwise the stored event. It exits 0 either way; a malformed `--field` exits 2. Callers never need to ask whether metrics are on: Agentic Dev decides, and only stores events when the user enabled metrics.
 
 Event schema:
 

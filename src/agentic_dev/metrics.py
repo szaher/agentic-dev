@@ -104,9 +104,11 @@ def record(
     *,
     repository: str | Path | None = None,
     session_id: str | None = None,
-) -> bool:
+) -> dict[str, Any] | None:
+    """Append one event and return it, or return None when metrics are disabled (the default)."""
+
     if not enabled():
-        return False
+        return None
     now = datetime.now(timezone.utc)
     event = {
         "schema_version": "1",
@@ -121,7 +123,7 @@ def record(
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a") as handle:
         handle.write(json.dumps(event, sort_keys=True) + "\n")
-    return True
+    return event
 
 
 def _parse_since(since: str | None) -> datetime | None:

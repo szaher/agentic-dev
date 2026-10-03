@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+v0.16 slice 4 contracts (#68), for AgentFlow's pattern requirements:
+
+- `agentic metrics record --json` (`metric-record` v1, feature `metrics.record-report`) reports whether the event was stored: `recorded: false` when metrics are disabled (the default), otherwise the stored event.
+- The handshake's exit codes now cover `metrics record`, `worktree create`, `worktree clean`, and `capabilities status`.
+
 v0.16 slice 3 contracts (#67), for AgentFlow's bootstrap:
 
 - `agentic providers inspect SOURCE --json` (`provider-source` v1) describes a provider source, including its `content_digest`, without installing it.

@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/metric-record-v1.schema.json",
+  "title": "agentic metric record v1",
+  "description": "Output of `agentic metrics record EVENT --json`. Metrics are local and off by default: when they are disabled nothing is stored, `recorded` is false and `event` is null. Otherwise `event` is the stored agentic.metric-event (sensitive keys redacted). Exit 0 either way; a malformed --field is a usage error (exit 2, no document).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "document_type",
+    "recorded",
+    "event"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.metric-record"
+    },
+    "recorded": {
+      "type": "boolean"
+    },
+    "event": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/event"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "document_type",
+        "timestamp",
+        "event_type",
+        "data"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1"
+        },
+        "document_type": {
+          "const": "agentic.metric-event"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "event_type": {
+          "type": "string"
+        },
+        "repository": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "session_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "data": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "recorded": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "event": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "recorded": {
+            "const": false
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "event": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}
