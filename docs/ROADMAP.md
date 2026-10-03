@@ -259,7 +259,7 @@ It answers:
 
 # Design principles
 
-Every release in this roadmap follows these principles.
+Every milestone in this roadmap follows these principles.
 
 1. **Machine-readable first.** Important CLI functionality must expose stable JSON contracts.
 2. **Detect → recommend → explain → explicitly enable.** Detection must never silently grant risky access.
@@ -276,28 +276,45 @@ Every release in this roadmap follows these principles.
 
 # Roadmap overview
 
-| Release | Theme | Primary outcome |
-|---|---|---|
-| **v0.14** | Agent Ready specification + assessment | Measure whether a repository is agent-ready |
-| **v0.15** | Agent Ready remediation + CI | Safely make repositories more agent-ready |
-| **v0.16** | Deep AgentFlow integration | Remove duplicated environment/bootstrap logic from AgentFlow |
-| **v0.17** | Unified agent artifact model | Define portable Skill, Agent, AgentTeam, MCP, Plugin, Pack, WorkflowRef, and EnvironmentProfile objects |
-| **v0.18** | Local catalog + import/export | Discover and manage existing Claude/Codex/Pi/OpenCode/agentic assets |
-| **v0.19** | Packs + multi-agent definitions | Package reusable environments and agent teams |
-| **v0.20** | Federated discovery + supply-chain trust | Search external ecosystems without building another marketplace |
-| **v0.21** | Reproducible environment manifest + lockfile | Recreate an agent development environment exactly |
-| **v0.22** | Task sessions + context budgeting | Give each task the smallest useful agent/tool/skill surface |
-| **v0.23** | Team / organization policy | Organization-wide constraints and approved catalogs |
-| **v0.24** | Credential broker | Provide credentials to tools without exposing secrets to model context |
-| **v0.25** | Unified remote / ephemeral execution | Put host/container/devcontainer/Dagger/SSH behind one execution contract |
-| **v0.26** | Evaluation + optional OpenTelemetry | Evaluate agents, skills, tools, packs, and configurations scientifically |
-| **v0.27** | Distribution + developer experience | Homebrew/PyPI/CI/IDE-quality product experience |
-| **v0.90** | 1.0 hardening | Freeze interfaces and aggressively test compatibility/security |
-| **v1.0** | Stable agentic development platform | Stable contracts, extension model, and production-ready UX |
+| Milestone | Theme | Primary outcome | Public release? |
+|---|---|---|---|
+| **M14** | Agent Ready specification + assessment | Measure whether a repository is agent-ready | Released as 0.14.0 |
+| **M15** | Agent Ready remediation + CI | Safely make repositories more agent-ready | Released as 0.15.0 |
+| **M16** | Deep AgentFlow integration | Remove duplicated environment/bootstrap logic from AgentFlow | No (complete on `main`, unreleased) |
+| **M17** | Unified agent artifact model | Define portable Skill, Agent, AgentTeam, MCP, Plugin, Pack, WorkflowRef, and EnvironmentProfile objects | No |
+| **M18** | Local catalog + import/export | Discover and manage existing Claude/Codex/Pi/OpenCode/agentic assets | No |
+| **M19** | Packs + multi-agent definitions | Package reusable environments and agent teams | **MVP / Developer Preview** |
+| **M20** | Federated discovery + supply-chain trust | Search external ecosystems without building another marketplace | Included when ready |
+| **M21** | Reproducible environment manifest + lockfile | Recreate an agent development environment exactly | **Beta** |
+| **M22** | Task sessions + context budgeting | Give each task the smallest useful agent/tool/skill surface | **Beta** |
+| **M23** | Team / organization policy | Organization-wide constraints and approved catalogs | Decided at release time |
+| **M24** | Credential broker | Provide credentials to tools without exposing secrets to model context | Decided at release time |
+| **M25** | Unified remote / ephemeral execution | Put host/container/devcontainer/Dagger/SSH behind one execution contract | Decided at release time |
+| **M26** | Evaluation + optional OpenTelemetry | Evaluate agents, skills, tools, packs, and configurations scientifically | Decided at release time |
+| **M27** | Distribution + developer experience | Homebrew/PyPI/CI/IDE-quality product experience | Decided at release time |
+| **M90** | 1.0 hardening | Freeze interfaces and aggressively test compatibility/security | Release candidates |
+| **v1.0** | Stable agentic development platform | Stable contracts, extension model, and production-ready UX | **1.0.0** |
+
+## Milestones and releases
+
+A milestone (`M16`, `M17`, …) is a development checkpoint, not a promise of a published package. Finishing a milestone does not publish anything: its work lands on `main`, and `CHANGELOG.md` collects it under a single **Unreleased** section until a release.
+
+A public release happens when at least one of these is true:
+
+- there is a complete user journey worth installing;
+- an external consumer needs a stable contract;
+- users need a bug or security fix;
+- enough meaningful functionality has accumulated that upgrading is worthwhile.
+
+The package version is chosen at release time, not dictated by the milestone number. After the MVP, releases follow a deliberate train (every few weeks) rather than one per milestone.
+
+During development, AgentFlow depends on a pinned `agentic-dev` commit in CI. At the first public release, Agentic Dev publishes first, and AgentFlow then declares a released version range.
+
+M17–M22 are being re-planned around an explicit MVP user journey: what a developer must be able to accomplish end to end. Milestones may be merged, split, or reordered as a result.
 
 ---
 
-# v0.14 — Agent Ready specification + assessment
+# M14 — Agent Ready specification + assessment
 
 ## Goal
 
@@ -395,7 +412,7 @@ Maturity must be **requirement-based**, not an arbitrary score. Dimension percen
 
 ---
 
-# v0.15 — Agent Ready remediation + CI
+# M15 — Agent Ready remediation + CI
 
 ## Goal
 
@@ -460,7 +477,7 @@ Readiness should become a maintained repository property that can regress and be
 
 ---
 
-# v0.16 — Deep AgentFlow integration
+# M16 — Deep AgentFlow integration
 
 ## Goal
 
@@ -514,7 +531,7 @@ AgentFlow patterns should be able to declare environment/readiness requirements,
 
 ---
 
-# v0.17 — Unified agent artifact model
+# M17 — Unified agent artifact model
 
 ## Goal
 
@@ -601,7 +618,7 @@ Prefer model capabilities to hard-coded model names.
 
 ---
 
-# v0.18 — Local catalog + import/export
+# M18 — Local catalog + import/export
 
 ## Goal
 
@@ -700,7 +717,7 @@ Remote content must never silently override local definitions.
 
 ---
 
-# v0.19 — Packs + AgentTeam definitions
+# M19 — Packs + AgentTeam definitions
 
 ## Goal
 
@@ -783,7 +800,7 @@ Repository initialization may recommend a pack, but must never install it silent
 
 ---
 
-# v0.20 — Federated discovery + supply-chain trust
+# M20 — Federated discovery + supply-chain trust
 
 ## Goal
 
@@ -834,7 +851,7 @@ No remote artifact receives silent execution rights.
 
 ---
 
-# v0.21 — Reproducible environment manifest + lockfile
+# M21 — Reproducible environment manifest + lockfile
 
 ## Goal
 
@@ -902,7 +919,7 @@ Benefits include integrity, deduplication, rollback, offline reuse, and reproduc
 
 ---
 
-# v0.22 — Task sessions + context budgeting
+# M22 — Task sessions + context budgeting
 
 ## Goal
 
@@ -967,7 +984,7 @@ Bring OpenCode integration to parity with Claude, Codex, and Pi here.
 
 ---
 
-# v0.23 — Team / organization policy
+# M23 — Team / organization policy
 
 ## Goal
 
@@ -1016,7 +1033,7 @@ AgentFlow policy controls workflow/evidence/review/approval/transition constrain
 
 ---
 
-# v0.24 — Credential broker
+# M24 — Credential broker
 
 ## Goal
 
@@ -1060,7 +1077,7 @@ Secret values must never be written into prompts, skills, AGENTS.md, CLAUDE.md, 
 
 ---
 
-# v0.25 — Unified remote / ephemeral execution
+# M25 — Unified remote / ephemeral execution
 
 ## Goal
 
@@ -1100,7 +1117,7 @@ AgentFlow should consume the same result contract regardless of execution locati
 
 ---
 
-# v0.26 — Evaluation + optional OpenTelemetry
+# M26 — Evaluation + optional OpenTelemetry
 
 ## Goal
 
@@ -1152,7 +1169,7 @@ Local metrics remain the default. Any OpenTelemetry export is optional and expli
 
 ---
 
-# v0.27 — Distribution + developer experience
+# M27 — Distribution + developer experience
 
 ## Goal
 
@@ -1229,7 +1246,7 @@ The CLI/API remains canonical.
 
 ---
 
-# v0.90 — 1.0 hardening
+# M90 — 1.0 hardening
 
 Freeze features.
 
@@ -1538,58 +1555,58 @@ Roadmap success should be measured by outcomes, not feature count.
 The implementation sequence is:
 
 ```text
-1. v0.14
+1. M14
    Agent Ready machine-readable specification
    + readiness assessment engine
 
-2. v0.15
+2. M15
    safe remediation
    + readiness CI/regression checks
 
-3. v0.16
+3. M16
    deep AgentFlow integration
    + remove duplicated environment discovery
 
-4. v0.17
+4. M17
    unified artifact schemas
 
-5. v0.18
+5. M18
    local catalog
    + import/reference/vendor/fork/export
 
-6. v0.19
+6. M19
    packs + AgentTeam definitions
 
-7. v0.20
+7. M20
    federated discovery
    + supply-chain metadata
 
-8. v0.21
+8. M21
    environment manifest
    + lockfile
    + content-addressed store
 
-9. v0.22
+9. M22
    task/session preparation
    + context budgeting
    + OpenCode parity
 
-10. v0.23
+10. M23
     organization policy
 
-11. v0.24
+11. M24
     credential broker
 
-12. v0.25
+12. M25
     unified remote execution
 
-13. v0.26
+13. M26
     evaluation / benchmarking / optional OpenTelemetry
 
-14. v0.27
+14. M27
     distribution / GitHub Action / DX
 
-15. v0.90
+15. M90
     feature freeze + hardening
 
 16. v1.0

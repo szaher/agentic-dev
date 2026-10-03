@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+Milestones are not releases (see `docs/RELEASING.md`): this section collects every milestone finished since 0.15.0 until the next public release. M16 (deep AgentFlow integration, #33) is complete.
+
 v0.16 slice 4 contracts (#68), for AgentFlow's pattern requirements:
 
 - `agentic metrics record --json` (`metric-record` v1, feature `metrics.record-report`) reports whether the event was stored: `recorded: false` when metrics are disabled (the default), otherwise the stored event.
