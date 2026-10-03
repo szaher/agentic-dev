@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/repository-profile-v1.schema.json",
+  "title": "agentic repository profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "document_type"],
+  "properties": {
+    "schema_version": {"const": "1"},
+    "document_type": {"const": "agentic.repository-profile"},
+    "preferred_harness": {"enum": ["claude", "codex", "pi", "opencode"]},
+    "readiness_minimum": {"$ref": "#/$defs/readiness"},
+    "required_capabilities": {"$ref": "#/$defs/names"},
+    "allowed_skills": {"$ref": "#/$defs/names"},
+    "required_skills": {"$ref": "#/$defs/names"},
+    "trust_ceiling": {"type": "string", "minLength": 1},
+    "permissions": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "implementer": {"$ref": "#/$defs/ceilings"},
+        "reviewer": {"$ref": "#/$defs/reviewer_ceilings"}
+      }
+    }
+  },
+  "$defs": {
+    "names": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "readiness": {"enum": ["unaware", "foundational", "structured", "optimized", "autonomous"]},
+    "ceilings": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "filesystem": {"enum": ["read-only", "workspace-write"]},
+        "network": {"enum": ["off", "on"]}
+      }
+    },
+    "reviewer_ceilings": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "filesystem": {"const": "read-only"},
+        "network": {"enum": ["off", "on"]}
+      }
+    }
+  }
+}

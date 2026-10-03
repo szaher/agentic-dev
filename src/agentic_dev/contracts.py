@@ -59,6 +59,9 @@ REGISTRY: tuple[Contract, ...] = (
     Contract("provider-source", "1", ("agentic.provider-source",)),
     Contract("provider-install", "1", ("agentic.provider-install",)),
     Contract("skills-activation", "1", ("agentic.skills-activation",)),
+    Contract("repository-profile", "1", ("agentic.repository-profile",)),
+    Contract("session-request", "1", ("agentic.session-request",)),
+    Contract("session-plan", "1", ("agentic.session-plan",)),
 )
 
 FEATURES: tuple[str, ...] = (
@@ -72,6 +75,8 @@ FEATURES: tuple[str, ...] = (
     "repo-inspection.discovered-commands",
     "skills.activation-dry-run",
     "skills.activation-report",
+    "session.permission-dimensions",
+    "session.plan-read-only",
     "verification.change-aware",
     "verification.explicit-commands",
     "verification.full-kind-filter",
@@ -99,6 +104,7 @@ EXIT_CODES: dict[str, dict[str, str]] = {
                      "3": "spec pin mismatch"},
     "ready make": {"0": "target met", "1": "conflict", "2": "usage error", "3": "rolled back",
                    "4": "stopped: human decision, no safe progress, or round limit"},
+    "session plan": {"0": "ready plan", "1": "blocked plan; no mutation", "2": "invalid request or profile"},
 }
 
 

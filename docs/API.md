@@ -22,6 +22,37 @@ Consumers decide compatibility from this document, never from `agentic --version
 Adding a contract version or a feature is additive; removing one or changing a listed exit code is breaking.
 Schemas live in `src/agentic_dev/schemas/`.
 
+## Session planning (S1)
+
+```bash
+agentic contracts schema repository-profile
+agentic contracts schema session-request
+agentic contracts schema session-plan
+agentic session plan --request request.json --path . --json
+```
+
+The committed `.agentic/profile.toml` is an optional `agentic.repository-profile@1` document. The caller supplies `agentic.session-request@1` as JSON. The planner emits `agentic.session-plan@1`; it reads repository and local environment facts and creates no workspace or session state. It does not launch a harness.
+
+The request contains a task and named implementer/reviewer invocations. Each invocation has independent filesystem (`read-only`, `workspace-write`) and network (`off`, `on`) bounds. The profile may set role ceilings. The plan records requested and effective bounds, per-harness enforceability, concrete candidate mechanisms, and blockers. Missing enforcement evidence blocks the plan. See [SESSION-PERMISSIONS.md](SESSION-PERMISSIONS.md) for composition and scope.
+
+`request_digest` hashes the canonical request. `inputs_digest` covers the current commit, profile, readiness, providers and skill content, capability and trust state, harness availability/version/facts, and contract/features. `plan_digest` hashes the complete semantic plan. Exit codes: `0` ready plan, `1` blocked plan, `2` invalid request or profile. A blocked plan is still valid JSON and must not be executed.
+
+Minimal request:
+
+```json
+{
+  "schema_version": "1",
+  "document_type": "agentic.session-request",
+  "task": "Fix a failing test",
+  "invocations": [
+    {"id": "implement", "role": "implementer", "harness": "codex"},
+    {"id": "review", "role": "reviewer", "harness": "claude"}
+  ]
+}
+```
+
+The absence of a profile uses defaults. Permission boundaries are still checked and may produce blockers until the installed harness/version has verified enforcement facts.
+
 ## Repository inspection
 
 ```bash
