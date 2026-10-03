@@ -44,6 +44,12 @@ expect_exit 0 "$work/out/verification-run.json" -- "$agentic" verify run . --kin
 [[ -f ran-make-check ]] || fail "verify run --kind test did not run make check"
 expect_exit 1 "$work/out/verification-run-missing.json" -- "$agentic" verify run . --kind typecheck --json
 "$agentic" capabilities status --json > "$work/out/capability-status.json"
+# AgentFlow pattern requirements (slice 4): local readiness, metrics, kinds plus custom commands.
+expect_exit 1 "$work/out/readiness-verification.json" -- "$agentic" ready verify . --target foundational --scope local --json
+"$agentic" metrics record agentflow.stage --field stage=verify --field outcome=passed --json > "$work/out/metric-record-disabled.json"
+"$agentic" metrics enable > /dev/null
+"$agentic" metrics record agentflow.stage --field stage=verify --field outcome=passed --session-id run-1 --json > "$work/out/metric-record.json"
+expect_exit 0 "$work/out/verification-run-mixed.json" -- "$agentic" verify run . --kind test --command true --json
 "$agentic" worktree create run-1 --agent agentflow --json > "$work/out/worktree.json"
 "$agentic" worktree list --json > "$work/out/worktree-list.json"
 "$agentic" worktree status run-1 --json > "$work/out/worktree-status.json"
@@ -83,7 +89,8 @@ for name, document in sorted(documents.items()):
 
 contracts = documents["contracts"]
 for feature in ("commands.canonical-discovery", "verification.full-kind-filter", "verification.no-checks-status",
-                "worktree.lifecycle", "instructions.managed-block", "skills.activation-dry-run"):
+                "worktree.lifecycle", "instructions.managed-block", "skills.activation-dry-run",
+                "metrics.record-report", "readiness.scope-ci"):
     assert feature in contracts["features"], feature
 
 # R4: one discoverer; all three consumers agree on `make check`.
@@ -96,6 +103,11 @@ run = documents["verification-run"]
 assert (run["status"], [r["command"] for r in run["results"]]) == ("passed", ["make check"]), run
 missing = documents["verification-run-missing"]
 assert (missing["status"], missing["success"], missing["missing_kinds"]) == ("no-checks", False, ["typecheck"])
+
+assert documents["readiness-verification"]["scope"] == "local"
+assert (documents["metric-record-disabled"]["recorded"], documents["metric-record"]["recorded"]) == (False, True)
+mixed = documents["verification-run-mixed"]
+assert sorted(r["command"] for r in mixed["results"]) == ["make check", "true"], mixed
 
 assert documents["instruction-block"]["status"] == "created"
 assert documents["instruction-block-again"]["status"] == "unchanged"
