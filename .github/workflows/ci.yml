@@ -40,7 +40,7 @@ jobs:
           /tmp/agentic-wheel/bin/python -m pip install --upgrade pip
           /tmp/agentic-wheel/bin/python -m pip install "$(ls dist/*.whl)"
           cd /tmp
-          /tmp/agentic-wheel/bin/agentic --version | grep -Fx '0.15.0'
+          /tmp/agentic-wheel/bin/agentic --version | grep -Fx '0.16.0'
           /tmp/agentic-wheel/bin/agentic doctor --json >/dev/null
           /tmp/agentic-wheel/bin/agentic skills list >/dev/null
           /tmp/agentic-wheel/bin/python - <<'PY'
@@ -81,7 +81,7 @@ jobs:
           set -Eeuo pipefail
           export UV_TOOL_DIR=/tmp/agentic-uv-tools UV_TOOL_BIN_DIR=/tmp/agentic-uv-bin
           uv tool install "$(ls dist/*.whl)"
-          /tmp/agentic-uv-bin/agentic --version | grep -Fx '0.15.0'
+          /tmp/agentic-uv-bin/agentic --version | grep -Fx '0.16.0'
           bash scripts/ci-contracts-smoke.sh /tmp/agentic-uv-bin/agentic
 
       - name: Smoke test installed source distribution
@@ -92,7 +92,7 @@ jobs:
           /tmp/agentic-sdist/bin/python -m pip install --upgrade pip
           /tmp/agentic-sdist/bin/python -m pip install "$(ls dist/*.tar.gz)"
           cd /tmp
-          /tmp/agentic-sdist/bin/agentic --version | grep -Fx '0.15.0'
+          /tmp/agentic-sdist/bin/agentic --version | grep -Fx '0.16.0'
           /tmp/agentic-sdist/bin/python - <<'PY'
           from agentic_dev.cli import _helper_script
           from agentic_dev.skills import load_registry

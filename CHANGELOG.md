@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.16.0 - 2026-10-03
+
+v0.16 (#33): deep AgentFlow integration. AgentFlow consumes Agentic Dev only through process + JSON contracts: `agentic contracts --json` lists every contract version, feature and exit code; `agentic contracts schema NAME` prints the schema the installed package ships. Compatibility is decided from contracts and features, never from the version.
 
 v0.16 slice 4 contracts (#68), for AgentFlow's pattern requirements:
 
