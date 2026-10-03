@@ -28,7 +28,7 @@ from agentic_dev.readiness.remediation import (  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHEMA = json.loads((ROOT / "schemas" / "readiness-remediation-v1.schema.json").read_text())
+SCHEMA = json.loads((ROOT / "src" / "agentic_dev" / "schemas" / "readiness-remediation-v1.schema.json").read_text())
 
 
 def change(content: str = "## Commands\n- x\n", prelude: str | None = None, path: str = "AGENTS.md",

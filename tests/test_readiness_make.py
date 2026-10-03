@@ -26,7 +26,7 @@ from agentic_dev.readiness.spec import SpecError  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHEMA = json.loads((ROOT / "schemas" / "readiness-make-v1.schema.json").read_text())
+SCHEMA = json.loads((ROOT / "src" / "agentic_dev" / "schemas" / "readiness-make-v1.schema.json").read_text())
 
 
 def snapshot(root: Path) -> dict[str, tuple]:

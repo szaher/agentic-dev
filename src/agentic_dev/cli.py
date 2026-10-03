@@ -19,10 +19,12 @@ from .infrastructure import (
     database_schema, migration_check, observability_status, status as infrastructure_status,
 )
 from .execution import configure as configure_execution, run as run_execution, status as execution_status
-from .skills import activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
+from .skills import TARGETS as SKILL_TARGETS, activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
 from .trust import define_profile, document as trust_document, get_profile, set_current
 from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
-from .verification import execute as execute_verification, plan as verification_plan
+from . import instructions as instruction_blocks
+from .contracts import UnknownContract, document as contracts_document, schema as contract_schema
+from .verification import FULL_KINDS, execute as execute_verification, full_plan as full_verification_plan, plan as verification_plan
 from . import readiness
 from .readiness import render as readiness_render
 from .readiness.apply import ApplyError, run as readiness_run
@@ -203,6 +205,7 @@ def cmd_skills_status(args: argparse.Namespace) -> int:
     print("Claude: " + (", ".join(found["claude"]) or "none"))
     print("Codex:  " + (", ".join(found["codex"]) or "none"))
     print("Pi:     " + (", ".join(found["pi"]) or "none"))
+    print("OpenCode: " + (", ".join(found["opencode"]) or "none"))
     return 0
 
 
@@ -287,6 +290,72 @@ def cmd_repo_inspect(args: argparse.Namespace) -> int:
     return 0
 
 
+def _block_content(source: str) -> str:
+    if source == "-":
+        return sys.stdin.buffer.read().decode("utf-8")
+    return Path(source).read_bytes().decode("utf-8")
+
+
+def cmd_instructions_block(args: argparse.Namespace) -> int:
+    try:
+        if args.block_command == "put":
+            data = instruction_blocks.put(args.path, file=args.file, owner=args.owner, block=args.id,
+                                          content=_block_content(args.content_file), dry_run=args.dry_run)
+        else:
+            data = instruction_blocks.remove(args.path, file=args.file, owner=args.owner, block=args.id,
+                                             dry_run=args.dry_run)
+    except (instruction_blocks.UsageError, OSError, UnicodeDecodeError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return instruction_blocks.EXIT_USAGE
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        note = " (dry run, nothing written)" if data["dry_run"] else ""
+        print(f"{data['block_id']} in {data['file']}: {data['status']}{note}")
+        if data["reason"]:
+            print(f"  {data['reason']}")
+        if data["diff"] and args.dry_run:
+            print(data["diff"].rstrip("\n"))
+    return data["exit_code"]
+
+
+def cmd_instructions_block_list(args: argparse.Namespace) -> int:
+    data = instruction_blocks.list_blocks(args.path)
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return 0
+    for item in data["blocks"]:
+        print(f"{item['file']}: {item['block_id']}{'' if item['intact'] else ' (edited by hand)'}")
+    if not data["blocks"]:
+        print("no managed blocks")
+    return 0
+
+
+def cmd_contracts(args: argparse.Namespace) -> int:
+    data = contracts_document()
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return 0
+    print("Contracts (name: versions):")
+    for name, versions in data["contracts"].items():
+        print(f"  {name}: {', '.join(versions)}")
+    print("Features:")
+    for feature in data["features"]:
+        print(f"  {feature}")
+    print("Schemas: agentic contracts schema NAME [--version V]")
+    return 0
+
+
+def cmd_contracts_schema(args: argparse.Namespace) -> int:
+    try:
+        data = contract_schema(args.name, args.version)
+    except UnknownContract as exc:
+        print(f"agentic: {exc.args[0]}", file=sys.stderr)
+        return 2
+    print(json.dumps(data, indent=2, sort_keys=True))
+    return 0
+
+
 def cmd_doctor(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(doctor_document(), indent=2, sort_keys=True))
@@ -308,6 +377,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print(f"  {'✓' if shutil.which('claude') else '!'} {'claude':<14} {shutil.which('claude') or 'not installed'}")
     print(f"  {'✓' if shutil.which('codex') else '!'} {'codex':<14} {shutil.which('codex') or 'not installed'}")
     print(f"  {'✓' if shutil.which('pi') else '!'} {'pi':<14} {shutil.which('pi') or 'not installed'}")
+    print(f"  {'✓' if shutil.which('opencode') else '!'} {'opencode':<14} {shutil.which('opencode') or 'not installed'}")
     print("\nNative integrations:")
     for item in integration_status():
         mark = "✓" if item.configured else ("·" if not item.available else "!")
@@ -493,7 +563,7 @@ def cmd_ready_apply(args: argparse.Namespace) -> int:
 
 def _verification_args(args: argparse.Namespace) -> tuple[str, str | None, list[str] | None]:
     return (
-        getattr(args, "path", "."),
+        getattr(args, "target_path", None) or getattr(args, "path", "."),
         getattr(args, "base", None),
         getattr(args, "symbol", None),
     )
@@ -525,7 +595,18 @@ def cmd_verify_plan(args: argparse.Namespace) -> int:
 
 def cmd_verify_run(args: argparse.Namespace) -> int:
     path, base, symbols = _verification_args(args)
-    plan = verification_plan(path, base=base, symbols=symbols)
+    kinds = getattr(args, "kind", None) or []
+    commands = getattr(args, "command", None) or []
+    if kinds or commands:
+        plan = full_verification_plan(path, kinds=kinds, commands=commands,
+                                      include_changed=getattr(args, "include_changed", False),
+                                      base=base, symbols=symbols)
+    elif getattr(args, "include_changed", False):
+        print("agentic: --include-changed augments full verification; also pass --kind or --command",
+              file=sys.stderr)
+        return 2
+    else:
+        plan = verification_plan(path, base=base, symbols=symbols)
     data = execute_verification(
         plan,
         continue_on_failure=getattr(args, "continue_on_failure", False),
@@ -541,8 +622,12 @@ def cmd_verify_run(args: argparse.Namespace) -> int:
             mark = "✓" if result.get("success") is True else ("·" if result.get("success") is None else "!")
             label = result.get("command") or result.get("test_file") or result.get("capability")
             print(f"{mark} {result['kind']}: {label}")
-        print("verification: " + ("passed" if data["success"] else "failed"))
-    return 0 if data["success"] else 1
+        if data["missing_kinds"]:
+            print("no runnable command for required kind(s): " + ", ".join(data["missing_kinds"]))
+        elif data["status"] == "no-checks":
+            print("no checks were executed")
+        print(f"verification: {data['status']}")
+    return 0 if data["status"] == "passed" else 1
 
 
 def cmd_execution_status(args: argparse.Namespace) -> int:
@@ -1217,7 +1302,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--no-skills", action="store_true")
     init.add_argument("--skills-yes", action="store_true")
     init.add_argument("--skills-shared", action="store_true")
-    init.add_argument("--skills-target", choices=["both", "all", "claude", "codex", "pi"], default="both")
+    init.add_argument("--skills-target", choices=list(SKILL_TARGETS), default="both")
     init.set_defaults(func=cmd_repo_init)
 
     inspect_cmd = repo_sub.add_parser("inspect", help="Inspect repository context without modifying it")
@@ -1339,7 +1424,7 @@ def build_parser() -> argparse.ArgumentParser:
     suggest.add_argument("--yes", action="store_true", help="Activate recommended skills without prompting")
     suggest.add_argument("--no-prompt", action="store_true")
     suggest.add_argument("--shared", action="store_true", help="Make activated skills commit-worthy instead of local-only")
-    suggest.add_argument("--target", choices=["both", "all", "claude", "codex", "pi"], default="both")
+    suggest.add_argument("--target", choices=list(SKILL_TARGETS), default="both")
     suggest.add_argument("--force", action="store_true")
     suggest.add_argument("--json", action="store_true")
     suggest.set_defaults(func=cmd_skills_suggest)
@@ -1357,14 +1442,14 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("names", nargs="+")
     add.add_argument("--path", default=".")
     add.add_argument("--shared", action="store_true")
-    add.add_argument("--target", choices=["both", "all", "claude", "codex", "pi"], default="both")
+    add.add_argument("--target", choices=list(SKILL_TARGETS), default="both")
     add.add_argument("--force", action="store_true")
     add.set_defaults(func=cmd_skills_add)
 
     rm = ssub.add_parser("remove", help="Remove agentic-dev managed skills")
     rm.add_argument("names", nargs="+")
     rm.add_argument("--path", default=".")
-    rm.add_argument("--target", choices=["both", "all", "claude", "codex", "pi"], default="both")
+    rm.add_argument("--target", choices=list(SKILL_TARGETS), default="both")
     rm.set_defaults(func=cmd_skills_remove)
 
     status = ssub.add_parser("status", help="Show active project skills")
@@ -1475,14 +1560,32 @@ def build_parser() -> argparse.ArgumentParser:
     vsub = verify.add_subparsers(dest="verify_command")
 
     vplan = vsub.add_parser("plan", help="Create a verification plan")
+    vplan.add_argument("target_path", nargs="?", default=None, metavar="PATH")
     vplan.add_argument("--path", default=".")
     vplan.add_argument("--base", default=None)
     vplan.add_argument("--symbol", action="append", default=None)
     vplan.add_argument("--json", action="store_true")
     vplan.set_defaults(func=cmd_verify_plan)
 
-    vrun = vsub.add_parser("run", help="Execute the selected verification checks")
+    vrun = vsub.add_parser(
+        "run",
+        help="Execute verification checks (change-aware, or full-project with --kind/--command)",
+        description=(
+            "Without --kind/--command, run the change-aware plan. With --kind, run every "
+            "discovered command of each kind across the whole project; --command adds explicit "
+            "commands; --include-changed adds change-aware checks on top (never removes any). "
+            "Exit 0 only when checks ran and passed. A requested kind with no command, or a run "
+            "that executes nothing, is status no-checks and exits 1."
+        ),
+    )
+    vrun.add_argument("target_path", nargs="?", default=None, metavar="PATH")
     vrun.add_argument("--path", default=".")
+    vrun.add_argument("--kind", action="append", choices=FULL_KINDS, default=None,
+                      help="full-project verification of this kind (repeatable)")
+    vrun.add_argument("--command", action="append", default=None, metavar="CMD",
+                      help="run this explicit command as a custom check (repeatable)")
+    vrun.add_argument("--include-changed", action="store_true",
+                      help="add change-aware checks to full verification")
     vrun.add_argument("--base", default=None)
     vrun.add_argument("--symbol", action="append", default=None)
     vrun.add_argument("--continue-on-failure", action="store_true")
@@ -1749,6 +1852,51 @@ def build_parser() -> argparse.ArgumentParser:
     iinstall = isub.add_parser("install", help="Install/configure a native integration")
     iinstall.add_argument("target", choices=["all", "claude", "codex", "pi"])
     iinstall.set_defaults(func=cmd_integrations_install)
+
+    instructions = sub.add_parser(
+        "instructions",
+        help="Managed blocks in shared agent instruction files (for tools such as AgentFlow)",
+    )
+    isub = instructions.add_subparsers(dest="instructions_command", required=True)
+    iblock = isub.add_parser(
+        "block",
+        help="Place, update, remove, or list a tool-owned managed block",
+        description=("A tool owns the content of one block `<owner>.<id>` in a shared instruction file; "
+                     "Agentic Dev owns the mutation. Hand-edited blocks are never overwritten, content "
+                     "outside the block is preserved, and repeating a request is a no-op. Exit codes: 0 ok, "
+                     "1 conflict/refused (nothing written), 2 usage, 3 rolled back."),
+    )
+    ibsub = iblock.add_subparsers(dest="block_command", required=True)
+    for name, text in (("put", "Create or update a block"), ("remove", "Remove a block")):
+        command = ibsub.add_parser(name, help=text)
+        command.add_argument("--path", default=".", help="repository (default: current directory)")
+        command.add_argument("--file", required=True, choices=instruction_blocks.INSTRUCTION_FILES)
+        command.add_argument("--owner", required=True, help="tool that owns the block, e.g. agentflow")
+        command.add_argument("--id", required=True, help="block id within the owner, e.g. workflow")
+        if name == "put":
+            command.add_argument("--content-file", required=True, metavar="PATH",
+                                 help="file with the block content, or - for stdin")
+        command.add_argument("--dry-run", action="store_true", help="show the change without writing")
+        command.add_argument("--json", action="store_true")
+        command.set_defaults(func=cmd_instructions_block)
+    iblist = ibsub.add_parser("list", help="List managed blocks in the supported instruction files")
+    iblist.add_argument("--path", default=".")
+    iblist.add_argument("--json", action="store_true")
+    iblist.set_defaults(func=cmd_instructions_block_list)
+
+    contracts = sub.add_parser(
+        "contracts",
+        help="Machine-readable compatibility handshake (contracts, features, exit codes)",
+        description=("List the document contracts and features this installation supports. Consumers "
+                     "check these instead of the package version."),
+    )
+    contracts.add_argument("--json", action="store_true")
+    contracts.set_defaults(func=cmd_contracts)
+    csub = contracts.add_subparsers(dest="contracts_command")
+    cschema = csub.add_parser("schema", help="Print the packaged JSON Schema for a contract")
+    cschema.add_argument("name")
+    cschema.add_argument("--version", default="1")
+    cschema.set_defaults(func=cmd_contracts_schema)
 
     doctor = sub.add_parser("doctor", help="Check the workstation toolchain and integrations")
     doctor.add_argument("--json", action="store_true")

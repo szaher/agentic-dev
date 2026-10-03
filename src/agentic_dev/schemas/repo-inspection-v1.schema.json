@@ -97,6 +97,39 @@
     },
     "integrations": {
       "type": "array"
+    },
+    "discovered_commands": {
+      "description": "Canonical command discovery: every discovered command with its kind and the root-level file it came from, in deterministic order. The `commands` map is derived from this list.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "command",
+          "source"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "install",
+              "build",
+              "test",
+              "lint",
+              "format",
+              "typecheck"
+            ]
+          },
+          "command": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
     }
   }
 }

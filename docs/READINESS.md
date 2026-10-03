@@ -219,9 +219,9 @@ CI regression gates use `ready verify` (above).
 
 | Command | `document_type` | Schema |
 |---|---|---|
-| `ready assess --json` | `agentic.readiness-assessment` | `schemas/readiness-assessment-v1.schema.json` |
-| `ready explain --json` | `agentic.readiness-explanation` | `schemas/readiness-explanation-v1.schema.json` |
-| `ready plan --json` | `agentic.readiness-plan` | `schemas/readiness-plan-v1.schema.json` |
+| `ready assess --json` | `agentic.readiness-assessment` | `src/agentic_dev/schemas/readiness-assessment-v1.schema.json` |
+| `ready explain --json` | `agentic.readiness-explanation` | `src/agentic_dev/schemas/readiness-explanation-v1.schema.json` |
+| `ready plan --json` | `agentic.readiness-plan` | `src/agentic_dev/schemas/readiness-plan-v1.schema.json` |
 
 See [API.md](API.md#agent-ready-assessment) for the stability rules shared by all
 contracts. External consumers such as AgentFlow should call the CLI and read

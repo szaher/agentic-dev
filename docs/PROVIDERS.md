@@ -58,7 +58,7 @@ Minimal example:
 Schema:
 
 ```text
-schemas/provider-manifest-v1.schema.json
+src/agentic_dev/schemas/provider-manifest-v1.schema.json
 ```
 
 Provider skill names and capability names cannot override built-in names. Built-ins win.

@@ -19,7 +19,7 @@ from functools import cached_property
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Iterable
 
-from ..inspection import discover_commands
+from ..commands import discover as discover_commands
 from .spec import SUPPORTED_DETECTIONS, Spec
 
 MAX_ITEMS = 10
@@ -261,127 +261,31 @@ def _observation(evidence_id: str, items: list[dict[str, Any]], note: str | None
 
 # ---------------------------------------------------------------- commands ---
 
-_MAKEFILES = ("Makefile", "makefile", "GNUmakefile")
 _COMMAND_KINDS = ("build", "format", "lint", "test", "typecheck")
 
 
-def _make_target(text: str, names: Iterable[str]) -> str | None:
-    for name in names:
-        if re.search(rf"^{re.escape(name)}[ \t]*:(?!=)", text, re.MULTILINE):
-            return name
-    return None
+class _ScopedView:
+    """Canonical discovery over a :class:`Repository`, so ``ci`` scope sees only tracked files."""
+
+    def __init__(self, repo: "Repository"):
+        self.repo = repo
+
+    def is_file(self, rel: str) -> bool:
+        return self.repo.exists_exact(rel) == "file"
+
+    def text(self, rel: str) -> str:
+        return self.repo.text(rel)
+
+    def root_files(self) -> list[str]:
+        return sorted(entry for entry, is_dir in self.repo.entries if not is_dir and "/" not in entry)
 
 
-def _just_recipe(text: str, names: Iterable[str]) -> str | None:
-    for name in names:
-        if re.search(rf"^@?{re.escape(name)}\b[^:=\n]*:(?!=)", text, re.MULTILINE):
-            return name
-    return None
+def discover(repo: "Repository") -> dict[str, list[tuple[str, str]]]:
+    """(command, source) per kind from Agentic Dev's canonical command discovery."""
 
-
-def _command_source(repo: Repository, command: str) -> str:
-    prefixes = [
-        ("make ", next((m for m in _MAKEFILES if repo.exists_exact(m)), "Makefile")),
-        ("go ", "go.mod"), ("gofmt", "go.mod"), ("cargo ", "Cargo.toml"),
-        ("uv run ", "pyproject.toml"), ("npm ", "package.json"), ("pnpm ", "package.json"),
-        ("yarn ", "package.json"), ("bun ", "package.json"), ("./gradlew", "gradlew"),
-        ("./mvnw", "mvnw"),
-    ]
-    for prefix, source in prefixes:
-        if command.startswith(prefix):
-            return source
-    return "repository metadata"
-
-
-def discover(repo: Repository) -> dict[str, list[tuple[str, str]]]:
-    """(command, source) per kind, following the spec's ``command.*`` definitions.
-
-    Starts from Agentic Dev's ``discover_commands`` (the same intelligence behind
-    ``repo inspect``) and adds the spec-defined sources it does not cover.
-    """
-
-    found: dict[str, list[tuple[str, str]]] = {kind: [] for kind in _COMMAND_KINDS}
-    base = discover_commands(repo.root)
-    for kind in _COMMAND_KINDS:
-        for command in base.get(kind, []):
-            source = _command_source(repo, command)
-            # discover_commands reads the working tree. In CI scope keep only
-            # commands whose defining file is tracked.
-            if repo.scope == "ci" and repo.exists_exact(source) != "file":
-                continue
-            found[kind].append((command, source))
-
-    def add(kind: str, command: str, source: str) -> None:
-        if (command, source) not in found[kind]:
-            found[kind].append((command, source))
-
-    def exists(name: str) -> bool:
-        return repo.exists_exact(name) == "file"
-
-    makefile = next((m for m in _MAKEFILES if exists(m)), None)
-    if makefile:
-        text = repo.text(makefile)
-        if target := _make_target(text, ("test", "check")):
-            add("test", f"make {target}", makefile)
-        if target := _make_target(text, ("type-check",)):
-            add("typecheck", f"make {target}", makefile)
-    if exists("justfile"):
-        text = repo.text("justfile")
-        for kind, names in (("test", ("test", "check")), ("build", ("build",)), ("lint", ("lint",)),
-                            ("format", ("fmt", "format")), ("typecheck", ("typecheck", "type-check"))):
-            if recipe := _just_recipe(text, names):
-                add(kind, f"just {recipe}", "justfile")
-
-    if exists("package.json"):
-        text = repo.text("package.json")
-        for kind, script in (("format", "fmt"), ("typecheck", "type-check")):
-            if re.search(rf'"{re.escape(script)}"\s*:', text):
-                add(kind, f"npm run {script}", "package.json")
-    if exists("composer.json") and re.search(r'"test"\s*:', repo.text("composer.json")):
-        add("test", "composer test", "composer.json")
-
-    pyproject = repo.text("pyproject.toml").lower() if exists("pyproject.toml") else ""
-    for name in ("setup.cfg", "tox.ini"):
-        if exists(name) and "pytest" in repo.text(name).lower():
-            add("test", "pytest", name)
-    for entry, is_dir in repo.entries:
-        if not is_dir and "/" not in entry and re.fullmatch(r"requirements.*\.txt", entry):
-            if "pytest" in repo.text(entry).lower():
-                add("test", "pytest", entry)
-    for name in ("pytest.ini", "conftest.py"):
-        if exists(name):
-            add("test", "pytest", name)
-    if exists("tox.ini"):
-        add("test", "tox", "tox.ini")
-    if exists("noxfile.py"):
-        add("test", "nox", "noxfile.py")
-    if pyproject:
-        if re.search(r"^\s*\[build-system\]", pyproject, re.MULTILINE):
-            add("build", "python -m build", "pyproject.toml")
-        for tool in ("flake8", "pylint"):
-            if tool in pyproject:
-                add("lint", tool, "pyproject.toml")
-        if "black" in pyproject:
-            add("format", "black .", "pyproject.toml")
-
-    for name in ("build.gradle", "build.gradle.kts"):
-        if exists(name) and not exists("gradlew"):
-            add("test", "gradle test", name)
-            add("build", "gradle build", name)
-    if exists("pom.xml") and not exists("mvnw"):
-        add("test", "mvn test", "pom.xml")
-        add("build", "mvn package", "pom.xml")
-    if exists("CMakeLists.txt"):
-        add("build", "cmake --build build", "CMakeLists.txt")
-        if re.search(r"\b(enable_testing|add_test)\s*\(", repo.text("CMakeLists.txt"), re.IGNORECASE):
-            add("test", "ctest", "CMakeLists.txt")
-    if exists("Package.swift"):
-        add("build", "swift build", "Package.swift")
-        add("test", "swift test", "Package.swift")
-    if exists("Rakefile"):
-        add("test", "rake test", "Rakefile")
-    if exists(".rspec"):
-        add("test", "rspec", ".rspec")
+    found: dict[str, list[tuple[str, str]]] = {}
+    for command in discover_commands(_ScopedView(repo)):
+        found.setdefault(command.kind, []).append((command.command, command.source))
     return found
 
 
@@ -549,7 +453,7 @@ class EvidenceCollector:
 
 def _derived_command(kind: str) -> Callable[[EvidenceCollector, str], Observation]:
     def handler(collector: EvidenceCollector, evidence_id: str) -> Observation:
-        items = [_item(evidence_id, command, source) for command, source in collector.commands()[kind]]
+        items = [_item(evidence_id, command, source) for command, source in collector.commands().get(kind, [])]
         return _observation(evidence_id, items)
     return handler
 

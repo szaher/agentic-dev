@@ -72,7 +72,7 @@ class ReadyCliTests(unittest.TestCase):
         shutil.rmtree(cls.root, ignore_errors=True)
 
     def schema(self, name: str) -> dict:
-        return json.loads((ROOT / "schemas" / name).read_text())
+        return json.loads((ROOT / "src" / "agentic_dev" / "schemas" / name).read_text())
 
     def test_parser_accepts_ready_commands(self):
         parser = build_parser()

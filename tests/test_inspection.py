@@ -22,7 +22,7 @@ class InspectionContractTests(unittest.TestCase):
         return root
 
     def schema(self, name: str) -> dict:
-        return json.loads((ROOT / "schemas" / name).read_text())
+        return json.loads((ROOT / "src" / "agentic_dev" / "schemas" / name).read_text())
 
     @patch("agentic_dev.inspection.integration_status", return_value=[])
     @patch("agentic_dev.inspection.capability_status", return_value={})

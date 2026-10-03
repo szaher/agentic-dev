@@ -137,7 +137,7 @@ There is intentionally no network-export option.
 The event schema is:
 
 ```text
-schemas/metric-event-v1.schema.json
+src/agentic_dev/schemas/metric-event-v1.schema.json
 ```
 
 ## Event storage

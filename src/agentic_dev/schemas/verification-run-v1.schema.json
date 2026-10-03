@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/verification-run-v1.schema.json",
+  "title": "agentic verification run v1",
+  "description": "Output of `agentic verify run --json`. `status` is authoritative: `passed` (checks executed and all passed), `failed`, or `no-checks` (a requested kind had no runnable command, or nothing executed). `success` is true only for `passed`. The process exits 0 only for `passed`. Invariants: passed and failed have checks_executed >= 1 and no missing_kinds; no-checks has success false, checks_executed 0, and only results with executed false; missing_kinds non-empty implies no-checks with no results.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "document_type",
+    "repository",
+    "mode",
+    "status",
+    "success",
+    "requested_kinds",
+    "missing_kinds",
+    "checks_executed",
+    "duration_ms",
+    "plan",
+    "execution",
+    "results"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.verification-run"
+    },
+    "repository": {
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "change-aware",
+        "full"
+      ]
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed",
+        "no-checks"
+      ]
+    },
+    "success": {
+      "type": "boolean"
+    },
+    "requested_kinds": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "build",
+          "test",
+          "lint",
+          "typecheck"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "missing_kinds": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "build",
+          "test",
+          "lint",
+          "typecheck"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "checks_executed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duration_ms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "plan": {
+      "type": "object",
+      "required": [
+        "document_type",
+        "checks"
+      ],
+      "properties": {
+        "document_type": {
+          "const": "agentic.verification-plan"
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "backend",
+        "image",
+        "network",
+        "profile"
+      ]
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "reason",
+          "executed",
+          "success"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "discovered",
+              "explicit",
+              "change-aware"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "executed": {
+            "type": "boolean"
+          },
+          "success": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "returncode": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "stdout": {
+            "type": "string"
+          },
+          "stderr": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "passed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "missing_kinds": {
+            "maxItems": 0
+          },
+          "checks_executed": {
+            "minimum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "success": {
+            "const": false
+          },
+          "missing_kinds": {
+            "maxItems": 0
+          },
+          "checks_executed": {
+            "minimum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "no-checks"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "success": {
+            "const": false
+          },
+          "checks_executed": {
+            "const": 0
+          },
+          "results": {
+            "items": {
+              "properties": {
+                "executed": {
+                  "const": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "missing_kinds": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "missing_kinds"
+        ]
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "no-checks"
+          },
+          "results": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ]
+}

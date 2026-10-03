@@ -67,9 +67,17 @@ They retain their trust-profile enforcement when executed.
 ## Run
 
 ```bash
-agentic verify run --path .
-agentic verify run --path . --json
+agentic verify run .                     # change-aware
+agentic verify run . --json
+agentic verify run . --kind test --kind lint   # full-project: every discovered command of each kind
+agentic verify run . --command "make e2e"      # explicit command, executed by Agentic Dev
+agentic verify run . --kind test --include-changed   # full baseline + change-aware additions
 ```
+
+`status` is `passed`, `failed`, or `no-checks`. A requested kind with no discovered
+command, or a run that executes nothing, is `no-checks` with `success: false` and
+exit 1: zero checks is never success. Change-aware checks can only add to a full
+baseline, never remove from it. See [API.md](API.md#verification-run).
 
 Execution is fail-fast by default.
 

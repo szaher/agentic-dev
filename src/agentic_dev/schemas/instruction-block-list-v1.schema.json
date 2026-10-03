@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/instruction-block-list-v1.schema.json",
+  "title": "agentic instruction block list v1",
+  "description": "Output of `agentic instructions block list --json`: every managed block in the supported instruction files. `intact` is false when the block was edited by hand (its content no longer matches its marker digest).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "document_type",
+    "repository",
+    "files",
+    "blocks"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.instruction-blocks"
+    },
+    "repository": {
+      "type": "object",
+      "required": [
+        "name"
+      ]
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file",
+          "block_id",
+          "owner",
+          "id",
+          "intact"
+        ],
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "intact": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

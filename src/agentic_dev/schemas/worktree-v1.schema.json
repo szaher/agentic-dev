@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/worktree-v1.schema.json",
+  "title": "agentic worktree v1",
+  "description": "Output of `agentic worktree create --json`.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "document_type",
+    "repository",
+    "worktree",
+    "branch",
+    "session"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.worktree"
+    },
+    "repository": {
+      "type": "string"
+    },
+    "worktree": {
+      "type": "string"
+    },
+    "branch": {
+      "type": "string"
+    },
+    "session": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/session"
+        },
+        {
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "session": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Session metadata written by `agentic worktree create` to `.agentic/session.json` in the worktree; null for worktrees Agentic Dev did not create.",
+      "required": [
+        "schema_version",
+        "name",
+        "branch",
+        "base",
+        "repository",
+        "worktree",
+        "created_at"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1"
+        },
+        "name": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "base": {
+          "type": "string",
+          "description": "The ref the worktree branch was created from, as given."
+        },
+        "agent": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "task": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "repository": {
+          "type": "string"
+        },
+        "worktree": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "required": [
+        "worktree",
+        "session",
+        "dirty"
+      ],
+      "properties": {
+        "worktree": {
+          "type": "string"
+        },
+        "head": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "session": {
+          "$ref": "#/$defs/session"
+        },
+        "dirty": {
+          "type": "boolean"
+        },
+        "bare": {
+          "type": [
+            "boolean",
+            "string"
+          ]
+        },
+        "detached": {
+          "type": [
+            "boolean",
+            "string"
+          ]
+        },
+        "locked": {
+          "type": [
+            "boolean",
+            "string"
+          ]
+        },
+        "prunable": {
+          "type": [
+            "boolean",
+            "string"
+          ]
+        }
+      }
+    }
+  }
+}

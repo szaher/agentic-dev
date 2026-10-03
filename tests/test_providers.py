@@ -85,7 +85,7 @@ class ProviderEcosystemTests(unittest.TestCase):
             with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 source = self.make_provider(Path(tmp))
                 manifest = json.loads((source / "agentic-provider.json").read_text())
-                schema = json.loads((ROOT / "schemas/provider-manifest-v1.schema.json").read_text())
+                schema = json.loads((ROOT / "src/agentic_dev/schemas/provider-manifest-v1.schema.json").read_text())
                 jsonschema.validate(manifest, schema)
 
                 record = add_provider(str(source))

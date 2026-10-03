@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import subprocess
 import tempfile
 import unittest
@@ -10,7 +11,7 @@ from unittest.mock import patch
 
 import jsonschema
 
-from agentic_dev.verification import execute, plan
+from agentic_dev.verification import execute, full_plan, plan
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,7 +44,7 @@ line-length = 100
         return root
 
     def schema(self) -> dict:
-        return json.loads((ROOT / "schemas/verification-plan-v1.schema.json").read_text())
+        return json.loads((ROOT / "src/agentic_dev/schemas/verification-plan-v1.schema.json").read_text())
 
     @patch("agentic_dev.verification.shutil.which", return_value=None)
     def test_source_change_selects_repo_native_checks(self, which):
@@ -132,6 +133,101 @@ line-length = 100
         self.assertFalse(result["success"])
         self.assertEqual(len(result["results"]), 2)
         self.assertTrue(result["results"][1]["success"])
+
+
+class FullVerificationTests(unittest.TestCase):
+    """verification-run-v1: full kind filtering, explicit commands, and the no-checks outcome."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        (self.root / "Makefile").write_text("test:\n\ttouch ran-test\nlint:\n\ttrue\n")
+        (self.root / "pyproject.toml").write_text("[tool.pytest.ini_options]\n")
+        subprocess.run(["git", "-C", str(self.root), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(self.root), "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+                        "commit", "-qm", "init"], check=True)
+        self.schema = json.loads((ROOT / "src/agentic_dev/schemas/verification-run-v1.schema.json").read_text())
+
+    def cli(self, *args: str) -> subprocess.CompletedProcess[str]:
+        env = {**os.environ, "PYTHONPATH": str(ROOT / "src"), "AGENTIC_DEV_CONFIG_DIR": tempfile.mkdtemp()}
+        return subprocess.run([sys.executable, "-m", "agentic_dev.cli", "verify", "run", *args],
+                              cwd=self.root, env=env, capture_output=True, text=True, check=False)
+
+    def test_every_discovered_command_of_each_kind_is_planned(self):
+        planned = full_plan(self.root, kinds=["test", "lint"])
+        self.assertEqual([(c["kind"], c["command"]) for c in planned["checks"]],
+                         [("test", "make test"), ("test", "uv run pytest"), ("lint", "make lint")])
+        self.assertEqual(planned["missing_kinds"], [])
+
+    def test_missing_required_kind_is_no_checks_and_runs_nothing(self):
+        run = execute(full_plan(self.root, kinds=["test", "typecheck"]))
+        jsonschema.validate(run, self.schema)
+        self.assertEqual((run["status"], run["success"], run["missing_kinds"]), ("no-checks", False, ["typecheck"]))
+        self.assertEqual(run["results"], [])
+        self.assertFalse((self.root / "ran-test").exists())
+
+    def test_change_aware_run_with_nothing_to_check_is_no_checks(self):
+        run = execute(plan(self.root))
+        jsonschema.validate(run, self.schema)
+        self.assertEqual((run["mode"], run["status"], run["success"], run["checks_executed"]),
+                         ("change-aware", "no-checks", False, 0))
+
+    def test_explicit_commands_and_failures(self):
+        run = execute(full_plan(self.root, commands=["exit 3"]))
+        jsonschema.validate(run, self.schema)
+        self.assertEqual((run["status"], run["results"][0]["kind"], run["results"][0]["origin"]),
+                         ("failed", "custom", "explicit"))
+
+    def test_change_aware_augmentation_only_adds(self):
+        (self.root / "main.py").write_text("x = 1\n")
+        baseline = full_plan(self.root, kinds=["test"])
+        augmented = full_plan(self.root, kinds=["test"], include_changed=True)
+        base_checks = [(c["kind"], c["command"]) for c in baseline["checks"]]
+        self.assertEqual([(c["kind"], c["command"]) for c in augmented["checks"]][:len(base_checks)], base_checks)
+        self.assertIn(("lint", "make lint"), [(c["kind"], c["command"]) for c in augmented["checks"]])
+        self.assertTrue(all(c["origin"] == "change-aware" for c in augmented["checks"][len(base_checks):]))
+
+    def test_schema_rejects_inconsistent_status_combinations(self):
+        passed = execute(full_plan(self.root, kinds=["lint"]))
+        failed = execute(full_plan(self.root, commands=["exit 3"]))
+        missing = execute(full_plan(self.root, kinds=["typecheck"]))
+        empty = execute({"document_type": "agentic.verification-plan", "repository": str(self.root),
+                         "mode": "change-aware", "checks": [
+            {"kind": "affected-test", "command": None, "test_file": "tests/test_x.py", "reason": "affected"}]})
+        for document in (passed, failed, missing, empty):
+            jsonschema.validate(document, self.schema)
+        self.assertEqual((empty["status"], empty["results"][0]["executed"]), ("no-checks", False))
+
+        executed_result = {**failed["results"][0]}
+        bad = {
+            "no-checks with executed checks": {**missing, "checks_executed": 5},
+            "no-checks with an executed result": {**empty, "results": [executed_result]},
+            "no-checks with success": {**missing, "success": True},
+            "passed without executed checks": {**passed, "checks_executed": 0},
+            "passed with missing kinds": {**passed, "missing_kinds": ["test"]},
+            "passed without success": {**passed, "success": False},
+            "failed without executed checks": {**failed, "checks_executed": 0},
+            "failed with missing kinds": {**failed, "missing_kinds": ["test"]},
+            "failed with success": {**failed, "success": True},
+            "missing kinds reported as failed": {**missing, "status": "failed", "checks_executed": 1},
+            "missing kinds with results": {**missing, "results": [executed_result], "checks_executed": 0},
+        }
+        for label, document in bad.items():
+            with self.subTest(label), self.assertRaises(jsonschema.ValidationError):
+                jsonschema.validate(document, self.schema)
+
+    def test_cli_exit_codes(self):
+        passed = self.cli(".", "--kind", "lint", "--json")
+        self.assertEqual(passed.returncode, 0, passed.stderr)
+        jsonschema.validate(json.loads(passed.stdout), self.schema)
+        missing = self.cli(".", "--kind", "typecheck")
+        self.assertEqual(missing.returncode, 1)
+        self.assertIn("no runnable command for required kind(s): typecheck", missing.stdout)
+        self.assertIn("verification: no-checks", missing.stdout)
+        self.assertEqual(self.cli(".").returncode, 1)  # change-aware, nothing changed
+        self.assertEqual(self.cli(".", "--command", "exit 4").returncode, 1)
+        self.assertEqual(self.cli(".", "--kind", "format").returncode, 2)
+        self.assertEqual(self.cli(".", "--include-changed").returncode, 2)
 
 
 if __name__ == "__main__":
