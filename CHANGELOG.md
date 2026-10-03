@@ -8,7 +8,7 @@ v0.16 slice 1 (#65): Agentic Dev contracts for AgentFlow.
 - **`verify run` contract (`verification-run-v1`).** New `status` (`passed`/`failed`/`no-checks`), `mode`, `requested_kinds`, `missing_kinds`, `checks_executed`. `--kind` runs every discovered command of each kind across the project, `--command` runs explicit commands, `--include-changed` adds change-aware checks without removing any, and `PATH` may be positional. **Behaviour change:** a run that executes nothing (including a change-aware run with no changes) is now `no-checks`, `success: false`, exit 1 instead of success.
 - **`agentic contracts`** compatibility handshake: contract versions, document types, features, and exit codes; `agentic contracts schema NAME` prints the packaged schema. Schemas moved from `schemas/` to `src/agentic_dev/schemas/` and ship in wheels and sdists.
 - **Schemas for existing documents:** `worktree`, `worktree-list`, `worktree-status`, `worktree-clean`, and `capability-status` (unchanged output).
-- **`agentic instructions block put|remove|list`**: tool-owned managed blocks in allowlisted shared instruction files, with readiness's hash/conflict protocol, atomic writes, rollback, and idempotency.
+- **`agentic instructions block put|remove|list`**: tool-owned managed blocks in allowlisted shared instruction files, with readiness's hash/conflict protocol, atomic writes, rollback, and idempotency. Owners `readiness` and `agentic*` are reserved.
 - **OpenCode:** `doctor` reports `opencode`; skills accept `--target opencode` (`.opencode/skills`), included in `all`.
 - CI validates every contract document from a `uv tool`-installed wheel and an installed sdist against the schemas those artifacts ship.
 

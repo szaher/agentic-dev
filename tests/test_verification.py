@@ -187,6 +187,35 @@ class FullVerificationTests(unittest.TestCase):
         self.assertIn(("lint", "make lint"), [(c["kind"], c["command"]) for c in augmented["checks"]])
         self.assertTrue(all(c["origin"] == "change-aware" for c in augmented["checks"][len(base_checks):]))
 
+    def test_schema_rejects_inconsistent_status_combinations(self):
+        passed = execute(full_plan(self.root, kinds=["lint"]))
+        failed = execute(full_plan(self.root, commands=["exit 3"]))
+        missing = execute(full_plan(self.root, kinds=["typecheck"]))
+        empty = execute({"document_type": "agentic.verification-plan", "repository": str(self.root),
+                         "mode": "change-aware", "checks": [
+            {"kind": "affected-test", "command": None, "test_file": "tests/test_x.py", "reason": "affected"}]})
+        for document in (passed, failed, missing, empty):
+            jsonschema.validate(document, self.schema)
+        self.assertEqual((empty["status"], empty["results"][0]["executed"]), ("no-checks", False))
+
+        executed_result = {**failed["results"][0]}
+        bad = {
+            "no-checks with executed checks": {**missing, "checks_executed": 5},
+            "no-checks with an executed result": {**empty, "results": [executed_result]},
+            "no-checks with success": {**missing, "success": True},
+            "passed without executed checks": {**passed, "checks_executed": 0},
+            "passed with missing kinds": {**passed, "missing_kinds": ["test"]},
+            "passed without success": {**passed, "success": False},
+            "failed without executed checks": {**failed, "checks_executed": 0},
+            "failed with missing kinds": {**failed, "missing_kinds": ["test"]},
+            "failed with success": {**failed, "success": True},
+            "missing kinds reported as failed": {**missing, "status": "failed", "checks_executed": 1},
+            "missing kinds with results": {**missing, "results": [executed_result], "checks_executed": 0},
+        }
+        for label, document in bad.items():
+            with self.subTest(label), self.assertRaises(jsonschema.ValidationError):
+                jsonschema.validate(document, self.schema)
+
     def test_cli_exit_codes(self):
         passed = self.cli(".", "--kind", "lint", "--json")
         self.assertEqual(passed.returncode, 0, passed.stderr)

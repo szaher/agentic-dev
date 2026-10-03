@@ -137,7 +137,10 @@ class UsageTests(BlockCase):
         cases = {
             "unsupported file": dict(file="README.md"),
             "arbitrary path": dict(file="../AGENTS.md"),
-            "reserved owner": dict(owner="readiness"),
+            "reserved owner readiness": dict(owner="readiness"),
+            "reserved owner agentic": dict(owner="agentic"),
+            "reserved owner agentic-dev": dict(owner="agentic-dev"),
+            "reserved owner agentic-tools": dict(owner="agentic-tools"),
             "bad owner": dict(owner="Agent Flow"),
             "bad id": dict(block="work.flow"),
         }
@@ -148,6 +151,22 @@ class UsageTests(BlockCase):
         for content in ("", "x\r\n", "<!-- agentic-dev:begin x -->\n", "x" * (instructions.MAX_CONTENT_BYTES + 1)):
             with self.subTest(content=content[:20]), self.assertRaises(UsageError):
                 put(self.root, file="AGENTS.md", owner="agentflow", block="workflow", content=content)
+
+
+class OwnerNamespaceTests(BlockCase):
+    def test_reserved_and_allowed_owners_agree_across_code_and_schema(self):
+        allowed = self.put(owner="agentflow")
+        self.assertEqual(allowed["status"], "created")
+        for owner in ("readiness", "agentic", "agentic-dev", "agentic-tools"):
+            with self.subTest(owner=owner):
+                with self.assertRaises(UsageError):
+                    put(self.root, file="AGENTS.md", owner=owner, block="workflow", content=WORKFLOW)
+                forged = {**allowed, "owner": owner, "block_id": f"{owner}.workflow"}
+                with self.assertRaises(jsonschema.ValidationError):
+                    jsonschema.validate(forged, SCHEMA)
+        for owner in ("agentflow", "readiness-bot", "my-agentic"):
+            with self.subTest(owner=owner):
+                jsonschema.validate({**allowed, "owner": owner}, SCHEMA)
 
 
 class ReadinessCoexistenceTests(BlockCase):

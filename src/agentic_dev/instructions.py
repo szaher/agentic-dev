@@ -8,7 +8,7 @@ removes that block with the same marker, hash, and conflict protocol as
 readiness remediation (docs/REMEDIATION.md):
 
 - only allowlisted instruction files, never arbitrary paths;
-- a block id is ``<owner>.<id>``; the ``readiness`` namespace stays Agentic Dev's;
+- a block id is ``<owner>.<id>``; ``readiness`` and every ``agentic*`` owner stay Agentic Dev's;
 - a hand-edited block is a conflict and is never overwritten or removed;
 - content outside the block is preserved byte for byte;
 - writes are atomic, re-verified before writing, and rolled back on failure;
@@ -33,7 +33,8 @@ FORMAT = "markdown"
 
 # Shared instruction files a tool may place a block in. Adding one is a contract change.
 INSTRUCTION_FILES = ("AGENTS.md", "CLAUDE.md", ".claude/CLAUDE.md", "GEMINI.md", ".github/copilot-instructions.md")
-RESERVED_OWNERS = frozenset({"agentic", "agentic-dev", "readiness"})
+# Agentic Dev's own namespaces: ``readiness`` and every owner starting with ``agentic``.
+RESERVED_OWNER = re.compile(r"^(readiness$|agentic)")
 OWNER = re.compile(r"^[a-z][a-z0-9-]{1,31}$")
 BLOCK_NAME = re.compile(r"^[a-z][a-z0-9-]{0,31}$")
 MAX_CONTENT_BYTES = 64 * 1024
@@ -57,8 +58,8 @@ def _validate(file: str, owner: str, block: str) -> str:
         raise UsageError(f"{file!r} is not a supported instruction file; choose one of: {', '.join(INSTRUCTION_FILES)}")
     if not OWNER.match(owner):
         raise UsageError(f"invalid owner {owner!r}: use 2-32 lowercase letters, digits, or dashes")
-    if owner in RESERVED_OWNERS:
-        raise UsageError(f"owner {owner!r} is reserved for Agentic Dev's own blocks")
+    if RESERVED_OWNER.match(owner):
+        raise UsageError(f"owner {owner!r} is reserved for Agentic Dev (readiness and agentic*)")
     if not BLOCK_NAME.match(block):
         raise UsageError(f"invalid block id {block!r}: use 1-32 lowercase letters, digits, or dashes")
     return f"{owner}.{block}"

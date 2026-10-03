@@ -60,11 +60,15 @@
     "owner": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]{1,31}$",
+      "description": "The tool that owns the block. `readiness` and every owner starting with `agentic` are reserved for Agentic Dev.",
       "not": {
-        "enum": [
-          "agentic",
-          "agentic-dev",
-          "readiness"
+        "anyOf": [
+          {
+            "const": "readiness"
+          },
+          {
+            "pattern": "^agentic"
+          }
         ]
       }
     },

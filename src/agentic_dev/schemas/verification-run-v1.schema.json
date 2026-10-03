@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/szaher/agentic-dev/schemas/verification-run-v1.schema.json",
   "title": "agentic verification run v1",
-  "description": "Output of `agentic verify run --json`. `status` is authoritative: `passed` (checks executed and all passed), `failed`, or `no-checks` (a requested kind had no runnable command, or nothing executed). `success` is true only for `passed`. The process exits 0 only for `passed`.",
+  "description": "Output of `agentic verify run --json`. `status` is authoritative: `passed` (checks executed and all passed), `failed`, or `no-checks` (a requested kind had no runnable command, or nothing executed). `success` is true only for `passed`. The process exits 0 only for `passed`. Invariants: passed and failed have checks_executed >= 1 and no missing_kinds; no-checks has success false, checks_executed 0, and only results with executed false; missing_kinds non-empty implies no-checks with no results.",
   "type": "object",
   "required": [
     "schema_version",
@@ -166,7 +166,10 @@
           "status": {
             "const": "passed"
           }
-        }
+        },
+        "required": [
+          "status"
+        ]
       },
       "then": {
         "properties": {
@@ -180,11 +183,60 @@
             "minimum": 1
           }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        },
+        "required": [
+          "status"
+        ]
       },
-      "else": {
+      "then": {
         "properties": {
           "success": {
             "const": false
+          },
+          "missing_kinds": {
+            "maxItems": 0
+          },
+          "checks_executed": {
+            "minimum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "no-checks"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "success": {
+            "const": false
+          },
+          "checks_executed": {
+            "const": 0
+          },
+          "results": {
+            "items": {
+              "properties": {
+                "executed": {
+                  "const": false
+                }
+              }
+            }
           }
         }
       }
@@ -195,7 +247,10 @@
           "missing_kinds": {
             "minItems": 1
           }
-        }
+        },
+        "required": [
+          "missing_kinds"
+        ]
       },
       "then": {
         "properties": {
