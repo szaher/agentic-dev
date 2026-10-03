@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/skills-activation-v1.schema.json",
+  "title": "agentic skills activation v1",
+  "description": "Output of `agentic skills add NAME... --json`. One outcome per (skill, harness): `written` (created or updated), `unchanged`, or `skipped-unmanaged` (a SKILL.md not managed by agentic-dev was left in place). Any skipped outcome makes `status` `conflict` and the exit code 1. Unknown skills are a usage error (exit 2, no document).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "document_type",
+    "repository",
+    "skills",
+    "target",
+    "shared",
+    "status",
+    "outcomes",
+    "exit_code"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.skills-activation"
+    },
+    "repository": {
+      "type": "object",
+      "required": [
+        "name"
+      ]
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "target": {
+      "enum": [
+        "both",
+        "all",
+        "claude",
+        "codex",
+        "pi",
+        "opencode"
+      ]
+    },
+    "shared": {
+      "type": "boolean"
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "conflict"
+      ]
+    },
+    "exit_code": {
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "outcomes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "skill",
+          "harness",
+          "path",
+          "status"
+        ],
+        "properties": {
+          "skill": {
+            "type": "string"
+          },
+          "harness": {
+            "enum": [
+              "claude",
+              "codex",
+              "pi",
+              "opencode"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "written",
+              "unchanged",
+              "skipped-unmanaged"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ok"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 0
+          },
+          "outcomes": {
+            "items": {
+              "properties": {
+                "status": {
+                  "enum": [
+                    "written",
+                    "unchanged"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "conflict"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 1
+          },
+          "outcomes": {
+            "contains": {
+              "properties": {
+                "status": {
+                  "const": "skipped-unmanaged"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

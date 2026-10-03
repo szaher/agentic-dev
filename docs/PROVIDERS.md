@@ -63,6 +63,14 @@ src/agentic_dev/schemas/provider-manifest-v1.schema.json
 
 Provider skill names and capability names cannot override built-in names. Built-ins win.
 
+## Inspect without installing
+
+```bash
+agentic providers inspect ./my-provider --json   # agentic.provider-source v1
+```
+
+Reports the provider's name, version, skills, and `content_digest`, computed exactly as installation records it. Tools that bundle a provider (for example AgentFlow) compare it with `agentic providers list --json` (`agentic.providers` v1) to decide whether the installed provider is missing, identical, or different, and pin an install with `--sha256`, without reimplementing the digest.
+
 ## Install
 
 Local directory:
@@ -90,6 +98,8 @@ agentic providers add https://github.com/example/provider.git \
   --ref v1.2.0 \
   --require-signed-commit
 ```
+
+`--json` emits `agentic.provider-install` v1. Installing **replaces** any provider with the same name; callers that must not overwrite another installation should check `providers list` first.
 
 Installed metadata records:
 
