@@ -89,6 +89,50 @@ class ProviderSkillContractTests(unittest.TestCase):
         forced = self.cli("skills", "add", "example-sdlc", "--target", "both", "--force", "--json")
         self.assertEqual(forced["status"], "ok")
 
+    def snapshot(self) -> dict[str, bytes]:
+        """Every file in the repository (``.git`` included, for git excludes) and the config dir."""
+
+        return {p.relative_to(self.tmp).as_posix(): p.read_bytes()
+                for base in (self.repo, self.tmp / "config") for p in base.rglob("*") if p.is_file()}
+
+    def test_dry_run_reports_what_would_happen_and_writes_nothing(self):
+        self.cli("providers", "add", str(provider(self.tmp / "provider")), "--json")
+        for shared in ((), ("--shared",)):
+            with self.subTest(shared=bool(shared)):
+                before = self.snapshot()
+                preview = self.cli("skills", "add", "example-sdlc", "--target", "all", *shared, "--dry-run", "--json")
+                jsonschema.validate(preview, schema("skills-activation"))
+                self.assertEqual((preview["status"], preview["dry_run"]), ("ok", True))
+                self.assertEqual({o["status"] for o in preview["outcomes"]}, {"written"})
+                self.assertEqual(self.snapshot(), before)
+        self.cli("skills", "add", "example-sdlc", "--target", "all", "--shared", "--json")
+        again = self.cli("skills", "add", "example-sdlc", "--target", "all", "--shared", "--dry-run", "--json")
+        self.assertEqual({o["status"] for o in again["outcomes"]}, {"unchanged"})
+
+    def test_dry_run_finds_an_unmanaged_skill_in_any_harness(self):
+        self.cli("providers", "add", str(provider(self.tmp / "provider")), "--json")
+        for harness, parts in (("pi", (".pi", "skills")), ("opencode", (".opencode", "skills"))):
+            with self.subTest(harness):
+                mine = self.repo.joinpath(*parts, "example-sdlc", "SKILL.md")
+                mine.parent.mkdir(parents=True)
+                mine.write_text("my own skill\n")
+                before = self.snapshot()
+                preview = self.cli("skills", "add", "example-sdlc", "--target", "all", "--shared", "--dry-run",
+                                   "--json", expect=1)
+                jsonschema.validate(preview, schema("skills-activation"))
+                self.assertEqual((preview["status"], preview["exit_code"]), ("conflict", 1))
+                self.assertEqual({o["harness"] for o in preview["outcomes"] if o["status"] == "skipped-unmanaged"},
+                                 {harness})
+                self.assertEqual(self.snapshot(), before)
+                mine.unlink()
+
+    def test_an_activation_document_needs_at_least_one_outcome(self):
+        document = {"schema_version": "1", "document_type": "agentic.skills-activation", "repository": {"name": "r"},
+                    "skills": ["example-sdlc"], "target": "all", "shared": True, "dry_run": False, "status": "ok",
+                    "outcomes": [], "exit_code": 0}
+        with self.assertRaises(jsonschema.ValidationError):
+            jsonschema.validate(document, schema("skills-activation"))
+
     def test_unknown_skill_is_a_usage_error(self):
         self.cli("skills", "add", "no-such-skill", "--json", expect=2)
 

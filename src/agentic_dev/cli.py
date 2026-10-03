@@ -182,7 +182,8 @@ def cmd_skills_explain(args: argparse.Namespace) -> int:
 def cmd_skills_add(args: argparse.Namespace) -> int:
     root = repo_root(args.path)
     try:
-        outcomes = activate_report(root, args.names, shared=args.shared, target=args.target, force=args.force)
+        outcomes = activate_report(root, args.names, shared=args.shared, target=args.target, force=args.force,
+                                   dry_run=args.dry_run)
     except KeyError as e:
         print(f"Unknown skill: {e.args[0]}", file=sys.stderr)
         return 2
@@ -196,6 +197,7 @@ def cmd_skills_add(args: argparse.Namespace) -> int:
             "skills": list(dict.fromkeys(args.names)),
             "target": args.target,
             "shared": args.shared,
+            "dry_run": args.dry_run,
             "status": "conflict" if conflict else "ok",
             "outcomes": outcomes,
             "exit_code": exit_code,
@@ -204,6 +206,8 @@ def cmd_skills_add(args: argparse.Namespace) -> int:
         for o in outcomes:
             mark = "!" if o["status"] == "skipped-unmanaged" else "✓"
             print(f"{mark} {o['path']} ({o['status']})")
+        if args.dry_run:
+            print("(dry run, nothing written)")
     return exit_code
 
 
@@ -1477,6 +1481,8 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("--shared", action="store_true")
     add.add_argument("--target", choices=list(SKILL_TARGETS), default="both")
     add.add_argument("--force", action="store_true")
+    add.add_argument("--dry-run", action="store_true",
+                     help="report what would happen (including conflicts) without writing anything")
     add.add_argument("--json", action="store_true",
                      help="report per-harness outcomes (agentic.skills-activation); exit 1 if an unmanaged SKILL.md was left in place")
     add.set_defaults(func=cmd_skills_add)

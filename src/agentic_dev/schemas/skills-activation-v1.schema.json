@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/szaher/agentic-dev/schemas/skills-activation-v1.schema.json",
   "title": "agentic skills activation v1",
-  "description": "Output of `agentic skills add NAME... --json`. One outcome per (skill, harness): `written` (created or updated), `unchanged`, or `skipped-unmanaged` (a SKILL.md not managed by agentic-dev was left in place). Any skipped outcome makes `status` `conflict` and the exit code 1. Unknown skills are a usage error (exit 2, no document).",
+  "description": "Output of `agentic skills add NAME... --json`. One outcome per (skill, harness): `written` (created or updated), `unchanged`, or `skipped-unmanaged` (a SKILL.md not managed by agentic-dev was left in place). Any skipped outcome makes `status` `conflict` and the exit code 1. With `--dry-run` (`dry_run: true`) nothing is written (no skill files, git excludes, `.agentic/skills.json` or metrics) and the outcomes and status say what a real run would do, so a conflict can be found before anything else is changed. Unknown skills are a usage error (exit 2, no document).",
   "type": "object",
   "required": [
     "schema_version",
@@ -11,6 +11,7 @@
     "skills",
     "target",
     "shared",
+    "dry_run",
     "status",
     "outcomes",
     "exit_code"
@@ -46,6 +47,9 @@
       ]
     },
     "shared": {
+      "type": "boolean"
+    },
+    "dry_run": {
       "type": "boolean"
     },
     "status": {
@@ -94,7 +98,8 @@
             ]
           }
         }
-      }
+      },
+      "minItems": 1
     }
   },
   "allOf": [

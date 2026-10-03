@@ -7,7 +7,8 @@ v0.16 slice 3 contracts (#67), for AgentFlow's bootstrap:
 - `agentic providers inspect SOURCE --json` (`provider-source` v1) describes a provider source, including its `content_digest`, without installing it.
 - `providers add --json` and `providers list --json` gain schemas (`provider-install`, `providers`); `providers add` output now carries `schema_version`/`document_type` (additive).
 - `agentic skills add --json` (`skills-activation` v1) reports per-harness outcomes. **Behaviour change:** `skills add` now exits 1 when it leaves an unmanaged `SKILL.md` in place (it previously exited 0 while skipping it).
-- New features: `providers.inspect`, `providers.install-pinned`, `skills.activation-report`.
+- `agentic skills add --dry-run` reports the same outcomes, conflicts included, without writing anything (feature `skills.activation-dry-run`).
+- New features: `providers.inspect`, `providers.install-pinned`, `skills.activation-report`, `skills.activation-dry-run`.
 
 v0.16 slice 1 (#65): Agentic Dev contracts for AgentFlow.
 

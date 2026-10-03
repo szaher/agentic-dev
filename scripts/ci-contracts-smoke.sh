@@ -65,6 +65,8 @@ printf '{"schema_version":"1","name":"smoke-flow","version":"1.0.0","description
 digest="$("$python" -c 'import json,sys; print(json.load(open(sys.argv[1]))["content_digest"])' "$work/out/provider-source.json")"
 "$agentic" providers add "$prov" --sha256 "$digest" --json > "$work/out/provider-install.json"
 "$agentic" providers list --json > "$work/out/providers.json"
+"$agentic" skills add smoke-sdlc --target all --shared --dry-run --json > "$work/out/skills-activation-preview.json"
+test ! -e "$repo/.claude/skills/smoke-sdlc" && test ! -e "$repo/.agentic/skills.json"
 "$agentic" skills add smoke-sdlc --target all --shared --json > "$work/out/skills-activation.json"
 
 "$python" - "$work" <<'PY'
@@ -81,7 +83,7 @@ for name, document in sorted(documents.items()):
 
 contracts = documents["contracts"]
 for feature in ("commands.canonical-discovery", "verification.full-kind-filter", "verification.no-checks-status",
-                "worktree.lifecycle", "instructions.managed-block"):
+                "worktree.lifecycle", "instructions.managed-block", "skills.activation-dry-run"):
     assert feature in contracts["features"], feature
 
 # R4: one discoverer; all three consumers agree on `make check`.
@@ -101,6 +103,9 @@ assert documents["instruction-block-removed"]["status"] == "removed"
 assert documents["worktree"]["branch"] == "agentic/run-1"
 installed = documents["providers"]["providers"][0]
 assert (installed["content_digest"], installed["verified"]) == (documents["provider-source"]["content_digest"], True)
+preview = documents["skills-activation-preview"]
+assert (preview["dry_run"], preview["status"]) == (True, "ok"), preview
+assert preview["outcomes"] == documents["skills-activation"]["outcomes"]
 assert {o["status"] for o in documents["skills-activation"]["outcomes"]} == {"written"}
 print(f"contracts smoke: {len(documents)} documents validated against installed schemas")
 PY
