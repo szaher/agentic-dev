@@ -125,6 +125,18 @@ AgentFlow
 
 `agentic capabilities status --json` is a bare map from capability name to state (contract `capability-status`). It predates document envelopes, so it has no `document_type`.
 
+### Providers and skill activation
+
+```bash
+agentic providers inspect SOURCE --json        # agentic.provider-source: name, version, skills, content_digest (no install)
+agentic providers list --json                  # agentic.providers: installed, verified, content_digest
+agentic providers add SOURCE --sha256 D --json # agentic.provider-install (replaces a provider of the same name)
+agentic skills add NAME... --target all --shared --json   # agentic.skills-activation
+agentic skills add NAME... --target all --shared --dry-run --json   # same document, nothing written
+```
+
+`skills add --json` reports one outcome per (skill, harness): `written`, `unchanged`, or `skipped-unmanaged` (a `SKILL.md` not managed by Agentic Dev is never overwritten without `--force`). Any skipped outcome makes `status` `conflict` and exits 1; an unknown skill exits 2. `--dry-run` (`dry_run: true`, feature `skills.activation-dry-run`) writes nothing at all (no skill files, git excludes, `.agentic/skills.json` or metrics) and reports what a real run would do, conflicts included, so a caller can check every harness before changing anything else.
+
 ### Managed instruction blocks
 
 ```bash

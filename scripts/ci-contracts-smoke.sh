@@ -56,6 +56,19 @@ printf '## AgentFlow\n\nRun `agentflow status`.\n' \
 "$agentic" instructions block list --json > "$work/out/instruction-block-list.json"
 "$agentic" instructions block remove "${block[@]}" --json > "$work/out/instruction-block-removed.json"
 
+# Provider bootstrap (AgentFlow's agentflow-sdlc path): inspect, pinned install, list, activate.
+prov="$work/provider"
+mkdir -p "$prov/skills/smoke-sdlc"
+printf -- '---\nname: smoke-sdlc\ndescription: Smoke skill.\n---\n\n# Smoke\n' > "$prov/skills/smoke-sdlc/SKILL.md"
+printf '{"schema_version":"1","name":"smoke-flow","version":"1.0.0","description":"Smoke provider","skills":[{"name":"smoke-sdlc","description":"Smoke skill.","category":"workflow","path":"skills/smoke-sdlc"}]}\n' > "$prov/agentic-provider.json"
+"$agentic" providers inspect "$prov" --json > "$work/out/provider-source.json"
+digest="$("$python" -c 'import json,sys; print(json.load(open(sys.argv[1]))["content_digest"])' "$work/out/provider-source.json")"
+"$agentic" providers add "$prov" --sha256 "$digest" --json > "$work/out/provider-install.json"
+"$agentic" providers list --json > "$work/out/providers.json"
+"$agentic" skills add smoke-sdlc --target all --shared --dry-run --json > "$work/out/skills-activation-preview.json"
+test ! -e "$repo/.claude/skills/smoke-sdlc" && test ! -e "$repo/.agentic/skills.json"
+"$agentic" skills add smoke-sdlc --target all --shared --json > "$work/out/skills-activation.json"
+
 "$python" - "$work" <<'PY'
 import json, sys
 from pathlib import Path
@@ -70,7 +83,7 @@ for name, document in sorted(documents.items()):
 
 contracts = documents["contracts"]
 for feature in ("commands.canonical-discovery", "verification.full-kind-filter", "verification.no-checks-status",
-                "worktree.lifecycle", "instructions.managed-block"):
+                "worktree.lifecycle", "instructions.managed-block", "skills.activation-dry-run"):
     assert feature in contracts["features"], feature
 
 # R4: one discoverer; all three consumers agree on `make check`.
@@ -88,5 +101,11 @@ assert documents["instruction-block"]["status"] == "created"
 assert documents["instruction-block-again"]["status"] == "unchanged"
 assert documents["instruction-block-removed"]["status"] == "removed"
 assert documents["worktree"]["branch"] == "agentic/run-1"
+installed = documents["providers"]["providers"][0]
+assert (installed["content_digest"], installed["verified"]) == (documents["provider-source"]["content_digest"], True)
+preview = documents["skills-activation-preview"]
+assert (preview["dry_run"], preview["status"]) == (True, "ok"), preview
+assert preview["outcomes"] == documents["skills-activation"]["outcomes"]
+assert {o["status"] for o in documents["skills-activation"]["outcomes"]} == {"written"}
 print(f"contracts smoke: {len(documents)} documents validated against installed schemas")
 PY

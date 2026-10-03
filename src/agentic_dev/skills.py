@@ -167,33 +167,55 @@ def skill_roots(root: Path, target: str) -> list[Path]:
     return [root.joinpath(*SKILL_DIRS[name]) for name in harnesses]
 
 
-def activate(
+def activate_report(
     root: Path,
     names: Iterable[str],
     *,
     shared: bool = False,
     target: str = "both",
     force: bool = False,
-) -> list[Path]:
-    roots = skill_roots(root, target)
+    dry_run: bool = False,
+) -> list[dict[str, str]]:
+    """Place skills and report every (skill, harness) outcome.
 
-    installed: list[Path] = []
+    ``written`` (created or updated), ``unchanged`` (already identical), or
+    ``skipped-unmanaged`` (a SKILL.md not managed by agentic-dev exists there and
+    was left alone; ``force`` overrides). With ``dry_run`` nothing is written
+    (no skill files, git excludes, ``.agentic/skills.json`` or metrics) and the
+    outcomes say what a real run would do.
+    """
+
+    harnesses = {"both": ("claude", "codex"), "all": tuple(SKILL_DIRS)}.get(target, (target,))
+    roots = list(zip(harnesses, skill_roots(root, target)))
+    names = list(dict.fromkeys(names))
     for name in names:
-        get_skill(name)  # validate before writes
-        content = skill_content(name)
-        for base in roots:
+        get_skill(name)  # validate every name before any write
+
+    outcomes: list[dict[str, str]] = []
+    for name in names:
+        content = skill_content(name).rstrip() + "\n\n" + MANAGED_MARKER + "\n"
+        for harness, base in roots:
             dest = base / name
             skill_md = dest / "SKILL.md"
+            rel = skill_md.relative_to(root).as_posix()
             if skill_md.exists() and not _managed(skill_md) and not force:
-                print(f"! {skill_md} exists and is not managed by agentic-dev; skipped.", file=sys.stderr)
+                if not dry_run:
+                    print(f"! {skill_md} exists and is not managed by agentic-dev; skipped.", file=sys.stderr)
+                outcomes.append({"skill": name, "harness": harness, "path": rel, "status": "skipped-unmanaged"})
                 continue
-            dest.mkdir(parents=True, exist_ok=True)
-            skill_md.write_text(content.rstrip() + "\n\n" + MANAGED_MARKER + "\n")
-            installed.append(dest)
-            if not shared:
-                rel = "/" + dest.relative_to(root).as_posix() + "/"
-                _git_exclude(root, rel)
-
+            if skill_md.is_file() and skill_md.read_text() == content:
+                status = "unchanged"
+            elif dry_run:
+                status = "written"
+            else:
+                dest.mkdir(parents=True, exist_ok=True)
+                skill_md.write_text(content)
+                status = "written"
+            outcomes.append({"skill": name, "harness": harness, "path": rel, "status": status})
+            if not shared and not dry_run:
+                _git_exclude(root, "/" + dest.relative_to(root).as_posix() + "/")
+    if dry_run:
+        return outcomes
     state_dir = root / ".agentic"
     state_dir.mkdir(exist_ok=True)
     state = {
@@ -215,7 +237,21 @@ def activate(
         },
         repository=root,
     )
-    return installed
+    return outcomes
+
+
+def activate(
+    root: Path,
+    names: Iterable[str],
+    *,
+    shared: bool = False,
+    target: str = "both",
+    force: bool = False,
+) -> list[Path]:
+    """Place skills; return the skill directories that are now managed copies."""
+
+    outcomes = activate_report(root, names, shared=shared, target=target, force=force)
+    return [(root / o["path"]).parent for o in outcomes if o["status"] != "skipped-unmanaged"]
 
 
 def remove(root: Path, names: Iterable[str], target: str = "both") -> list[Path]:

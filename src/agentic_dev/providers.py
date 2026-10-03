@@ -232,6 +232,32 @@ def add_provider(
             shutil.rmtree(prepared, ignore_errors=True)
 
 
+def inspect_provider(source: str, *, ref: str | None = None) -> dict[str, Any]:
+    """Describe a provider source exactly as ``add_provider`` would record it, without installing.
+
+    ``content_digest`` uses the same algorithm as installation, so a consumer can
+    compare a source with what is installed (and pin it with ``--sha256``)
+    without reimplementing the digest.
+    """
+
+    prepared, source_meta = _prepare_source(source, ref)
+    try:
+        manifest = _manifest(prepared)
+        return {
+            "name": manifest["name"],
+            "version": manifest["version"],
+            "description": manifest["description"],
+            "manifest_digest": hashlib.sha256((prepared / MANIFEST).read_bytes()).hexdigest(),
+            "content_digest": _tree_digest(prepared),
+            "skills": sorted(entry["name"] for entry in manifest.get("skills") or []),
+            "capabilities": sorted(entry["name"] for entry in manifest.get("capabilities") or []),
+            **source_meta,
+        }
+    finally:
+        if source_meta["source_type"] == "git":
+            shutil.rmtree(prepared, ignore_errors=True)
+
+
 def remove_provider(name: str) -> None:
     registry = _load_registry()
     if name not in registry.get("providers", {}):

@@ -19,7 +19,7 @@ from .infrastructure import (
     database_schema, migration_check, observability_status, status as infrastructure_status,
 )
 from .execution import configure as configure_execution, run as run_execution, status as execution_status
-from .skills import TARGETS as SKILL_TARGETS, activate, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
+from .skills import TARGETS as SKILL_TARGETS, activate, activate_report, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
 from .trust import define_profile, document as trust_document, get_profile, set_current
 from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
 from . import instructions as instruction_blocks
@@ -33,7 +33,7 @@ from .readiness.remediation import CI_CHECK, ContractError
 from .readiness.verify import EXIT_USAGE, verify as readiness_verify
 from .readiness.make import make as readiness_make
 from .providers import (
-    add_provider, doctor as provider_doctor, installed as installed_providers,
+    add_provider, doctor as provider_doctor, inspect_provider, installed as installed_providers,
     migrate as migrate_provider, remove_provider, update_all as update_all_providers,
     update_provider, verify_provider,
 )
@@ -182,13 +182,33 @@ def cmd_skills_explain(args: argparse.Namespace) -> int:
 def cmd_skills_add(args: argparse.Namespace) -> int:
     root = repo_root(args.path)
     try:
-        paths = activate(root, args.names, shared=args.shared, target=args.target, force=args.force)
+        outcomes = activate_report(root, args.names, shared=args.shared, target=args.target, force=args.force,
+                                   dry_run=args.dry_run)
     except KeyError as e:
         print(f"Unknown skill: {e.args[0]}", file=sys.stderr)
         return 2
-    for p in paths:
-        print(f"✓ {p.relative_to(root)}")
-    return 0
+    conflict = any(o["status"] == "skipped-unmanaged" for o in outcomes)
+    exit_code = 1 if conflict else 0
+    if getattr(args, "json", False):
+        print(json.dumps({
+            "schema_version": "1",
+            "document_type": "agentic.skills-activation",
+            "repository": {"name": root.name},
+            "skills": list(dict.fromkeys(args.names)),
+            "target": args.target,
+            "shared": args.shared,
+            "dry_run": args.dry_run,
+            "status": "conflict" if conflict else "ok",
+            "outcomes": outcomes,
+            "exit_code": exit_code,
+        }, indent=2, sort_keys=True))
+    else:
+        for o in outcomes:
+            mark = "!" if o["status"] == "skipped-unmanaged" else "✓"
+            print(f"{mark} {o['path']} ({o['status']})")
+        if args.dry_run:
+            print("(dry run, nothing written)")
+    return exit_code
 
 
 def cmd_skills_remove(args: argparse.Namespace) -> int:
@@ -1010,7 +1030,24 @@ def cmd_providers_add(args: argparse.Namespace) -> int:
     except (ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
         print(f"agentic: {exc}", file=sys.stderr)
         return 2
+    data = {"schema_version": "1", "document_type": "agentic.provider-install", **data}
     print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"✓ installed provider {data['name']} {data['version']}")
+    return 0
+
+
+def cmd_providers_inspect(args: argparse.Namespace) -> int:
+    try:
+        data = inspect_provider(args.source, ref=args.ref)
+    except (ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
+        print(f"agentic: {exc}", file=sys.stderr)
+        return 2
+    data = {"schema_version": "1", "document_type": "agentic.provider-source", **data}
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(f"{data['name']} {data['version']} content sha256={data['content_digest']}")
+        if data["skills"]:
+            print("skills: " + ", ".join(data["skills"]))
     return 0
 
 
@@ -1444,6 +1481,10 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("--shared", action="store_true")
     add.add_argument("--target", choices=list(SKILL_TARGETS), default="both")
     add.add_argument("--force", action="store_true")
+    add.add_argument("--dry-run", action="store_true",
+                     help="report what would happen (including conflicts) without writing anything")
+    add.add_argument("--json", action="store_true",
+                     help="report per-harness outcomes (agentic.skills-activation); exit 1 if an unmanaged SKILL.md was left in place")
     add.set_defaults(func=cmd_skills_add)
 
     rm = ssub.add_parser("remove", help="Remove agentic-dev managed skills")
@@ -1810,6 +1851,12 @@ def build_parser() -> argparse.ArgumentParser:
     padd.add_argument("--require-signed-commit", action="store_true")
     padd.add_argument("--json", action="store_true")
     padd.set_defaults(func=cmd_providers_add)
+
+    pinspect = psub.add_parser("inspect", help="Describe a provider source (name, version, content digest) without installing it")
+    pinspect.add_argument("source")
+    pinspect.add_argument("--ref", default=None, help="Git branch/tag/ref to clone")
+    pinspect.add_argument("--json", action="store_true")
+    pinspect.set_defaults(func=cmd_providers_inspect)
 
     pverify = psub.add_parser("verify", help="Verify installed provider content")
     pverify.add_argument("name")
