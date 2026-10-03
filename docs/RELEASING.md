@@ -39,11 +39,27 @@ No long-lived PyPI API token is required.
 5. The release workflow builds the wheel and sdist in a separate build job.
 6. The publish job downloads those exact artifacts and publishes them through PyPI Trusted Publishing.
 
-Versions are stable (`0.15.0`) unless the milestone is still in progress, in
-which case main carries an alpha (`0.16.0a1`) and nothing is published.
+## When to release
+
+Roadmap milestones (`M16`, `M17`, …) are development checkpoints, not releases
+(see "Milestones and releases" in `docs/ROADMAP.md`). Finishing a milestone does
+not publish anything. Its work lands on `main`, and `CHANGELOG.md` collects it under
+one **Unreleased** section. Publish only when at least one of these is true:
+
+- there is a complete user journey worth installing;
+- an external consumer needs a stable contract;
+- users need a bug or security fix;
+- enough meaningful functionality has accumulated that upgrading is worthwhile.
+
+The public version is chosen only when a release is prepared. Between releases,
+`main` is not assigned the next public release version, and unreleased source and
+artifact builds must stay distinguishable from the last published release (for
+example a local development identifier such as `X.Y.Z+dev` on top of the last
+release). Consumers such as AgentFlow decide compatibility from
+`agentic contracts --json`, never from the version. A release PR changes
 `pyproject.toml`, `agentic_dev.__version__`, the installed-artifact version checks
 in `.github/workflows/ci.yml`, and the `CHANGELOG.md` heading (with the release
-date) change together in one release PR.
+date) together, and nothing else.
 
 The readiness CLI exit codes (`ready apply`/`diff`, `verify`, `make`) are part of
 the external automation surface. A release must not change them except
