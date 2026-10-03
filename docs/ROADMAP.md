@@ -310,7 +310,7 @@ The public version is chosen only when a release is prepared, not dictated by th
 
 During development, AgentFlow depends on a pinned `agentic-dev` commit in CI. At the first public release, Agentic Dev publishes first, and AgentFlow then declares a released version range.
 
-M17–M22 are being re-planned around an explicit MVP user journey: what a developer must be able to accomplish end to end. Milestones may be merged, split, or reordered as a result.
+M17–M22 are being re-planned around an explicit MVP user journey: what a developer must be able to accomplish end to end. The proposal is [`docs/MVP.md`](MVP.md). Milestones may be merged, split, or reordered as a result.
 
 ---
 
