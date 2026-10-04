@@ -386,7 +386,8 @@ The CI check:
 - pins the **exact Agentic Dev version** that generated it
   (`pip install agentic-dev==<version>`, the one installation maintenance may
   perform), plus the spec version and sha256. Use a released version so CI can
-  install it;
+  install it. Development builds refuse generation with exit code 5 and write
+  no workflow; local assessment and remediation remain available;
 - runs with `permissions: contents: read` and only GitHub's own `checkout` and
   `setup-python` actions, with no credentials;
 - passes `check_maintenance`. It creates only `ci.config` evidence, which no rule

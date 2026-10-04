@@ -29,7 +29,7 @@ from . import readiness
 from .readiness import render as readiness_render
 from .readiness.apply import ApplyError, run as readiness_run
 from .readiness.evidence import ScopeError
-from .readiness.remediation import CI_CHECK, ContractError
+from .readiness.remediation import CI_CHECK, ContractError, UnreleasedBuildError
 from .readiness.verify import EXIT_USAGE, verify as readiness_verify
 from .readiness.make import make as readiness_make
 from .providers import (
@@ -532,6 +532,9 @@ def _ready_change(args: argparse.Namespace, *, dry_run: bool, show_diff: bool) -
     try:
         data = readiness_run(args.path, spec=args.spec, target=args.target, dry_run=dry_run,
                              maintenance=(CI_CHECK,) if args.ci_check else ())
+    except UnreleasedBuildError as exc:
+        print(f"agentic ready: {exc}", file=sys.stderr)
+        return 5
     except (readiness.SpecError, ContractError, FileNotFoundError) as exc:
         print(f"agentic ready: {exc}", file=sys.stderr)
         return 2
@@ -563,6 +566,9 @@ def cmd_ready_make(args: argparse.Namespace) -> int:
     try:
         data = readiness_make(args.path, target=args.target, spec=args.spec, dry_run=args.dry_run,
                               maintenance=(CI_CHECK,) if args.ci_check else (), max_rounds=args.max_rounds)
+    except UnreleasedBuildError as exc:
+        print(f"agentic ready: {exc}", file=sys.stderr)
+        return 5
     except (readiness.SpecError, ScopeError, ContractError, FileNotFoundError) as exc:
         print(f"agentic ready: {exc}", file=sys.stderr)
         return EXIT_USAGE

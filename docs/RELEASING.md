@@ -64,6 +64,9 @@ date) together, and nothing else.
 The readiness CLI exit codes (`ready apply`/`diff`, `verify`, `make`) are part of
 the external automation surface. A release must not change them except
 intentionally and compatibly, with a CHANGELOG entry.
+An unreleased `+dev` build refuses `readiness.ci-check` generation with exit
+code 5 and writes no workflow; it can still assess and remediate locally. The
+release PR removes `+dev`, restoring a PyPI-installable CI pin.
 
 ## Consumer smoke test
 

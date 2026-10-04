@@ -94,6 +94,23 @@ class ContractError(ValueError):
     """A remediation change, maintenance action, or document violates the contract."""
 
 
+class UnreleasedBuildError(ContractError):
+    """A development build cannot generate a PyPI-pinned CI workflow."""
+
+
+def require_released_ci_check(maintenance: tuple[str, ...] | list[str]) -> None:
+    """Reject CI generation before any remediation can write to the repository."""
+
+    if CI_CHECK in maintenance:
+        from .. import __version__
+
+        if "+" in __version__:
+            raise UnreleasedBuildError(
+                "this Agentic Dev build is unreleased and has no installable PyPI version; "
+                "generate the CI check using a released build"
+            )
+
+
 def block_format(path: str) -> str | None:
     name = PurePosixPath(path).name
     suffix = PurePosixPath(path).suffix.lower()
@@ -626,6 +643,7 @@ def propose(
     explicitly requests (maintenance is opt-in).
     """
 
+    require_released_ci_check(maintenance)
     resolved = spec if isinstance(spec, Spec) else load_spec(spec)
     assessment = assess(path, spec=resolved, target=target)
     ctx = Context(resolved, EvidenceCollector.for_repository(repo_root(path), resolved))

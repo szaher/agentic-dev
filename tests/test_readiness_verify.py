@@ -11,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import jsonschema
 
@@ -181,12 +182,13 @@ class CiCheckTests(VerifyCase):
     def test_ci_check_guards_the_current_ci_visible_level(self):
         root = self.repo("structured-go")
         before = {r["id"]: r["status"] for r in assess(root)["requirements"]}
-        document = run(root, maintenance=[CI_CHECK], dry_run=False)
+        with patch("agentic_dev.__version__", "0.15.0"):
+            document = run(root, maintenance=[CI_CHECK], dry_run=False)
         jsonschema.validate(document, schema("readiness-remediation"))
         self.assertEqual([a["id"] for a in document["maintenance_actions"]], [CI_CHECK])
         self.assertIn(CI_WORKFLOW, document["result"]["written"])
         workflow = (root / CI_WORKFLOW).read_text()
-        self.assertIn(f"pip install agentic-dev=={__version__}", workflow)
+        self.assertIn("pip install agentic-dev==0.15.0", workflow)
         self.assertIn(f"agentic ready verify . --target structured --spec-version {SPEC.version} "
                       f"--spec-sha256 {SPEC.sha256}", workflow)
         self.assertIn("contents: read", workflow)
@@ -195,21 +197,40 @@ class CiCheckTests(VerifyCase):
         commit_all(root, "add readiness check")
         self.assertEqual(verify(root, target="structured", spec_version=SPEC.version,
                                 spec_sha256=SPEC.sha256)["exit_code"], 0)
-        again = run(root, maintenance=[CI_CHECK], dry_run=False)
+        with patch("agentic_dev.__version__", "0.15.0"):
+            again = run(root, maintenance=[CI_CHECK], dry_run=False)
         self.assertEqual(again["result"]["status"], "no-op")
 
     def test_ci_check_passes_the_maintenance_guards(self):
         root = self.repo("optimized-node")
-        document = propose(root, maintenance=[CI_CHECK])
+        with patch("agentic_dev.__version__", "0.15.0"):
+            document = propose(root, maintenance=[CI_CHECK])
         changes = {c["id"]: c for c in document["changes"]}
         check_maintenance(document["maintenance_actions"][0], changes, SPEC)
 
     def test_ci_check_is_skipped_when_there_is_nothing_to_protect(self):
         root = self.repo("missing-tests")
-        document = propose(root, maintenance=[CI_CHECK])
+        with patch("agentic_dev.__version__", "0.15.0"):
+            document = propose(root, maintenance=[CI_CHECK])
         self.assertEqual(document["maintenance_actions"], [])
         self.assertEqual(document["maintenance_skipped"][0]["id"], CI_CHECK)
         self.assertIn("no level to protect", document["maintenance_skipped"][0]["reason"])
+
+    def test_development_build_refuses_ci_check_without_writing(self):
+        root = self.repo("structured-go")
+        before = snapshot(root)
+        with self.assertRaisesRegex(ValueError, "unreleased and has no installable PyPI version"):
+            run(root, maintenance=[CI_CHECK], dry_run=False)
+        self.assertEqual(snapshot(root), before)
+        self.assertEqual(assess(root)["assessor"]["version"], __version__)
+        self.assertTrue(propose(root)["remediations"])
+
+    def test_provider_development_version_compares_as_base_release(self):
+        from agentic_dev.providers import _compatible
+
+        self.assertTrue(_compatible("==0.15.0", "0.15.0+dev"))
+        self.assertTrue(_compatible(">=0.15.0,<0.16.0", "0.15.0+dev"))
+        self.assertFalse(_compatible("<0.15.0", "0.15.0+dev"))
 
 
 class VerifyCliTests(VerifyCase):
@@ -236,10 +257,15 @@ class VerifyCliTests(VerifyCase):
     def test_cli_ci_check_flag(self):
         root = self.repo("structured-go")
         diff = self.cli("ready", "diff", str(root), "--ci-check")
-        self.assertEqual(diff.returncode, 0, diff.stderr)
-        self.assertIn(f"+++ b/{CI_WORKFLOW}", diff.stdout)
-        self.assertIn("maintenance readiness.ci-check", diff.stdout)
-        self.assertIn("Apply with: agentic ready apply <path> --target optimized --ci-check", diff.stdout)
+        self.assertEqual(diff.returncode, 5, diff.stderr)
+        self.assertIn("unreleased and has no installable PyPI version", diff.stderr)
+        self.assertFalse((root / CI_WORKFLOW).exists())
+        apply = self.cli("ready", "apply", str(root), "--ci-check")
+        self.assertEqual(apply.returncode, 5, apply.stderr)
+        self.assertFalse((root / CI_WORKFLOW).exists())
+        make = self.cli("ready", "make", str(root), "--target", "optimized", "--ci-check")
+        self.assertEqual(make.returncode, 5, make.stderr)
+        self.assertFalse((root / CI_WORKFLOW).exists())
 
 
 if __name__ == "__main__":

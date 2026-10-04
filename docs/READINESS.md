@@ -158,6 +158,8 @@ accept `--scope ci` too.
 `agentic ready apply --ci-check` writes a managed workflow
 (`.github/workflows/agentic-readiness.yml`) that runs `verify` with today's
 CI-visible level as the floor, the exact Agentic Dev version, and the pinned spec.
+Development builds such as `0.15.0+dev` refuse `--ci-check` generation with
+exit code 5 and write no workflow. Use a released build to generate the PyPI pin.
 See [REMEDIATION.md](REMEDIATION.md#maintenance-catalog).
 
 ## Spec source
