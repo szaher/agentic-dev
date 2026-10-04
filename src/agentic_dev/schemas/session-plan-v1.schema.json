@@ -4,6 +4,12 @@
   "title": "agentic session plan v1",
   "type": "object", "additionalProperties": false,
   "required": ["schema_version", "document_type", "status", "repository", "task", "readiness", "skills", "capabilities", "trust", "tools", "invocations", "verification_kinds", "isolation", "visibility", "blockers", "request_digest", "inputs_digest", "plan_digest"],
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "ready"}}, "required": ["status"]},
+     "then": {"properties": {"blockers": {"maxItems": 0}}}},
+    {"if": {"properties": {"status": {"const": "blocked"}}, "required": ["status"]},
+     "then": {"properties": {"blockers": {"minItems": 1}}}}
+  ],
   "properties": {
     "schema_version": {"const": "1"},
     "document_type": {"const": "agentic.session-plan"},
@@ -12,7 +18,7 @@
     "task": {"type": "string"},
     "readiness": {
       "type": "object", "additionalProperties": false, "required": ["minimum", "current", "met"],
-      "properties": {"minimum": {"type": "string"}, "current": {"type": "string"}, "met": {"type": "boolean"}}
+      "properties": {"minimum": {"$ref": "#/$defs/readiness_level"}, "current": {"$ref": "#/$defs/readiness_level"}, "met": {"type": "boolean"}}
     },
     "skills": {
       "type": "object", "additionalProperties": false, "required": ["selected", "not_exposed"],
@@ -25,14 +31,17 @@
     },
     "capabilities": {"$ref": "#/$defs/strings"},
     "tools": {"type": "array", "items": {"type": "object", "additionalProperties": false,
-      "required": ["name", "version"],
-      "properties": {"name": {"type": "string"}, "version": {"type": ["string", "null"]}}}},
+      "required": ["name", "available", "configured"],
+      "properties": {"name": {"enum": ["serena", "codegraph"]}, "available": {"type": "boolean"},
+        "configured": {"type": "boolean"}}}},
     "trust": {
       "type": "object", "additionalProperties": false, "required": ["profile", "permissions", "ceilings"],
       "properties": {"profile": {"type": "string"}, "permissions": {"$ref": "#/$defs/strings"}, "ceilings": {"$ref": "#/$defs/strings"}}
     },
-    "invocations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/invocation"}},
-    "verification_kinds": {"$ref": "#/$defs/strings"},
+    "invocations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/invocation"},
+      "contains": {"type": "object", "properties": {"role": {"const": "implementer"}}, "required": ["role"]},
+      "minContains": 1, "maxContains": 1},
+    "verification_kinds": {"type": "array", "uniqueItems": true, "items": {"enum": ["build", "test", "lint", "typecheck"]}},
     "isolation": {"type": "object", "additionalProperties": false, "required": ["workspace_required", "workspace_created", "writable_scope"],
       "properties": {"workspace_required": {"const": true}, "workspace_created": {"const": false},
         "writable_scope": {"const": "prepared-workspace"}}},
@@ -47,25 +56,41 @@
   },
   "$defs": {
     "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "readiness_level": {"enum": ["unaware", "foundational", "structured", "optimized", "autonomous"]},
     "strings": {"type": "array", "items": {"type": "string"}},
-    "bound": {"type": "object", "additionalProperties": false, "required": ["minimum", "maximum"],
-      "properties": {"minimum": {"type": "string"}, "maximum": {"type": "string"}}},
-    "effective": {"type": "object", "additionalProperties": false, "required": ["minimum", "maximum", "profile_ceiling", "level"],
-      "properties": {"minimum": {"type": "string"}, "maximum": {"type": "string"}, "profile_ceiling": {"type": "string"}, "level": {"type": "string"}}},
-    "permission": {"type": "object", "additionalProperties": false, "required": ["requested", "effective", "enforceable", "enforcement"],
+    "filesystem_level": {"enum": ["read-only", "workspace-write"]},
+    "network_level": {"enum": ["off", "on"]},
+    "filesystem_bound": {"type": "object", "additionalProperties": false, "required": ["minimum", "maximum"],
+      "properties": {"minimum": {"$ref": "#/$defs/filesystem_level"}, "maximum": {"$ref": "#/$defs/filesystem_level"}}},
+    "network_bound": {"type": "object", "additionalProperties": false, "required": ["minimum", "maximum"],
+      "properties": {"minimum": {"$ref": "#/$defs/network_level"}, "maximum": {"$ref": "#/$defs/network_level"}}},
+    "filesystem_effective": {"type": "object", "additionalProperties": false, "required": ["minimum", "maximum", "profile_ceiling", "level"],
+      "properties": {"minimum": {"$ref": "#/$defs/filesystem_level"}, "maximum": {"$ref": "#/$defs/filesystem_level"},
+        "profile_ceiling": {"$ref": "#/$defs/filesystem_level"}, "level": {"$ref": "#/$defs/filesystem_level"}}},
+    "network_effective": {"type": "object", "additionalProperties": false, "required": ["minimum", "maximum", "profile_ceiling", "level"],
+      "properties": {"minimum": {"$ref": "#/$defs/network_level"}, "maximum": {"$ref": "#/$defs/network_level"},
+        "profile_ceiling": {"$ref": "#/$defs/network_level"}, "level": {"$ref": "#/$defs/network_level"}}},
+    "enforcement": {"type": "object", "additionalProperties": false, "required": ["mechanism", "evidence", "probe_id"],
+      "properties": {"mechanism": {"type": ["string", "null"]}, "evidence": {"type": "string"},
+        "probe_id": {"type": ["string", "null"]}}},
+    "filesystem_permission": {"type": "object", "additionalProperties": false, "required": ["requested", "effective", "enforceable", "enforcement"],
       "properties": {
-        "requested": {"$ref": "#/$defs/bound"}, "effective": {"$ref": "#/$defs/effective"},
+        "requested": {"$ref": "#/$defs/filesystem_bound"}, "effective": {"$ref": "#/$defs/filesystem_effective"},
         "enforceable": {"enum": ["enforceable", "unenforceable", "unknown"]},
-        "enforcement": {"type": "object", "additionalProperties": false, "required": ["mechanism", "evidence", "probe_id"],
-          "properties": {"mechanism": {"type": ["string", "null"]}, "evidence": {"type": "string"},
-            "probe_id": {"type": ["string", "null"]}}}
+        "enforcement": {"$ref": "#/$defs/enforcement"}
+      }},
+    "network_permission": {"type": "object", "additionalProperties": false, "required": ["requested", "effective", "enforceable", "enforcement"],
+      "properties": {
+        "requested": {"$ref": "#/$defs/network_bound"}, "effective": {"$ref": "#/$defs/network_effective"},
+        "enforceable": {"enum": ["enforceable", "unenforceable", "unknown"]},
+        "enforcement": {"$ref": "#/$defs/enforcement"}
       }},
     "invocation": {"type": "object", "additionalProperties": false,
       "required": ["id", "role", "harness", "version", "permissions"],
       "properties": {"id": {"type": "string"}, "role": {"enum": ["implementer", "reviewer"]},
         "harness": {"enum": ["claude", "codex", "pi", "opencode"]}, "version": {"type": ["string", "null"]},
         "permissions": {"type": "object", "additionalProperties": false, "required": ["filesystem", "network"],
-          "properties": {"filesystem": {"$ref": "#/$defs/permission"}, "network": {"$ref": "#/$defs/permission"}}}}
+          "properties": {"filesystem": {"$ref": "#/$defs/filesystem_permission"}, "network": {"$ref": "#/$defs/network_permission"}}}}
     }
   }
 }

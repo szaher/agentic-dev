@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import copy
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -131,6 +133,84 @@ class SessionPlanningTests(unittest.TestCase):
         third = self.plan(facts=facts)
         self.assertNotEqual(first["inputs_digest"], third["inputs_digest"])
         self.assertNotEqual(first["plan_digest"], third["plan_digest"])
+
+    def test_semantic_digests_survive_equivalent_checkout_at_another_path(self):
+        relocated = Path(self.tmp.name) / "another-place" / "repo"
+        shutil.copytree(self.root, relocated)
+        first = self.plan()
+        second = plan_session(relocated, self.request, harness_facts=self.facts)
+        self.assertNotEqual(first["repository"], second["repository"])
+        self.assertEqual(first["request_digest"], second["request_digest"])
+        self.assertEqual(first["inputs_digest"], second["inputs_digest"])
+        self.assertEqual(first["plan_digest"], second["plan_digest"])
+
+    def test_tools_report_environment_availability_and_configuration(self):
+        (self.root / ".serena").mkdir()
+        (self.root / ".serena" / "project.yml").write_text("project_name: repo\n")
+        (self.root / ".codegraph").mkdir()
+        discovered = {
+            "serena": {"available": True, "path": "/test/serena"},
+            "codegraph": {"available": False, "path": None},
+        }
+        with patch("agentic_dev.session.tool_status", return_value=discovered):
+            plan = self.plan()
+        self.assertEqual(
+            plan["tools"],
+            [
+                {"name": "serena", "available": True, "configured": True},
+                {"name": "codegraph", "available": False, "configured": True},
+            ],
+        )
+        self.assertNotIn("codex", {item["name"] for item in plan["tools"]})
+
+    def test_packaged_schemas_reject_invalid_request_and_plan_invariants(self):
+        request_schema = schema("session-request")
+        plan_schema = schema("session-plan")
+        for invocations in (
+            [{"id": "review", "role": "reviewer"}],
+            self.request["invocations"] + [{"id": "second", "role": "implementer"}],
+            self.request["invocations"]
+            + [
+                {
+                    "id": "review",
+                    "role": "reviewer",
+                    "permissions": {"filesystem": {"maximum": "workspace-write"}},
+                }
+            ],
+        ):
+            with (
+                self.subTest(invocations=invocations),
+                self.assertRaises(jsonschema.ValidationError),
+            ):
+                jsonschema.validate(
+                    {**self.request, "invocations": invocations}, request_schema
+                )
+
+        ready = self.plan()
+        for dimension, invalid in (
+            ("filesystem", "root-write-everywhere"),
+            ("network", "unrestricted-egress"),
+        ):
+            for section, fields in (
+                ("requested", ("minimum", "maximum")),
+                ("effective", ("minimum", "maximum", "profile_ceiling", "level")),
+            ):
+                for field in fields:
+                    with self.subTest(
+                        dimension=dimension, section=section, field=field
+                    ):
+                        invalid_level = copy.deepcopy(ready)
+                        invalid_level["invocations"][0]["permissions"][dimension][
+                            section
+                        ][field] = invalid
+                        with self.assertRaises(jsonschema.ValidationError):
+                            jsonschema.validate(invalid_level, plan_schema)
+        invalid_ready = {**ready, "blockers": [{"code": "bad", "detail": "bad"}]}
+        with self.assertRaises(jsonschema.ValidationError):
+            jsonschema.validate(invalid_ready, plan_schema)
+        invalid_blocked = {**ready, "status": "blocked"}
+        with self.assertRaises(jsonschema.ValidationError):
+            jsonschema.validate(invalid_blocked, plan_schema)
 
     def test_blockers_for_missing_skill_capability_and_unavailable_harness(self):
         request = {

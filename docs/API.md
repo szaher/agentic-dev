@@ -35,7 +35,7 @@ The committed `.agentic/profile.toml` is an optional `agentic.repository-profile
 
 The request contains a task and named implementer/reviewer invocations. Each invocation has independent filesystem (`read-only`, `workspace-write`) and network (`off`, `on`) bounds. The profile may set role ceilings. The plan records requested and effective bounds, per-harness enforceability, concrete candidate mechanisms, and blockers. Missing enforcement evidence blocks the plan. See [SESSION-PERMISSIONS.md](SESSION-PERMISSIONS.md) for composition and scope.
 
-`request_digest` hashes the canonical request. `inputs_digest` covers the current commit, profile, readiness, providers and skill content, capability and trust state, harness availability/version/facts, and contract/features. `plan_digest` hashes the complete semantic plan. Exit codes: `0` ready plan, `1` blocked plan, `2` invalid request or profile. A blocked plan is still valid JSON and must not be executed.
+`request_digest` hashes the canonical request. `inputs_digest` covers the current commit, profile, readiness, providers and skill content, capability and trust state, Serena/CodeGraph availability and repository configuration, harness availability/version/facts, and contract/features. `plan_digest` hashes the semantic plan while excluding the absolute `repository` locator. Equivalent checkouts therefore retain the same approval identity. The `tools` array reports Serena and CodeGraph availability/configuration (`.serena/project.yml` and `.codegraph/`); harness versions appear under `invocations`. Exit codes: `0` ready plan, `1` blocked plan, `2` invalid request or profile. A blocked plan is still valid JSON and must not be executed.
 
 Minimal request:
 

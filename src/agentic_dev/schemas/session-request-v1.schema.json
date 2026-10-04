@@ -9,7 +9,9 @@
     "schema_version": {"const": "1"},
     "document_type": {"const": "agentic.session-request"},
     "task": {"type": "string", "minLength": 1},
-    "invocations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/invocation"}},
+    "invocations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/invocation"},
+      "contains": {"type": "object", "properties": {"role": {"const": "implementer"}}, "required": ["role"]},
+      "minContains": 1, "maxContains": 1},
     "readiness_minimum": {"enum": ["unaware", "foundational", "structured", "optimized", "autonomous"]},
     "required_capabilities": {"$ref": "#/$defs/names"},
     "allowed_skills": {"$ref": "#/$defs/names"},
@@ -44,6 +46,9 @@
     "invocation": {
       "type": "object", "additionalProperties": false,
       "required": ["id", "role"],
+      "if": {"properties": {"role": {"const": "reviewer"}}, "required": ["role"]},
+      "then": {"properties": {"permissions": {"properties": {"filesystem": {"properties": {
+        "minimum": {"const": "read-only"}, "maximum": {"const": "read-only"}}}}}}},
       "properties": {
         "id": {"type": "string", "minLength": 1},
         "role": {"enum": ["implementer", "reviewer"]},

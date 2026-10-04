@@ -12,6 +12,7 @@ from typing import Any
 
 from . import capabilities, contracts, providers, skills, trust
 from .detect import detect_repo, repo_root
+from .inspection import tool_status
 from .readiness.spec import load_spec
 from .readiness.verify import verify as verify_readiness
 from .session_harnesses import HARNESSES, inspect_harness
@@ -235,6 +236,24 @@ def _provider_facts() -> list[dict]:
     return facts
 
 
+def _environment_tools(root: Path) -> list[dict[str, Any]]:
+    """Report environment navigation tools without local binary paths."""
+
+    available = tool_status()
+    return [
+        {
+            "name": "serena",
+            "available": available["serena"]["available"],
+            "configured": (root / ".serena" / "project.yml").is_file(),
+        },
+        {
+            "name": "codegraph",
+            "available": available["codegraph"]["available"],
+            "configured": (root / ".codegraph").is_dir(),
+        },
+    ]
+
+
 def _block(code: str, detail: str, **extra: str) -> dict[str, str]:
     return {"code": code, "detail": detail, **extra}
 
@@ -433,6 +452,7 @@ def plan_session(
             }
         )
 
+    environment_tools = _environment_tools(root_path)
     inputs = {
         "commit": _commit(root_path),
         "profile": profile,
@@ -445,7 +465,10 @@ def plan_session(
         "trust": trust.document(root_path),
         "harnesses": facts,
         "contracts": contracts.document(),
-        "readiness": readiness,
+        "readiness": {
+            key: value for key, value in readiness.items() if key != "repository"
+        },
+        "environment_tools": environment_tools,
         "repository_facts": sorted(context.facts),
         "repository_evidence": context.evidence,
         "spec": spec.identity(),
@@ -464,9 +487,7 @@ def plan_session(
         "skills": {"selected": selected, "not_exposed": not_exposed},
         "capabilities": selected_capabilities,
         "trust": resolved_trust,
-        "tools": [
-            {"name": name, "version": facts[name]["version"]} for name in sorted(facts)
-        ],
+        "tools": environment_tools,
         "invocations": invocations,
         "verification_kinds": request.get("verification_kinds", []),
         "isolation": {
@@ -487,5 +508,9 @@ def plan_session(
         "request_digest": _digest(request),
         "inputs_digest": _digest(inputs),
     }
-    plan["plan_digest"] = _digest(plan)
+    # The repository path locates this checkout but is not part of approval's
+    # semantic identity; S2 may prepare the same plan in a separate worktree.
+    plan["plan_digest"] = _digest(
+        {key: value for key, value in plan.items() if key != "repository"}
+    )
     return plan
