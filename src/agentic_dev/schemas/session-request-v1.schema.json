@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/session-request-v1.schema.json",
+  "title": "agentic session request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "document_type", "task", "invocations"],
+  "properties": {
+    "schema_version": {"const": "1"},
+    "document_type": {"const": "agentic.session-request"},
+    "task": {"type": "string", "minLength": 1},
+    "invocations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/invocation"},
+      "contains": {"type": "object", "properties": {"role": {"const": "implementer"}}, "required": ["role"]},
+      "minContains": 1, "maxContains": 1},
+    "readiness_minimum": {"enum": ["unaware", "foundational", "structured", "optimized", "autonomous"]},
+    "required_capabilities": {"$ref": "#/$defs/names"},
+    "allowed_skills": {"$ref": "#/$defs/names"},
+    "required_skills": {"$ref": "#/$defs/names"},
+    "trust_profile": {"type": "string", "minLength": 1},
+    "trust_ceiling": {"type": "string", "minLength": 1},
+    "verification_kinds": {"type": "array", "uniqueItems": true, "items": {"enum": ["build", "test", "lint", "typecheck"]}}
+  },
+  "$defs": {
+    "names": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "filesystem_bounds": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "minimum": {"enum": ["read-only", "workspace-write"]},
+        "maximum": {"enum": ["read-only", "workspace-write"]}
+      }
+    },
+    "network_bounds": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "minimum": {"enum": ["off", "on"]},
+        "maximum": {"enum": ["off", "on"]}
+      }
+    },
+    "permissions": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "filesystem": {"$ref": "#/$defs/filesystem_bounds"},
+        "network": {"$ref": "#/$defs/network_bounds"}
+      }
+    },
+    "invocation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "role"],
+      "if": {"properties": {"role": {"const": "reviewer"}}, "required": ["role"]},
+      "then": {"properties": {"permissions": {"properties": {"filesystem": {"properties": {
+        "minimum": {"const": "read-only"}, "maximum": {"const": "read-only"}}}}}}},
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "role": {"enum": ["implementer", "reviewer"]},
+        "harness": {"enum": ["claude", "codex", "pi", "opencode"]},
+        "permissions": {"$ref": "#/$defs/permissions"}
+      }
+    }
+  }
+}

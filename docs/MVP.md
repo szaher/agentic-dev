@@ -160,7 +160,7 @@ What the map says:
 - allowed and required skills;
 - the trust ceiling;
 - verification kinds;
-- required permission modes per invocation, for example `workspace-write`, `read-only`, `network-off`.
+- per-invocation filesystem and network minimum access and ceilings, resolved independently (see [SESSION-PERMISSIONS.md](SESSION-PERMISSIONS.md)).
 
 It never contains a pattern name, stages, attempts, or approval or retry policy.
 
@@ -178,7 +178,7 @@ Pattern, reviewers, attempts, stages, approvals and workflow gates stay in Agent
 - selected skills with provider/content digests, and the skills not exposed;
 - tools and capabilities;
 - trust;
-- permissions (`requested`, `enforceable`, and how each is enforced);
+- per-dimension permissions (`requested`, `effective`, `enforceable`, and how each is enforced);
 - isolation requirements and verification kinds;
 - visibility (prepared, detected external, undetermined);
 - blockers;
@@ -203,7 +203,7 @@ It contains **no** AgentFlow facts.
 - **Required capabilities and required skills:** union.
 - **Allowed skills:** intersection. A required skill outside the allowed set is a blocker.
 - **Trust:** the ceiling is the lower one. A request above the ceiling **blocks**; it never escalates (profile ceiling `safe` + workflow asking `development` → blocker).
-- **Permissions:** the most restrictive mode wins. A required restriction the harness cannot enforce **blocks** before any invocation.
+- **Permissions:** filesystem and network resolve separately. A required minimum above the request or profile ceiling blocks; a missing or unverified harness enforcement mechanism also blocks.
 
 ### Plan identity and approval
 

@@ -75,6 +75,27 @@ digest="$("$python" -c 'import json,sys; print(json.load(open(sys.argv[1]))["con
 test ! -e "$repo/.claude/skills/smoke-sdlc" && test ! -e "$repo/.agentic/skills.json"
 "$agentic" skills add smoke-sdlc --target all --shared --json > "$work/out/skills-activation.json"
 
+# S1: exercise the installed parser and planner, including a fail-closed real harness.
+mkdir -p "$repo/.agentic"
+printf 'schema_version = "1"\ndocument_type = "agentic.repository-profile"\npreferred_harness = "codex"\n[permissions.implementer]\nfilesystem = "workspace-write"\nnetwork = "off"\n' > "$repo/.agentic/profile.toml"
+printf '{"schema_version":"1","document_type":"agentic.session-request","task":"Fix a failing test","invocations":[{"id":"implement","role":"implementer","harness":"codex"}],"verification_kinds":["test"]}\n' > "$work/out/session-request.json"
+expect_exit 1 "$work/out/session-plan.json" -- "$agentic" session plan --request "$work/out/session-request.json" --path "$repo" --json
+# Resolve the executable's installed Python environment, including uv tool links.
+"$python" - "$agentic" "$repo" "$work/out/repository-profile.json" <<'PY'
+import subprocess, sys
+from pathlib import Path
+
+installed_python = Path(sys.argv[1]).resolve().parent / "python"
+assert installed_python.is_file(), installed_python
+result = subprocess.run(
+    [str(installed_python), "-I", "-c",
+     "import json,sys; from agentic_dev.session import load_profile; print(json.dumps(load_profile(sys.argv[1])))",
+     sys.argv[2]],
+    check=True, capture_output=True, text=True,
+)
+Path(sys.argv[3]).write_text(result.stdout)
+PY
+
 "$python" - "$work" <<'PY'
 import json, sys
 from pathlib import Path
@@ -119,5 +140,15 @@ preview = documents["skills-activation-preview"]
 assert (preview["dry_run"], preview["status"]) == (True, "ok"), preview
 assert preview["outcomes"] == documents["skills-activation"]["outcomes"]
 assert {o["status"] for o in documents["skills-activation"]["outcomes"]} == {"written"}
+request = documents["session-request"]
+profile = documents["repository-profile"]
+session = documents["session-plan"]
+assert len([item for item in request["invocations"] if item["role"] == "implementer"]) == 1
+assert profile["preferred_harness"] == "codex"
+assert session["status"] == "blocked" and session["blockers"]
+assert any(item["code"] == "permission-unenforceable" for item in session["blockers"])
+assert all(permission["enforceable"] == "unknown" for invocation in session["invocations"]
+           for permission in invocation["permissions"].values())
+assert {item["name"] for item in session["tools"]} == {"serena", "codegraph"}
 print(f"contracts smoke: {len(documents)} documents validated against installed schemas")
 PY

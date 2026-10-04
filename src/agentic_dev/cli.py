@@ -2,48 +2,114 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-from . import __version__
-from .capabilities import disable as disable_capability, enable as enable_capability, list_capabilities, run_capability, status as capability_status, suggest_for_repo
-from .detect import detect_repo, repo_root
-from .integrations import install as install_integration, status as integration_status
-from .inspection import doctor_document, inspect_repository
-from .infrastructure import (
-    cloud_identity, cloud_write, cluster_run, database_exec, database_local_list,
-    database_local_show, database_local_start, database_local_stop,
-    database_schema, migration_check, observability_status, status as infrastructure_status,
-)
-from .execution import configure as configure_execution, run as run_execution, status as execution_status
-from .skills import TARGETS as SKILL_TARGETS, activate, activate_report, context_and_recommendations, get_skill, installed_skills, load_registry, remove, skill_content
-from .trust import define_profile, document as trust_document, get_profile, set_current
-from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
+from . import __version__, readiness
 from . import instructions as instruction_blocks
-from .contracts import UnknownContract, document as contracts_document, schema as contract_schema
-from .verification import FULL_KINDS, execute as execute_verification, full_plan as full_verification_plan, plan as verification_plan
-from . import readiness
-from .readiness import render as readiness_render
-from .readiness.apply import ApplyError, run as readiness_run
-from .readiness.evidence import ScopeError
-from .readiness.remediation import CI_CHECK, ContractError, UnreleasedBuildError
-from .readiness.verify import EXIT_USAGE, verify as readiness_verify
-from .readiness.make import make as readiness_make
-from .providers import (
-    add_provider, doctor as provider_doctor, inspect_provider, installed as installed_providers,
-    migrate as migrate_provider, remove_provider, update_all as update_all_providers,
-    update_provider, verify_provider,
+from .capabilities import disable as disable_capability
+from .capabilities import enable as enable_capability
+from .capabilities import list_capabilities, run_capability, suggest_for_repo
+from .capabilities import status as capability_status
+from .contracts import UnknownContract
+from .contracts import document as contracts_document
+from .contracts import schema as contract_schema
+from .detect import repo_root
+from .execution import configure as configure_execution
+from .execution import run as run_execution
+from .execution import status as execution_status
+from .infrastructure import (
+    cloud_identity,
+    cloud_write,
+    cluster_run,
+    database_exec,
+    database_local_list,
+    database_local_show,
+    database_local_start,
+    database_local_stop,
+    database_schema,
+    migration_check,
+    observability_status,
 )
-from .remote import add as add_remote, get as get_remote, list_profiles as list_remotes, remove as remove_remote, status as remote_status, test as test_remote
+from .infrastructure import (
+    status as infrastructure_status,
+)
+from .inspection import doctor_document, inspect_repository
+from .integrations import install as install_integration
+from .integrations import status as integration_status
 from .metrics import (
-    clear as clear_metrics, export as export_metrics, record as record_metric,
-    set_enabled as set_metrics_enabled, status as metrics_status,
+    clear as clear_metrics,
+)
+from .metrics import (
+    export as export_metrics,
+)
+from .metrics import (
+    record as record_metric,
+)
+from .metrics import (
+    set_enabled as set_metrics_enabled,
+)
+from .metrics import (
+    status as metrics_status,
+)
+from .metrics import (
     summary as metrics_summary,
 )
 from .paths import prepare_runtime_state
+from .providers import (
+    add_provider,
+    inspect_provider,
+    remove_provider,
+    update_provider,
+    verify_provider,
+)
+from .providers import (
+    doctor as provider_doctor,
+)
+from .providers import (
+    installed as installed_providers,
+)
+from .providers import (
+    migrate as migrate_provider,
+)
+from .providers import (
+    update_all as update_all_providers,
+)
+from .readiness import render as readiness_render
+from .readiness.apply import ApplyError
+from .readiness.apply import run as readiness_run
+from .readiness.evidence import ScopeError
+from .readiness.make import make as readiness_make
+from .readiness.remediation import CI_CHECK, ContractError, UnreleasedBuildError
+from .readiness.verify import EXIT_USAGE
+from .readiness.verify import verify as readiness_verify
+from .remote import add as add_remote
+from .remote import get as get_remote
+from .remote import remove as remove_remote
+from .remote import status as remote_status
+from .remote import test as test_remote
+from .session import load_request as load_session_request
+from .session import plan_session
+from .skills import TARGETS as SKILL_TARGETS
+from .skills import (
+    activate,
+    activate_report,
+    context_and_recommendations,
+    get_skill,
+    installed_skills,
+    load_registry,
+    remove,
+    skill_content,
+)
+from .trust import define_profile, get_profile, set_current
+from .trust import document as trust_document
+from .verification import FULL_KINDS
+from .verification import execute as execute_verification
+from .verification import full_plan as full_verification_plan
+from .verification import plan as verification_plan
+from .worktrees import clean_worktree, create_worktree, list_worktrees, worktree_status
 
 
 def _print_recommendations(path: str, task: str, max_skills: int, as_json: bool):
@@ -374,6 +440,27 @@ def cmd_contracts_schema(args: argparse.Namespace) -> int:
         return 2
     print(json.dumps(data, indent=2, sort_keys=True))
     return 0
+
+
+def cmd_session_plan(args: argparse.Namespace) -> int:
+    try:
+        result = plan_session(args.path, load_session_request(args.request))
+    except (ValueError, TypeError, KeyError, OSError) as exc:
+        print(f"session plan: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        print(f"Session plan: {result['status']}  {result['plan_digest']}")
+        print(f"Repository: {result['repository']}")
+        print(f"Readiness: {result['readiness']['current']} (minimum {result['readiness']['minimum']})")
+        for item in result["invocations"]:
+            permissions = ", ".join(f"{name}={detail['effective']['level']} ({detail['enforceable']})"
+                                    for name, detail in item["permissions"].items())
+            print(f"  {item['id']}: {item['harness']} {item['version'] or 'unavailable'}; {permissions}")
+        for blocker in result["blockers"]:
+            print(f"  BLOCKED {blocker['code']}: {blocker['detail']}")
+    return 0 if result["status"] == "ready" else 1
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
@@ -1943,6 +2030,14 @@ def build_parser() -> argparse.ArgumentParser:
     iblist.add_argument("--json", action="store_true")
     iblist.set_defaults(func=cmd_instructions_block_list)
 
+    session = sub.add_parser("session", help="Read-only session planning")
+    session_sub = session.add_subparsers(dest="session_command", required=True)
+    session_plan = session_sub.add_parser("plan", help="Resolve a session request without mutation")
+    session_plan.add_argument("--request", required=True, help="path to a session-request@1 JSON document")
+    session_plan.add_argument("--path", default=".", help="repository (default: current directory)")
+    session_plan.add_argument("--json", action="store_true")
+    session_plan.set_defaults(func=cmd_session_plan)
+
     contracts = sub.add_parser(
         "contracts",
         help="Machine-readable compatibility handshake (contracts, features, exit codes)",
@@ -1964,9 +2059,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
-    prepare_runtime_state()
     parser = build_parser()
     args = parser.parse_args()
+    if args.func is not cmd_session_plan:
+        prepare_runtime_state()
     raise SystemExit(args.func(args))
 
 
