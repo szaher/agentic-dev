@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -25,13 +26,21 @@ class BlockedPlanError(ValueError):
     """A plan with blockers cannot be prepared."""
 
 
+class DirtyWorkspaceError(ValueError):
+    """The supplied worktree has unapproved tracked or untracked changes."""
+
+
 class PlacementError(ValueError):
     """A selected skill cannot be placed without replacing other workspace state."""
 
 
 def _git(root: Path, *args: str) -> str:
     result = subprocess.run(
-        ["git", "-C", str(root), *args], capture_output=True, text=True, check=False
+        ["git", "-C", str(root), *args],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"},
     )
     if result.returncode:
         raise InvalidPlanError(
@@ -43,6 +52,14 @@ def _git(root: Path, *args: str) -> str:
 def _common_dir(root: Path) -> Path:
     value = Path(_git(root, "rev-parse", "--git-common-dir"))
     return (value if value.is_absolute() else root / value).resolve()
+
+
+def _require_clean_workspace(workspace: Path) -> None:
+    changes = _git(workspace, "status", "--porcelain=v1", "--untracked-files=all")
+    if changes:
+        raise DirtyWorkspaceError(
+            "SESSION_WORKSPACE_DIRTY: supplied worktree has tracked or untracked changes"
+        )
 
 
 def _workspace(plan: dict, path: str | Path) -> Path:
@@ -250,6 +267,7 @@ def prepare_session(
 
     request = _verify_plan(plan)
     workspace = _workspace(plan, path)
+    _require_clean_workspace(workspace)
     refreshed = plan_session(workspace, request, harness_facts=harness_facts)
     if any(
         refreshed[key] != plan[key]

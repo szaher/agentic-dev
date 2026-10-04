@@ -14,9 +14,11 @@ import jsonschema
 
 from agentic_dev.cli import main
 from agentic_dev.contracts import schema
+from agentic_dev.paths import LEGACY_CONFIG_ENV, NEW_CONFIG_ENV
 from agentic_dev.session import plan_session
 from agentic_dev.session_prepare import (
     BlockedPlanError,
+    DirtyWorkspaceError,
     InvalidPlanError,
     PlacementError,
     StalePlanError,
@@ -122,6 +124,7 @@ class SessionPrepareTests(unittest.TestCase):
         self.assertEqual(record["plan_digest"], plan["plan_digest"])
         self.assertEqual(record["request_digest"], plan["request_digest"])
         self.assertEqual(record["inputs_digest"], plan["inputs_digest"])
+        self.assertEqual(record["tools"], plan["tools"])
         self.assertEqual(record["status"], "prepared")
         self.assertEqual(
             {item["name"] for item in record["skills"]},
@@ -161,7 +164,23 @@ class SessionPrepareTests(unittest.TestCase):
             "",
         )
 
-    def test_changed_workspace_profile_is_stale_before_skill_placement(self):
+    def test_changed_tool_version_refuses_before_workspace_mutation(self):
+        with patch(
+            "agentic_dev.session._tool_version", side_effect=["Serena A", "CodeGraph B"]
+        ):
+            plan = self.plan()
+        self.worktree()
+        with (
+            patch(
+                "agentic_dev.session._tool_version",
+                side_effect=["Serena C", "CodeGraph B"],
+            ),
+            self.assertRaisesRegex(StalePlanError, "SESSION_PLAN_STALE"),
+        ):
+            prepare_session(plan, self.workspace, harness_facts=self.facts)
+        self.assertFalse((self.workspace / ".codex").exists())
+
+    def test_untracked_workspace_profile_is_dirty_before_skill_placement(self):
         plan = self.plan()
         self.worktree()
         profile = self.workspace / ".agentic" / "profile.toml"
@@ -171,19 +190,35 @@ class SessionPrepareTests(unittest.TestCase):
             'preferred_harness = "codex"\n'
         )
         before = profile.read_bytes()
-        with self.assertRaisesRegex(StalePlanError, "SESSION_PLAN_STALE"):
+        with self.assertRaisesRegex(DirtyWorkspaceError, "SESSION_WORKSPACE_DIRTY"):
             prepare_session(plan, self.workspace, harness_facts=self.facts)
         self.assertEqual(profile.read_bytes(), before)
         self.assertFalse((self.workspace / ".codex").exists())
 
     def test_visibility_reports_unselected_workspace_assets(self):
-        plan = self.plan()
-        self.worktree()
-        extra = self.workspace / ".codex" / "skills" / "external"
+        extra = self.root / ".codex" / "skills" / "external"
         extra.mkdir(parents=True)
         (extra / "SKILL.md").write_text("# External\n")
-        config = self.workspace / ".codex" / "config.toml"
+        config = self.root / ".codex" / "config.toml"
         config.write_text("# Existing config\n")
+        subprocess.run(["git", "-C", str(self.root), "add", ".codex"], check=True)
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.root),
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.invalid",
+                "commit",
+                "-qm",
+                "external assets",
+            ],
+            check=True,
+        )
+        plan = self.plan()
+        self.worktree()
         record = prepare_session(plan, self.workspace, harness_facts=self.facts)
         detected = record["visibility"][0]["detected_external"]
         self.assertIn(
@@ -210,6 +245,7 @@ class SessionPrepareTests(unittest.TestCase):
     def test_unmanaged_conflict_refuses_without_partial_placement(self):
         plan = self.plan()
         self.worktree()
+        (self.root / ".git" / "info" / "exclude").write_text(".codex/\n")
         first = plan["skills"]["selected"][0]["name"]
         conflict = self.workspace / ".codex" / "skills" / first
         conflict.mkdir(parents=True)
@@ -218,6 +254,28 @@ class SessionPrepareTests(unittest.TestCase):
             prepare_session(plan, self.workspace, harness_facts=self.facts)
         self.assertEqual((conflict / "existing.txt").read_text(), "unmanaged\n")
         self.assertEqual(list(self.workspace.rglob("SKILL.md")), [])
+
+    def test_tracked_modification_refused_before_agentic_writes(self):
+        plan = self.plan()
+        self.worktree()
+        changed = self.workspace / "README.md"
+        changed.write_text("# Unapproved source\n")
+        before = changed.read_bytes()
+        with self.assertRaisesRegex(DirtyWorkspaceError, "SESSION_WORKSPACE_DIRTY"):
+            prepare_session(plan, self.workspace, harness_facts=self.facts)
+        self.assertEqual(changed.read_bytes(), before)
+        self.assertFalse((self.workspace / ".codex").exists())
+
+    def test_untracked_source_refused_before_agentic_writes(self):
+        plan = self.plan()
+        self.worktree()
+        source = self.workspace / "calc.py"
+        source.write_text("print('unapproved')\n")
+        before = source.read_bytes()
+        with self.assertRaisesRegex(DirtyWorkspaceError, "SESSION_WORKSPACE_DIRTY"):
+            prepare_session(plan, self.workspace, harness_facts=self.facts)
+        self.assertEqual(source.read_bytes(), before)
+        self.assertFalse((self.workspace / ".codex").exists())
 
     def test_unrelated_repository_refuses(self):
         plan = self.plan()
@@ -249,3 +307,45 @@ class SessionPrepareTests(unittest.TestCase):
                 main()
             self.assertEqual(result.exception.code, 1)
         self.assertFalse((self.workspace / ".codex").exists())
+
+    def test_cli_invalid_and_stale_plan_do_not_migrate_legacy_config(self):
+        self.worktree()
+        legacy = Path(self.tmp.name) / "legacy-config"
+        legacy.mkdir()
+        (legacy / "trust.json").write_text('{"source":"legacy"}\n')
+        current = Path(self.tmp.name) / "new-config"
+        plan_file = Path(self.tmp.name) / "plan.json"
+        clean_env = {
+            key: value
+            for key, value in os.environ.items()
+            if key not in {NEW_CONFIG_ENV, LEGACY_CONFIG_ENV}
+        }
+        with (
+            patch.dict(os.environ, clean_env, clear=True),
+            patch("agentic_dev.paths.legacy_default_config_dir", return_value=legacy),
+            patch("agentic_dev.paths.default_config_dir", return_value=current),
+        ):
+            for document, expected in (({}, 2), (self.plan(), 3)):
+                with self.subTest(expected_exit=expected):
+                    plan_file.write_text(json.dumps(document))
+                    with (
+                        patch.object(
+                            sys,
+                            "argv",
+                            [
+                                "agentic",
+                                "session",
+                                "prepare",
+                                "--plan",
+                                str(plan_file),
+                                "--path",
+                                str(self.workspace),
+                                "--json",
+                            ],
+                        ),
+                        self.assertRaises(SystemExit) as result,
+                    ):
+                        main()
+                    self.assertEqual(result.exception.code, expected)
+                    self.assertFalse(current.exists())
+                    self.assertFalse((self.workspace / ".codex").exists())

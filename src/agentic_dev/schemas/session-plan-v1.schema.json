@@ -32,9 +32,9 @@
     },
     "capabilities": {"$ref": "#/$defs/strings"},
     "tools": {"type": "array", "items": {"type": "object", "additionalProperties": false,
-      "required": ["name", "available", "configured"],
+      "required": ["name", "available", "configured", "version"],
       "properties": {"name": {"enum": ["serena", "codegraph"]}, "available": {"type": "boolean"},
-        "configured": {"type": "boolean"}}}},
+        "configured": {"type": "boolean"}, "version": {"type": ["string", "null"]}}}},
     "trust": {
       "type": "object", "additionalProperties": false, "required": ["profile", "permissions", "ceilings"],
       "properties": {"profile": {"type": "string"}, "permissions": {"$ref": "#/$defs/strings"}, "ceilings": {"$ref": "#/$defs/strings"}}

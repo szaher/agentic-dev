@@ -153,16 +153,57 @@ class SessionPlanningTests(unittest.TestCase):
             "serena": {"available": True, "path": "/test/serena"},
             "codegraph": {"available": False, "path": None},
         }
-        with patch("agentic_dev.session.tool_status", return_value=discovered):
+        with (
+            patch("agentic_dev.session.tool_status", return_value=discovered),
+            patch(
+                "agentic_dev.session._tool_version",
+                side_effect=lambda path: "Serena 1.7.0" if path else None,
+            ),
+        ):
             plan = self.plan()
         self.assertEqual(
             plan["tools"],
             [
-                {"name": "serena", "available": True, "configured": True},
-                {"name": "codegraph", "available": False, "configured": True},
+                {
+                    "name": "serena",
+                    "available": True,
+                    "configured": True,
+                    "version": "Serena 1.7.0",
+                },
+                {
+                    "name": "codegraph",
+                    "available": False,
+                    "configured": True,
+                    "version": None,
+                },
             ],
         )
         self.assertNotIn("codex", {item["name"] for item in plan["tools"]})
+
+    def test_tool_version_change_stales_plan_identity(self):
+        discovered = {
+            "serena": {"available": True, "path": "/test/serena"},
+            "codegraph": {"available": True, "path": "/test/codegraph"},
+        }
+        with (
+            patch("agentic_dev.session.tool_status", return_value=discovered),
+            patch(
+                "agentic_dev.session._tool_version",
+                side_effect=["Serena 1.7.0", "1.6.0"],
+            ),
+        ):
+            first = self.plan()
+        with (
+            patch("agentic_dev.session.tool_status", return_value=discovered),
+            patch(
+                "agentic_dev.session._tool_version",
+                side_effect=["Serena 1.8.0", "1.6.0"],
+            ),
+        ):
+            second = self.plan()
+        self.assertNotEqual(first["inputs_digest"], second["inputs_digest"])
+        self.assertNotEqual(first["plan_digest"], second["plan_digest"])
+        self.assertEqual(second["tools"][0]["version"], "Serena 1.8.0")
 
     def test_packaged_schemas_reject_invalid_request_and_plan_invariants(self):
         request_schema = schema("session-request")

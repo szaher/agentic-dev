@@ -94,6 +94,7 @@ from .session import load_request as load_session_request
 from .session import plan_session
 from .session_prepare import (
     BlockedPlanError,
+    DirtyWorkspaceError,
     InvalidPlanError,
     PlacementError,
     StalePlanError,
@@ -482,6 +483,9 @@ def cmd_session_prepare(args: argparse.Namespace) -> int:
     except BlockedPlanError as exc:
         print(f"session prepare: {exc}", file=sys.stderr)
         return 1
+    except DirtyWorkspaceError as exc:
+        print(f"session prepare: {exc}", file=sys.stderr)
+        return 5
     except (PlacementError, OSError) as exc:
         print(f"session prepare: {exc}", file=sys.stderr)
         return 4
@@ -2100,7 +2104,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
-    if args.func is not cmd_session_plan:
+    if args.func not in {cmd_session_plan, cmd_session_prepare}:
         prepare_runtime_state()
     raise SystemExit(args.func(args))
 

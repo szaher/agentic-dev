@@ -140,6 +140,14 @@ rejected = subprocess.run([str(Path(sys.executable).parent / "agentic"), "sessio
                           capture_output=True, text=True, check=False)
 assert rejected.returncode == 1, (rejected.returncode, rejected.stderr)
 assert not (workspace / ".codex").exists()
+dirty_file = workspace / "calc.py"
+dirty_file.write_text("print('unapproved')\n")
+dirty = subprocess.run([str(Path(sys.executable).parent / "agentic"), "session", "prepare",
+                        "--plan", str(blocked_file), "--path", str(workspace), "--json"],
+                       capture_output=True, text=True, check=False)
+assert dirty.returncode == 5 and "SESSION_WORKSPACE_DIRTY" in dirty.stderr, dirty
+assert not (workspace / ".codex").exists()
+dirty_file.unlink()
 record = prepare_session(plan, workspace, harness_facts=facts)
 (work / "out" / "session-record.json").write_text(json.dumps(record))
 assert subprocess.check_output(["git", "-C", str(workspace), "status", "--porcelain"],
@@ -203,8 +211,10 @@ assert any(item["code"] == "permission-unenforceable" for item in session["block
 assert all(permission["enforceable"] == "unknown" for invocation in session["invocations"]
            for permission in invocation["permissions"].values())
 assert {item["name"] for item in session["tools"]} == {"serena", "codegraph"}
+assert all("version" in item for item in session["tools"])
 record = documents["session-record"]
 assert record["status"] == "prepared" and record["prepared"]["git_excluded"]
 assert record["prepared"]["skill_paths"]
+assert all("version" in item for item in record["tools"])
 print(f"contracts smoke: {len(documents)} documents validated against installed schemas")
 PY

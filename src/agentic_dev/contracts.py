@@ -109,7 +109,8 @@ EXIT_CODES: dict[str, dict[str, str]] = {
     "session plan": {"0": "ready plan", "1": "blocked plan; no mutation", "2": "invalid request or profile"},
     "session prepare": {"0": "prepared record", "1": "blocked plan; no mutation",
                         "2": "invalid plan or workspace", "3": "SESSION_PLAN_STALE; no mutation",
-                        "4": "skill placement conflict or I/O failure"},
+                        "4": "skill placement conflict or I/O failure",
+                        "5": "SESSION_WORKSPACE_DIRTY; no Agentic Dev placement"},
 }
 
 
