@@ -411,6 +411,7 @@ def plan_session(
                 "enforcement": {
                     "mechanism": detail["mechanism"],
                     "evidence": detail["evidence"],
+                    "probe_id": detail.get("probe_id"),
                 },
             }
             if detail["status"] != "enforceable":

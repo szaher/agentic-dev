@@ -54,6 +54,8 @@ Enforceability is specific to the harness executable, version, dimension, effect
 
 S1 inspects locally available harnesses. The installed Codex CLI exposes filesystem sandbox modes and an approval policy; the installed Claude Code CLI exposes permission modes and restricted tooling. Those options alone do not establish complete filesystem and network boundaries, especially when built-in tools, plugins, MCP servers, hooks, or user configuration can reach outside the workspace. Pi and OpenCode are not installed in the current development environment. The capability model therefore records gaps conservatively. Version-specific end-to-end probes are needed before changing a fact to `enforceable`. A caller cannot override an unknown fact by declaring its own enforcement support.
 
+The installed-version command sandbox and restricted-tool measurements are recorded in [SESSION-PERMISSION-PROBE.md](SESSION-PERMISSION-PROBE.md). Their probe IDs accompany matching version/platform facts in the plan without turning partial observations into an `enforceable` claim.
+
 Interactive harness approval and sandbox escalation are denied in v1. AgentFlow's human approval is bound to the `plan_digest` and does not authorize a tool to escape the sandbox during execution. S1 creates no workspace and invokes no harness.
 
 ## Contract behavior
