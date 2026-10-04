@@ -86,17 +86,18 @@ class SessionPlanningTests(unittest.TestCase):
         )
 
     def test_schema_and_determinism_with_no_mutation(self):
+        # Git may update its own maintenance files after the fixture commit.
         before = {
             p.relative_to(self.root): p.read_bytes()
             for p in self.root.rglob("*")
-            if p.is_file()
+            if p.is_file() and ".git" not in p.relative_to(self.root).parts
         }
         first = self.plan()
         second = self.plan()
         after = {
             p.relative_to(self.root): p.read_bytes()
             for p in self.root.rglob("*")
-            if p.is_file()
+            if p.is_file() and ".git" not in p.relative_to(self.root).parts
         }
         self.assertEqual(first["status"], "ready")
         self.assertEqual(first, second)
