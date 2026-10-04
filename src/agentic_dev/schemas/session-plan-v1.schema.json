@@ -56,8 +56,9 @@
       "properties": {
         "requested": {"$ref": "#/$defs/bound"}, "effective": {"$ref": "#/$defs/effective"},
         "enforceable": {"enum": ["enforceable", "unenforceable", "unknown"]},
-        "enforcement": {"type": "object", "additionalProperties": false, "required": ["mechanism", "evidence"],
-          "properties": {"mechanism": {"type": ["string", "null"]}, "evidence": {"type": "string"}}}
+        "enforcement": {"type": "object", "additionalProperties": false, "required": ["mechanism", "evidence", "probe_id"],
+          "properties": {"mechanism": {"type": ["string", "null"]}, "evidence": {"type": "string"},
+            "probe_id": {"type": ["string", "null"]}}}
       }},
     "invocation": {"type": "object", "additionalProperties": false,
       "required": ["id", "role", "harness", "version", "permissions"],

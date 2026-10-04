@@ -52,6 +52,7 @@ Minimal request:
 ```
 
 The absence of a profile uses defaults. Permission boundaries are still checked and may produce blockers until the installed harness/version has verified enforcement facts.
+When a local probe matches the exact harness version and platform, `enforcement.probe_id` points to the partial observation in [SESSION-PERMISSION-PROBE.md](SESSION-PERMISSION-PROBE.md). A probe ID does not mean the complete invocation is enforceable.
 
 ## Repository inspection
 
