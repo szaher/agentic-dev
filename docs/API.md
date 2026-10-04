@@ -54,6 +54,19 @@ Minimal request:
 The absence of a profile uses defaults. Permission boundaries are still checked and may produce blockers until the installed harness/version has verified enforcement facts.
 When a local probe matches the exact harness version and platform, `enforcement.probe_id` points to the partial observation in [SESSION-PERMISSION-PROBE.md](SESSION-PERMISSION-PROBE.md). A probe ID does not mean the complete invocation is enforceable.
 
+## Session preparation (S2)
+
+```bash
+agentic contracts schema session-record
+agentic session prepare --plan approved-plan.json --path /path/to/linked-worktree --json
+```
+
+The caller supplies the exact approved `agentic.session-plan@1` document and an existing, separate linked worktree of its planning repository. The plan carries its canonical request. Preparation resolves that request again in the target worktree and compares `request_digest`, `inputs_digest`, and `plan_digest` before writing anything. A changed commit, profile, provider, skill, capability, trust setting, tool fact, harness fact, readiness result, or contract makes the plan stale. The caller must replan and approve the new digest.
+
+A ready plan places only its selected skills under that worktree's harness skill directories. Each placed skill directory has a local `.gitignore` and is checked with Git before the command returns. Existing content is never overwritten. The emitted `agentic.session-record@1` identifies the plan, request, inputs, worktree commit, selected skills, capability and trust resolution, tools, invocations, and inspected visibility. Visibility lists detected workspace and user-level paths and explicitly marks what could not be determined; it does not assert that a harness loaded every path. The command never launches a harness or changes capability/trust configuration.
+
+Exit codes: `0` prepared record, `1` blocked plan, `2` invalid plan or worktree, `3` `SESSION_PLAN_STALE` with no mutation, `4` skill placement conflict or I/O error. A real harness whose enforcement remains `unknown` produces a blocked plan and cannot be prepared.
+
 ## Repository inspection
 
 ```bash

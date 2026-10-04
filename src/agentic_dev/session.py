@@ -478,6 +478,7 @@ def plan_session(
         "document_type": PLAN_TYPE,
         "status": "blocked" if blockers else "ready",
         "repository": str(root_path),
+        "request": request,
         "task": request["task"],
         "readiness": {
             "minimum": minimum_readiness,

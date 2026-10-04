@@ -92,6 +92,16 @@ from .remote import status as remote_status
 from .remote import test as test_remote
 from .session import load_request as load_session_request
 from .session import plan_session
+from .session_prepare import (
+    BlockedPlanError,
+    InvalidPlanError,
+    PlacementError,
+    StalePlanError,
+    prepare_session,
+)
+from .session_prepare import (
+    load_plan as load_session_plan,
+)
 from .skills import TARGETS as SKILL_TARGETS
 from .skills import (
     activate,
@@ -461,6 +471,30 @@ def cmd_session_plan(args: argparse.Namespace) -> int:
         for blocker in result["blockers"]:
             print(f"  BLOCKED {blocker['code']}: {blocker['detail']}")
     return 0 if result["status"] == "ready" else 1
+
+
+def cmd_session_prepare(args: argparse.Namespace) -> int:
+    try:
+        record = prepare_session(load_session_plan(args.plan), args.path)
+    except StalePlanError as exc:
+        print(f"session prepare: {exc}", file=sys.stderr)
+        return 3
+    except BlockedPlanError as exc:
+        print(f"session prepare: {exc}", file=sys.stderr)
+        return 1
+    except (PlacementError, OSError) as exc:
+        print(f"session prepare: {exc}", file=sys.stderr)
+        return 4
+    except (InvalidPlanError, ValueError, TypeError, KeyError) as exc:
+        print(f"session prepare: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(record, indent=2, sort_keys=True))
+    else:
+        print(f"Session prepared: {record['plan_digest']}")
+        print(f"Workspace: {record['workspace']}")
+        print(f"Skills: {len(record['prepared']['skill_paths'])} placements")
+    return 0
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
@@ -2030,13 +2064,18 @@ def build_parser() -> argparse.ArgumentParser:
     iblist.add_argument("--json", action="store_true")
     iblist.set_defaults(func=cmd_instructions_block_list)
 
-    session = sub.add_parser("session", help="Read-only session planning")
+    session = sub.add_parser("session", help="Session planning and worktree preparation")
     session_sub = session.add_subparsers(dest="session_command", required=True)
     session_plan = session_sub.add_parser("plan", help="Resolve a session request without mutation")
     session_plan.add_argument("--request", required=True, help="path to a session-request@1 JSON document")
     session_plan.add_argument("--path", default=".", help="repository (default: current directory)")
     session_plan.add_argument("--json", action="store_true")
     session_plan.set_defaults(func=cmd_session_plan)
+    session_prepare = session_sub.add_parser("prepare", help="Revalidate an approved plan and prepare its worktree")
+    session_prepare.add_argument("--plan", required=True, help="path to a session-plan@1 JSON document")
+    session_prepare.add_argument("--path", required=True, help="existing target worktree root")
+    session_prepare.add_argument("--json", action="store_true")
+    session_prepare.set_defaults(func=cmd_session_prepare)
 
     contracts = sub.add_parser(
         "contracts",

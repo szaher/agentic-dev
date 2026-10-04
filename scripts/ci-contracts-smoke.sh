@@ -96,6 +96,59 @@ result = subprocess.run(
 Path(sys.argv[3]).write_text(result.stdout)
 PY
 
+# S2: use the installed interpreter and an isolated linked worktree to produce
+# a positive record. Synthetic enforcement exists only inside this test seam;
+# the public CLI remains fail closed for actual harness observations.
+"$python" - "$agentic" "$work" <<'PY'
+import subprocess, sys
+from pathlib import Path
+
+installed_python = Path(sys.argv[1]).resolve().parent / "python"
+work = Path(sys.argv[2])
+result = subprocess.run(
+    [str(installed_python), "-I", "-c", r'''
+import json, subprocess, sys
+from pathlib import Path
+from agentic_dev.session import plan_session
+from agentic_dev.session_prepare import prepare_session
+
+work = Path(sys.argv[1])
+source, workspace = work / "s2-repo", work / "s2-worktree"
+source.mkdir()
+(source / "README.md").write_text("# Python project\n")
+subprocess.run(["git", "init", "-q", str(source)], check=True)
+subprocess.run(["git", "-C", str(source), "add", "README.md"], check=True)
+subprocess.run(["git", "-C", str(source), "-c", "user.name=Test", "-c",
+                "user.email=test@example.invalid", "commit", "-qm", "init"], check=True)
+request = {"schema_version":"1", "document_type":"agentic.session-request",
+           "task":"Fix a Python bug", "required_skills":["python-engineering"],
+           "invocations":[{"id":"implement", "role":"implementer", "harness":"codex"}]}
+facts = {"codex":{"name":"codex", "available":True, "executable":"/test/codex", "version":"test-1.0",
+         "permissions":{dimension:{level:{"status":"enforceable", "mechanism":"test fixture", "evidence":"test fixture"}
+                  for level in levels} for dimension,levels in
+                  (("filesystem",("read-only","workspace-write")),("network",("off","on")))}}}
+plan = plan_session(source, request, harness_facts=facts)
+assert plan["status"] == "ready", plan["blockers"]
+subprocess.run(["git", "-C", str(source), "worktree", "add", "-q", "-b", "s2-smoke",
+                str(workspace)], check=True)
+blocked = plan_session(source, request)
+assert blocked["status"] == "blocked", blocked
+blocked_file = work / "blocked-s2-plan.json"
+blocked_file.write_text(json.dumps(blocked))
+rejected = subprocess.run([str(Path(sys.executable).parent / "agentic"), "session", "prepare",
+                           "--plan", str(blocked_file), "--path", str(workspace), "--json"],
+                          capture_output=True, text=True, check=False)
+assert rejected.returncode == 1, (rejected.returncode, rejected.stderr)
+assert not (workspace / ".codex").exists()
+record = prepare_session(plan, workspace, harness_facts=facts)
+(work / "out" / "session-record.json").write_text(json.dumps(record))
+assert subprocess.check_output(["git", "-C", str(workspace), "status", "--porcelain"],
+                               text=True) == ""
+''', str(work)],
+    check=True, capture_output=True, text=True,
+)
+PY
+
 "$python" - "$work" <<'PY'
 import json, sys
 from pathlib import Path
@@ -150,5 +203,8 @@ assert any(item["code"] == "permission-unenforceable" for item in session["block
 assert all(permission["enforceable"] == "unknown" for invocation in session["invocations"]
            for permission in invocation["permissions"].values())
 assert {item["name"] for item in session["tools"]} == {"serena", "codegraph"}
+record = documents["session-record"]
+assert record["status"] == "prepared" and record["prepared"]["git_excluded"]
+assert record["prepared"]["skill_paths"]
 print(f"contracts smoke: {len(documents)} documents validated against installed schemas")
 PY
