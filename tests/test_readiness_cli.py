@@ -165,7 +165,7 @@ class ReadyCliTests(unittest.TestCase):
         ]
         for command in commands:
             completed = run(*command, cwd=self.root)
-            allowed = {0, 1, 4} if command[1] in {"verify", "make"} else {0}
+            allowed = {5} if "--ci-check" in command else ({0, 1, 4} if command[1] in {"verify", "make"} else {0})
             self.assertIn(completed.returncode, allowed, f"{command}: {completed.stderr}")
         self.assertEqual(snapshot(self.root), before)
 

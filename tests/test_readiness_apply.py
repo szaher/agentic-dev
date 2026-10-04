@@ -274,7 +274,7 @@ class ApplyTests(ApplyCase):
 
         shutil.rmtree(root / ".github")
         before = self.statuses(root)
-        with patch.dict(MAINTENANCE_GENERATORS, {"readiness.ci-check": generate}):
+        with patch.dict(MAINTENANCE_GENERATORS, {"readiness.ci-check": generate}), patch("agentic_dev.__version__", "0.15.0"):
             document = run(root, target="optimized", dry_run=False, maintenance=["readiness.ci-check"])
         self.assertEqual(document["result"]["written"], [workflow])
         self.assertTrue((root / workflow).is_file())

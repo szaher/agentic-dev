@@ -21,6 +21,14 @@ cd "$work"
 "$agentic" ready explain feedback.tests.available --path "$work/fixture" > rule.txt
 "$agentic" ready plan "$work/fixture" > plan.txt
 "$agentic" ready plan "$work/policy" --target optimized --json > plan.json
+if [[ "$("$agentic" --version)" == *+* ]]; then
+  set +e
+  "$agentic" ready apply "$work/fixture" --ci-check > ci-check.txt 2>&1; ci_check_exit=$?
+  set -e
+  [[ "$ci_check_exit" == 5 ]] || { echo "unexpected development CI-check exit code: $ci_check_exit" >&2; exit 1; }
+  [[ ! -e "$work/fixture/.github/workflows/agentic-readiness.yml" ]] || { echo "development build wrote a CI check" >&2; exit 1; }
+  grep -F 'unreleased and has no installable PyPI version' ci-check.txt >/dev/null
+fi
 pin_sha="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$source_root/src/agentic_dev/readiness/specs/PIN.json")"
 "$agentic" ready verify "$work/fixture" --target optimized --spec-sha256 "$pin_sha" --json > verify.json
 set +e

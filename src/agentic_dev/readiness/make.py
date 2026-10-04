@@ -29,6 +29,7 @@ from ..detect import repo_root
 from .apply import ApplyError, run as apply_run
 from .assess import assess
 from .evidence import EvidenceCollector, ScopeError
+from .remediation import require_released_ci_check
 from .spec import Spec, SpecError, load_spec
 
 DOCUMENT_TYPE = "agentic.readiness-make"
@@ -123,6 +124,7 @@ def make(
         raise SpecError("ready make needs an explicit --target level")
     if max_rounds < 1:
         raise SpecError("--max-rounds must be at least 1")
+    require_released_ci_check(maintenance)
     resolved = spec if isinstance(spec, Spec) else load_spec(spec)
     root = repo_root(path)
     before = assess(root, spec=resolved, target=target)
