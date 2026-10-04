@@ -35,7 +35,7 @@ The committed `.agentic/profile.toml` is an optional `agentic.repository-profile
 
 The request contains a task and named implementer/reviewer invocations. Each invocation has independent filesystem (`read-only`, `workspace-write`) and network (`off`, `on`) bounds. The profile may set role ceilings. The plan records requested and effective bounds, per-harness enforceability, concrete candidate mechanisms, and blockers. Missing enforcement evidence blocks the plan. See [SESSION-PERMISSIONS.md](SESSION-PERMISSIONS.md) for composition and scope.
 
-`request_digest` hashes the canonical request. `inputs_digest` covers the current commit, profile, readiness, providers and skill content, capability and trust state, Serena/CodeGraph availability and repository configuration, harness availability/version/facts, and contract/features. `plan_digest` hashes the semantic plan while excluding the absolute `repository` locator. Equivalent checkouts therefore retain the same approval identity. The `tools` array reports Serena and CodeGraph availability/configuration (`.serena/project.yml` and `.codegraph/`); harness versions appear under `invocations`. Exit codes: `0` ready plan, `1` blocked plan, `2` invalid request or profile. A blocked plan is still valid JSON and must not be executed.
+`request_digest` hashes the canonical request. `inputs_digest` covers the current commit, profile, readiness, providers and skill content, capability and trust state, Serena/CodeGraph availability, detected versions and repository configuration, harness availability/version/facts, and contract/features. `plan_digest` hashes the semantic plan while excluding the absolute `repository` locator. Equivalent checkouts therefore retain the same approval identity. The `tools` array reports Serena and CodeGraph availability, version (or `null` when undetermined), and configuration (`.serena/project.yml` and `.codegraph/`); harness versions appear under `invocations`. Exit codes: `0` ready plan, `1` blocked plan, `2` invalid request or profile. A blocked plan is still valid JSON and must not be executed.
 
 Minimal request:
 
@@ -53,6 +53,19 @@ Minimal request:
 
 The absence of a profile uses defaults. Permission boundaries are still checked and may produce blockers until the installed harness/version has verified enforcement facts.
 When a local probe matches the exact harness version and platform, `enforcement.probe_id` points to the partial observation in [SESSION-PERMISSION-PROBE.md](SESSION-PERMISSION-PROBE.md). A probe ID does not mean the complete invocation is enforceable.
+
+## Session preparation (S2)
+
+```bash
+agentic contracts schema session-record
+agentic session prepare --plan approved-plan.json --path /path/to/linked-worktree --json
+```
+
+The caller supplies the exact approved `agentic.session-plan@1` document and an existing, separate linked worktree of its planning repository. The target worktree must be clean: tracked modifications and ordinary untracked files are refused. Previously prepared, Git-excluded skill directories permit idempotent reruns. The plan carries its canonical request. Preparation resolves that request again in the target worktree and compares `request_digest`, `inputs_digest`, and `plan_digest` before writing anything. A changed commit, profile, provider, skill, capability, trust setting, tool version or availability, harness fact, readiness result, or contract makes the plan stale. The caller must replan and approve the new digest.
+
+A ready plan places only its selected skills under that worktree's harness skill directories. Each placed skill directory has a local `.gitignore` and is checked with Git before the command returns. Existing content is never overwritten. The emitted `agentic.session-record@1` identifies the plan, request, inputs, worktree commit, selected skills, capability and trust resolution, tools, invocations, and inspected visibility. Visibility lists detected workspace and user-level paths and explicitly marks what could not be determined; it does not assert that a harness loaded every path. The command never launches a harness or changes capability/trust configuration.
+
+Exit codes: `0` prepared record, `1` blocked plan, `2` invalid plan or worktree, `3` `SESSION_PLAN_STALE` with no mutation, `4` skill placement conflict or I/O error, `5` `SESSION_WORKSPACE_DIRTY` with no Agentic Dev placement. A real harness whose enforcement remains `unknown` produces a blocked plan and cannot be prepared.
 
 ## Repository inspection
 

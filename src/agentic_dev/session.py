@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 import tomllib
 from dataclasses import asdict
@@ -236,6 +237,28 @@ def _provider_facts() -> list[dict]:
     return facts
 
 
+def _tool_version(path: str | None) -> str | None:
+    if not path:
+        return None
+    try:
+        result = subprocess.run(
+            [path, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode:
+        return None
+    for line in (result.stdout + "\n" + result.stderr).splitlines():
+        value = line.strip()
+        if re.search(r"\b\d+\.\d+(?:\.\d+)?\b", value):
+            return value
+    return None
+
+
 def _environment_tools(root: Path) -> list[dict[str, Any]]:
     """Report environment navigation tools without local binary paths."""
 
@@ -245,11 +268,13 @@ def _environment_tools(root: Path) -> list[dict[str, Any]]:
             "name": "serena",
             "available": available["serena"]["available"],
             "configured": (root / ".serena" / "project.yml").is_file(),
+            "version": _tool_version(available["serena"]["path"]),
         },
         {
             "name": "codegraph",
             "available": available["codegraph"]["available"],
             "configured": (root / ".codegraph").is_dir(),
+            "version": _tool_version(available["codegraph"]["path"]),
         },
     ]
 
@@ -478,6 +503,7 @@ def plan_session(
         "document_type": PLAN_TYPE,
         "status": "blocked" if blockers else "ready",
         "repository": str(root_path),
+        "request": request,
         "task": request["task"],
         "readiness": {
             "minimum": minimum_readiness,
