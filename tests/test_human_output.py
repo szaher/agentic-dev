@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from agentic_dev import human_output
-from agentic_dev.cli import cmd_session_plan, cmd_session_prepare
+from agentic_dev.cli import build_parser, cmd_session_plan, cmd_session_prepare
 from agentic_dev.session_prepare import DirtyWorkspaceError
 
 
@@ -234,6 +234,26 @@ class HumanOutputTests(unittest.TestCase):
         self.assertIn("Context: development", output)
         self.assertIn("Not installed: aws", output)
         self.assertIn("Next\n", output)
+
+    def test_capability_catalog_is_short_by_default_with_details_on_request(self):
+        item = SimpleNamespace(
+            name="sast",
+            category="security",
+            description="Scan source code.",
+            provider="semgrep",
+            targets=("local",),
+            required_permissions=("repo.read",),
+            risk="Reads source files.",
+        )
+        compact = human_output.capabilities_list((item,))
+        self.assertIn("Security (1)", compact)
+        self.assertIn("sast — Scan source code.", compact)
+        self.assertNotIn("Risk: Reads source files.", compact)
+        detail = human_output.capabilities_list((item,), verbose=True)
+        self.assertIn("Risk: Reads source files.", detail)
+        self.assertTrue(
+            build_parser().parse_args(["capabilities", "list", "--verbose"]).verbose
+        )
 
     def test_session_cli_text_and_json_keep_same_document_and_exit(self):
         plan = blocked_plan()

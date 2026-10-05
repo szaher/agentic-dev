@@ -112,7 +112,7 @@ Machine-readable form for AgentFlow/automation:
 agentic doctor --json
 ```
 
-The default text view groups results and shows a **Next** action when attention is needed. This applies to session planning and preparation, repository inspection, verification, skills, capabilities, worktrees, trust, infrastructure status, and the environment check. Use `--json` where offered for the complete structured document; text formatting does not change contract fields or exit codes.
+The default text view groups results and shows a **Next** action when attention is needed. This applies to session planning and preparation, repository inspection, verification, skills, capabilities, worktrees, trust, infrastructure status, and the environment check. `agentic capabilities list --verbose` shows provider, access, and risk details when you need them. Use `--json` where offered for the complete structured document; text formatting does not change contract fields or exit codes.
 
 ### 2. Bootstrap the Mac once
 

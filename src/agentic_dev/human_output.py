@@ -394,20 +394,28 @@ def skills_list(items: list[Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def capabilities_list(items: Sequence[Any]) -> str:
+def capabilities_list(items: Sequence[Any], *, verbose: bool = False) -> str:
     lines = [f"CAPABILITIES  {len(items)} available"]
-    for item in items:
-        lines += ["", item.name]
-        lines.append(_line("Purpose", item.description))
-        lines.append(_line("Provider", item.provider))
-        lines.append(_line("Targets", _names(list(item.targets))))
-        lines.append(_line("Permissions", _names(list(item.required_permissions))))
-        lines.append(_line("Risk", item.risk))
+    for category in sorted({item.category for item in items}):
+        group = [item for item in items if item.category == category]
+        lines += ["", f"{category.title()} ({len(group)})"]
+        for item in group:
+            lines.append(_item(f"{item.name} — {item.description}"))
+            if verbose:
+                lines.append(_line("Provider", item.provider, indent=6))
+                lines.append(_line("Targets", _names(list(item.targets)), indent=6))
+                lines.append(
+                    _line(
+                        "Permissions", _names(list(item.required_permissions)), indent=6
+                    )
+                )
+                lines.append(_line("Risk", item.risk, indent=6))
     lines += [
         "",
         "Next",
         _item(
-            "Run agentic capabilities status, then enable a capability explicitly with agentic capabilities enable NAME."
+            "Run agentic capabilities list --verbose to review access and risk, then "
+            "agentic capabilities status before enabling a capability."
         ),
     ]
     return "\n".join(lines) + "\n"

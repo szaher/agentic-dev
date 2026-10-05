@@ -913,7 +913,7 @@ def cmd_integrations_install(args: argparse.Namespace) -> int:
 
 
 def cmd_capabilities_list(args: argparse.Namespace) -> int:
-    print(human_output.capabilities_list(list_capabilities()), end="")
+    print(human_output.capabilities_list(list_capabilities(), verbose=args.verbose), end="")
     return 0
 
 
@@ -1566,6 +1566,7 @@ def build_parser() -> argparse.ArgumentParser:
     csub = capabilities.add_subparsers(dest="capabilities_command", required=True)
 
     clist = csub.add_parser("list", help="List optional capabilities")
+    clist.add_argument("--verbose", action="store_true", help="Include provider, targets, permissions, and risk")
     clist.set_defaults(func=cmd_capabilities_list)
 
     csuggest = csub.add_parser("suggest", help="Recommend optional capabilities from repo/task context")
