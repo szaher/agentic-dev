@@ -6,8 +6,9 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
-from . import __version__, readiness
+from . import __version__, human_output, readiness
 from . import instructions as instruction_blocks
 from .capabilities import disable as disable_capability
 from .capabilities import enable as enable_capability
@@ -235,8 +236,7 @@ def cmd_skills_list(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps([s.__dict__ for s in skills], indent=2))
         return 0
-    for s in skills:
-        print(f"{s.name:<32} [{s.category}] {s.description}")
+    print(human_output.skills_list(skills), end="")
     return 0
 
 
@@ -298,11 +298,7 @@ def cmd_skills_remove(args: argparse.Namespace) -> int:
 def cmd_skills_status(args: argparse.Namespace) -> int:
     root = repo_root(args.path)
     found = installed_skills(root)
-    print(f"Repository: {root}")
-    print("Claude: " + (", ".join(found["claude"]) or "none"))
-    print("Codex:  " + (", ".join(found["codex"]) or "none"))
-    print("Pi:     " + (", ".join(found["pi"]) or "none"))
-    print("OpenCode: " + (", ".join(found["opencode"]) or "none"))
+    print(human_output.skills_status(str(root), found), end="")
     return 0
 
 
@@ -371,19 +367,7 @@ def cmd_repo_inspect(args: argparse.Namespace) -> int:
         print(json.dumps(document, indent=2, sort_keys=True))
         return 0
 
-    repo = document["repository"]
-    print(f"Repository: {repo['name']}")
-    print(f"Root: {repo['root']}")
-    print("Facts:")
-    for fact in repo["facts"]:
-        print(f"  - {fact}")
-    print("Commands:")
-    for kind, values in document["commands"].items():
-        print(f"  {kind:<10} " + (", ".join(values) if values else "not detected"))
-    recommended = [x["name"] for x in document["skills"]["recommended"] if x["recommended"]]
-    print("Recommended skills: " + (", ".join(recommended) if recommended else "none"))
-    enabled_caps = [name for name, item in document["capabilities"].items() if item["enabled"]]
-    print("Enabled capabilities: " + (", ".join(enabled_caps) if enabled_caps else "none"))
+    print(human_output.repository_inspection(document), end="")
     return 0
 
 
@@ -457,47 +441,47 @@ def cmd_session_plan(args: argparse.Namespace) -> int:
     try:
         result = plan_session(args.path, load_session_request(args.request))
     except (ValueError, TypeError, KeyError, OSError) as exc:
-        print(f"session plan: {exc}", file=sys.stderr)
+        if args.json:
+            print(f"session plan: {exc}", file=sys.stderr)
+        else:
+            print(human_output.session_plan_error(str(exc)), file=sys.stderr, end="")
         return 2
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
     else:
-        print(f"Session plan: {result['status']}  {result['plan_digest']}")
-        print(f"Repository: {result['repository']}")
-        print(f"Readiness: {result['readiness']['current']} (minimum {result['readiness']['minimum']})")
-        for item in result["invocations"]:
-            permissions = ", ".join(f"{name}={detail['effective']['level']} ({detail['enforceable']})"
-                                    for name, detail in item["permissions"].items())
-            print(f"  {item['id']}: {item['harness']} {item['version'] or 'unavailable'}; {permissions}")
-        for blocker in result["blockers"]:
-            print(f"  BLOCKED {blocker['code']}: {blocker['detail']}")
+        print(human_output.session_plan(result), end="")
     return 0 if result["status"] == "ready" else 1
+
+
+def _session_prepare_error(args: argparse.Namespace, kind: str, exc: Exception) -> None:
+    if args.json:
+        print(f"session prepare: {exc}", file=sys.stderr)
+    else:
+        print(human_output.session_error(kind, str(exc)), file=sys.stderr, end="")
 
 
 def cmd_session_prepare(args: argparse.Namespace) -> int:
     try:
         record = prepare_session(load_session_plan(args.plan), args.path)
     except StalePlanError as exc:
-        print(f"session prepare: {exc}", file=sys.stderr)
+        _session_prepare_error(args, "stale", exc)
         return 3
     except BlockedPlanError as exc:
-        print(f"session prepare: {exc}", file=sys.stderr)
+        _session_prepare_error(args, "blocked", exc)
         return 1
     except DirtyWorkspaceError as exc:
-        print(f"session prepare: {exc}", file=sys.stderr)
+        _session_prepare_error(args, "dirty", exc)
         return 5
     except (PlacementError, OSError) as exc:
-        print(f"session prepare: {exc}", file=sys.stderr)
+        _session_prepare_error(args, "placement", exc)
         return 4
     except (InvalidPlanError, ValueError, TypeError, KeyError) as exc:
-        print(f"session prepare: {exc}", file=sys.stderr)
+        _session_prepare_error(args, "invalid", exc)
         return 2
     if args.json:
         print(json.dumps(record, indent=2, sort_keys=True))
     else:
-        print(f"Session prepared: {record['plan_digest']}")
-        print(f"Workspace: {record['workspace']}")
-        print(f"Skills: {len(record['prepared']['skill_paths'])} placements")
+        print(human_output.session_record(record), end="")
     return 0
 
 
@@ -510,28 +494,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         "git", "gh", "rg", "fd", "ast-grep", "serena", "codegraph",
         "repomix", "mise", "uv", "jq", "yq", "just",
     ]
-    bad = 0
-    print("Agentic development environment:")
-    for tool in tools:
-        path = shutil.which(tool)
-        if path:
-            print(f"  ✓ {tool:<14} {path}")
-        else:
-            print(f"  ! {tool:<14} missing")
-            bad += 1
-    print(f"  {'✓' if shutil.which('claude') else '!'} {'claude':<14} {shutil.which('claude') or 'not installed'}")
-    print(f"  {'✓' if shutil.which('codex') else '!'} {'codex':<14} {shutil.which('codex') or 'not installed'}")
-    print(f"  {'✓' if shutil.which('pi') else '!'} {'pi':<14} {shutil.which('pi') or 'not installed'}")
-    print(f"  {'✓' if shutil.which('opencode') else '!'} {'opencode':<14} {shutil.which('opencode') or 'not installed'}")
-    print("\nNative integrations:")
-    for item in integration_status():
-        mark = "✓" if item.configured else ("·" if not item.available else "!")
-        print(f"  {mark} {item.name:<14} {item.detail}")
-    print("\nOptional capabilities:")
-    for name, item in capability_status().items():
-        mark = "✓" if item["enabled"] else "·"
-        print(f"  {mark} {name:<22} {item['provider']}")
-    return 1 if bad else 0
+    detected = {tool: shutil.which(tool) for tool in tools}
+    detected.update({tool: shutil.which(tool) for tool in ("claude", "codex", "pi", "opencode")})
+    print(human_output.doctor(detected, integration_status(), capability_status()), end="")
+    return 1 if any(not detected[tool] for tool in tools) else 0
 
 
 def cmd_worktree_create(args: argparse.Namespace) -> int:
@@ -562,13 +528,7 @@ def cmd_worktree_list(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
         return 0
-    for item in data["worktrees"]:
-        session = item.get("session") or {}
-        mark = "*" if Path(item["worktree"]).resolve() == Path(data["repository"]).resolve() else " "
-        dirty = " dirty" if item.get("dirty") else ""
-        print(f"{mark} {item['worktree']} [{item.get('branch', 'detached')}]{dirty}")
-        if session.get("agent") or session.get("task"):
-            print(f"    agent={session.get('agent') or '-'} task={session.get('task') or '-'}")
+    print(human_output.worktree_list(data), end="")
     return 0
 
 
@@ -581,7 +541,7 @@ def cmd_worktree_status(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
     else:
-        print(json.dumps(data, indent=2))
+        print(human_output.worktree_status(data), end="")
     return 0
 
 
@@ -713,11 +673,10 @@ def cmd_ready_apply(args: argparse.Namespace) -> int:
 
 
 def _verification_args(args: argparse.Namespace) -> tuple[str, str | None, list[str] | None]:
-    return (
-        getattr(args, "target_path", None) or getattr(args, "path", "."),
-        getattr(args, "base", None),
-        getattr(args, "symbol", None),
-    )
+    path = str(getattr(args, "target_path", None) or getattr(args, "path", "."))
+    base: str | None = getattr(args, "base", None)
+    symbols: list[str] | None = getattr(args, "symbol", None)
+    return path, base, symbols
 
 
 def cmd_verify_plan(args: argparse.Namespace) -> int:
@@ -726,21 +685,7 @@ def cmd_verify_plan(args: argparse.Namespace) -> int:
     if getattr(args, "json", False):
         print(json.dumps(data, indent=2, sort_keys=True))
         return 0
-    print(f"Repository: {data['repository']}")
-    print("Changed files:")
-    for file in data["changed_files"]:
-        print(f"  - {file}")
-    print("Verification checks:")
-    if not data["checks"]:
-        print("  none")
-    for check in data["checks"]:
-        command = check.get("command") or check.get("test_file") or "-"
-        print(f"  - [{check['kind']}] {command}")
-        print(f"      {check['reason']}")
-    if data["skipped_checks"]:
-        print("Skipped:")
-        for check in data["skipped_checks"]:
-            print(f"  - [{check['kind']}] {check['command']} — {check['reason']}")
+    print(human_output.verification_plan(data), end="")
     return 0
 
 
@@ -769,15 +714,7 @@ def cmd_verify_run(args: argparse.Namespace) -> int:
     if getattr(args, "json", False):
         print(json.dumps(data, indent=2, sort_keys=True))
     else:
-        for result in data["results"]:
-            mark = "✓" if result.get("success") is True else ("·" if result.get("success") is None else "!")
-            label = result.get("command") or result.get("test_file") or result.get("capability")
-            print(f"{mark} {result['kind']}: {label}")
-        if data["missing_kinds"]:
-            print("no runnable command for required kind(s): " + ", ".join(data["missing_kinds"]))
-        elif data["status"] == "no-checks":
-            print("no checks were executed")
-        print(f"verification: {data['status']}")
+        print(human_output.verification_run(data), end="")
     return 0 if data["status"] == "passed" else 1
 
 
@@ -845,7 +782,12 @@ def _print_json_or_summary(data: dict, as_json: bool) -> int:
 
 
 def cmd_infra_status(args: argparse.Namespace) -> int:
-    return _print_json_or_summary(infrastructure_status(args.path), args.json)
+    data = infrastructure_status(args.path)
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(human_output.infrastructure_status(data), end="")
+    return 0
 
 
 def cmd_infra_database_schema(args: argparse.Namespace) -> int:
@@ -971,12 +913,7 @@ def cmd_integrations_install(args: argparse.Namespace) -> int:
 
 
 def cmd_capabilities_list(args: argparse.Namespace) -> int:
-    for item in list_capabilities():
-        targets = ",".join(item.targets)
-        print(f"{item.name:<24} category={item.category:<10} provider={item.provider:<16} targets={targets}")
-        print(f"  {item.description}")
-        print(f"  permissions: {', '.join(item.required_permissions) or 'none'}")
-        print(f"  risk: {item.risk}")
+    print(human_output.capabilities_list(list_capabilities()), end="")
     return 0
 
 
@@ -1069,10 +1006,7 @@ def cmd_trust_list(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
         return 0
-    for name, item in data["profiles"].items():
-        mark = "*" if item["selected"] else " "
-        print(f"{mark} {name:<18} {item['description']}")
-        print("    " + ", ".join(item["permissions"]))
+    print(human_output.trust_list(data), end="")
     return 0
 
 
@@ -1093,7 +1027,7 @@ def cmd_trust_show(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
     else:
-        print(json.dumps(data, indent=2))
+        print(human_output.trust_show(data), end="")
     return 0
 
 
@@ -1123,17 +1057,13 @@ def cmd_capabilities_status(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(data, indent=2))
         return 0
-    for name, item in data.items():
-        mark = "✓" if item["enabled"] else "·"
-        detail = item["configuration"] or {}
-        suffix = f" ({detail.get('target')}, {detail.get('mode')})" if detail else ""
-        print(f"{mark} {name:<22} {item['provider']}{suffix}")
+    print(human_output.capabilities_status(data), end="")
     return 0
 
 
 
 def cmd_providers_list(args: argparse.Namespace) -> int:
-    data = {
+    data: dict[str, Any] = {
         "schema_version": "1",
         "document_type": "agentic.providers",
         "providers": installed_providers(),
