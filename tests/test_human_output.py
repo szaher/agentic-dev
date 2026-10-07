@@ -268,6 +268,93 @@ class HumanOutputTests(unittest.TestCase):
                 "Change your user default\n    agentic trust set NAME", rendered
             )
 
+    def test_repository_scoped_next_commands_quote_paths(self):
+        root = "/work/other repo"
+        plan = blocked_plan()
+        plan["repository"] = root
+        readiness = human_output.session_plan(plan)
+        plan["blockers"] = [
+            {"code": "capability-trust", "detail": "trust profile is too restrictive"}
+        ]
+        trust_blocker = human_output.session_plan(plan)
+        verification = {
+            "repository": root,
+            "changed_files": [],
+            "checks": [
+                {"kind": "test", "command": "pytest", "reason": "Python project"}
+            ],
+            "skipped_checks": [],
+        }
+        verify_run = human_output.verification_plan(verification)
+        verification["checks"] = []
+        verify_plan = human_output.verification_plan(verification)
+        repository = {
+            "repository": {"name": "other repo", "root": root, "facts": []},
+            "commands": {},
+            "skills": {"recommended": []},
+            "capabilities": {},
+        }
+        trust = {
+            "current_profile": "safe",
+            "profiles": {
+                "safe": {
+                    "selected": True,
+                    "description": "Read access",
+                    "permissions": ["fs.read"],
+                }
+            },
+        }
+        cases = (
+            ("session readiness", readiness, "agentic ready plan '/work/other repo'"),
+            (
+                "session trust",
+                trust_blocker,
+                "agentic trust show --path '/work/other repo'",
+            ),
+            ("verify run", verify_run, "agentic verify run --path '/work/other repo'"),
+            (
+                "verify plan",
+                verify_plan,
+                "agentic verify plan --path '/work/other repo'",
+            ),
+            (
+                "worktree status",
+                human_output.worktree_list({"repository": root, "worktrees": []}),
+                "agentic worktree status NAME --path '/work/other repo'",
+            ),
+            (
+                "repo readiness",
+                human_output.repository_inspection(repository),
+                "agentic ready plan '/work/other repo'",
+            ),
+            (
+                "repo verification",
+                human_output.repository_inspection(repository),
+                "agentic verify plan --path '/work/other repo'",
+            ),
+            (
+                "skills add",
+                human_output.skills_status(
+                    root, {name: [] for name in ("claude", "codex", "pi", "opencode")}
+                ),
+                "agentic skills add NAME --path '/work/other repo'",
+            ),
+            (
+                "trust selection",
+                human_output.trust_list(trust, root=root),
+                "agentic trust set NAME --repo --path '/work/other repo'",
+            ),
+            (
+                "trust comparison",
+                human_output.trust_show(trust, root=root),
+                "agentic trust list --path '/work/other repo'",
+            ),
+        )
+        for name, output, command in cases:
+            with self.subTest(name=name):
+                self.assertIn("Next\n", output)
+                self.assertIn(command, output)
+
     def test_trust_commands_pass_the_displayed_repository_to_renderer(self):
         path = "/work/other repo"
         trust = {

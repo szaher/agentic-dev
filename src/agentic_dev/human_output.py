@@ -56,11 +56,13 @@ def _names(values: list[str]) -> str:
 
 def _blocker_action(code: str, repository: str) -> str:
     return {
-        "readiness": f"Review missing requirements: agentic ready plan {repository}",
+        "readiness": f"Review missing requirements: agentic ready plan {quote(repository)}",
         "skill-disallowed": "Adjust the approved skill allowlist or required skills, then replan.",
         "skill-missing": "Review available skills: agentic skills list",
         "capability-disabled": "Review capability state: agentic capabilities status",
-        "capability-trust": "Review the selected trust profile: agentic trust show",
+        "capability-trust": (
+            f"Review the selected trust profile: agentic trust show --path {quote(repository)}"
+        ),
         "trust-ceiling": "Choose a trust profile within the approved ceiling, then replan.",
         "harness-unavailable": "Install the selected harness or choose an available one, then replan.",
         "permission-conflict": "Adjust the request bounds or repository permission ceiling, then replan.",
@@ -277,15 +279,17 @@ def verification_plan(document: dict[str, Any]) -> str:
             lines.append(
                 _item(f"[{check['kind']}] {check['command']}: {check['reason']}")
             )
-    lines += [
-        "",
-        "Next",
-        _item(
-            "Run agentic verify run to execute these checks."
-            if document["checks"]
-            else "Add a discoverable verification command, then run agentic verify plan again."
-        ),
-    ]
+    lines += ["", "Next"]
+    if document["checks"]:
+        lines += [
+            "  Run these checks",
+            f"    agentic verify run --path {quote(document['repository'])}",
+        ]
+    else:
+        lines += [
+            "  Add a discoverable verification command, then plan again",
+            f"    agentic verify plan --path {quote(document['repository'])}",
+        ]
     return "\n".join(lines) + "\n"
 
 
@@ -509,9 +513,8 @@ def worktree_list(document: dict[str, Any]) -> str:
     lines += [
         "",
         "Next",
-        _item(
-            "Use agentic worktree status NAME for details before cleanup or preparation."
-        ),
+        "  Inspect a worktree before cleanup or preparation",
+        f"    agentic worktree status NAME --path {quote(root)}",
     ]
     return "\n".join(lines) + "\n"
 
