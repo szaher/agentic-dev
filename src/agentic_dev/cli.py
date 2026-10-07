@@ -37,7 +37,7 @@ from .infrastructure import (
 from .infrastructure import (
     status as infrastructure_status,
 )
-from .inspection import doctor_document, inspect_repository
+from .inspection import CORE_TOOLS, doctor_document, inspect_repository
 from .integrations import install as install_integration
 from .integrations import status as integration_status
 from .metrics import (
@@ -486,18 +486,16 @@ def cmd_session_prepare(args: argparse.Namespace) -> int:
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
+    document = doctor_document()
     if args.json:
-        print(json.dumps(doctor_document(), indent=2, sort_keys=True))
+        print(json.dumps(document, indent=2, sort_keys=True))
         return 0
-
-    tools = [
-        "git", "gh", "rg", "fd", "ast-grep", "serena", "codegraph",
-        "repomix", "mise", "uv", "jq", "yq", "just",
-    ]
-    detected = {tool: shutil.which(tool) for tool in tools}
-    detected.update({tool: shutil.which(tool) for tool in ("claude", "codex", "pi", "opencode")})
-    print(human_output.doctor(detected, integration_status(), capability_status()), end="")
-    return 1 if any(not detected[tool] for tool in tools) else 0
+    print(human_output.doctor(document), end="")
+    return (
+        1
+        if any(not document["tools"][tool]["available"] for tool in CORE_TOOLS)
+        else 0
+    )
 
 
 def cmd_worktree_create(args: argparse.Namespace) -> int:
@@ -1006,7 +1004,9 @@ def cmd_trust_list(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
         return 0
-    print(human_output.trust_list(data), end="")
+    print(
+        human_output.trust_list(data, root=str(Path(args.path).resolve())), end=""
+    )
     return 0
 
 
@@ -1027,7 +1027,9 @@ def cmd_trust_show(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
     else:
-        print(human_output.trust_show(data), end="")
+        print(
+            human_output.trust_show(data, root=str(Path(args.path).resolve())), end=""
+        )
     return 0
 
 

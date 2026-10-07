@@ -7,6 +7,7 @@ codes remain owned by their commands.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from shlex import quote
 from textwrap import fill
 from typing import Any
 
@@ -194,7 +195,10 @@ def session_error(kind: str, message: str) -> str:
     actions = {
         "stale": "Replan against current inputs and approve the new digest.",
         "blocked": "Resolve the plan blockers and approve a ready plan.",
-        "dirty": "Commit or remove changes in the supplied worktree, then retry preparation.",
+        "dirty": (
+            "Revert, stash, or remove unapproved changes to restore the approved worktree, "
+            "then retry. If the changes are intentional, replan and approve a new digest."
+        ),
         "placement": "Resolve the conflicting skill path or filesystem error, then retry.",
         "invalid": "Provide an intact session-plan@1 and a linked worktree of its repository.",
     }
@@ -235,9 +239,10 @@ def repository_inspection(document: dict[str, Any]) -> str:
         _line("Enabled capabilities", _names(enabled)),
         "",
         "Next",
-        _item(
-            "Run agentic ready plan to see repository improvements, or agentic verify plan to see checks."
-        ),
+        "  Repository improvements",
+        f"    agentic ready plan {quote(repo['root'])}",
+        "  Verification checks",
+        f"    agentic verify plan --path {quote(repo['root'])}",
     ]
     return "\n".join(lines) + "\n"
 
@@ -339,9 +344,10 @@ def skills_status(root: str, found: dict[str, list[str]]) -> str:
     lines += [
         "",
         "Next",
-        _item(
-            "Use agentic skills list to browse, or agentic skills add NAME to activate a skill."
-        ),
+        "  Browse skills",
+        "    agentic skills list",
+        "  Activate a skill in this repository",
+        f"    agentic skills add NAME --path {quote(root)}",
     ]
     return "\n".join(lines) + "\n"
 
@@ -421,24 +427,27 @@ def capabilities_list(items: Sequence[Any], *, verbose: bool = False) -> str:
     return "\n".join(lines) + "\n"
 
 
-def doctor(
-    tools: dict[str, str | None],
-    integrations: list[Any],
-    capabilities: dict[str, dict[str, Any]],
-) -> str:
+def doctor(document: dict[str, Any]) -> str:
+    tools = document["tools"]
+    integrations = document["integrations"]
+    capabilities = document["capabilities"]
     harness_names = {"claude", "codex", "pi", "opencode"}
-    core = {name: path for name, path in tools.items() if name not in harness_names}
-    found = [name for name, path in core.items() if path]
-    missing = [name for name, path in core.items() if not path]
+    core = {name: item for name, item in tools.items() if name not in harness_names}
+    found = [name for name, item in core.items() if item["available"]]
+    missing = [name for name, item in core.items() if not item["available"]]
     harnesses = [
-        name for name in ("claude", "codex", "pi", "opencode") if tools.get(name)
+        name
+        for name in ("claude", "codex", "pi", "opencode")
+        if tools[name]["available"]
     ]
     absent_harnesses = [
-        name for name in ("claude", "codex", "pi", "opencode") if not tools.get(name)
+        name
+        for name in ("claude", "codex", "pi", "opencode")
+        if not tools[name]["available"]
     ]
-    configured = [item for item in integrations if item.configured]
+    configured = [item for item in integrations if item["configured"]]
     needs_setup = [
-        item for item in integrations if item.available and not item.configured
+        item for item in integrations if item["available"] and not item["configured"]
     ]
     lines = [
         f"ENVIRONMENT  {len(found)}/{len(core)} workspace tools found",
@@ -451,13 +460,13 @@ def doctor(
     ]
     lines += ["", f"Native integrations  {len(configured)} configured"]
     lines += (
-        [_item(f"{item.name}: {item.detail}") for item in configured]
+        [_item(f"{item['name']}: {item['detail']}") for item in configured]
         if configured
         else ["  none"]
     )
     if needs_setup:
         lines += ["", "Available but not configured"]
-        lines += [_item(f"{item.name}: {item.detail}") for item in needs_setup]
+        lines += [_item(f"{item['name']}: {item['detail']}") for item in needs_setup]
     enabled = [name for name, item in capabilities.items() if item["enabled"]]
     lines += ["", _line("Enabled capabilities", _names(enabled))]
     if missing or needs_setup:
@@ -532,8 +541,11 @@ def worktree_status(document: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def trust_list(document: dict[str, Any]) -> str:
-    lines = [f"TRUST PROFILES  selected: {document['current_profile']}"]
+def trust_list(document: dict[str, Any], *, root: str) -> str:
+    lines = [
+        f"TRUST PROFILES  selected: {document['current_profile']}",
+        _line("Repository", root),
+    ]
     for name, item in document["profiles"].items():
         mark = "SELECTED" if item["selected"] else "AVAILABLE"
         lines += [
@@ -545,14 +557,17 @@ def trust_list(document: dict[str, Any]) -> str:
     lines += [
         "",
         "Next",
-        _item(
-            "Use agentic trust show NAME for details, or agentic trust set NAME to select a profile."
-        ),
+        "  Show profile details",
+        f"    agentic trust show NAME --path {quote(root)}",
+        "  Select for this repository",
+        f"    agentic trust set NAME --repo --path {quote(root)}",
+        "  Change your user default",
+        "    agentic trust set NAME",
     ]
     return "\n".join(lines) + "\n"
 
 
-def trust_show(document: dict[str, Any]) -> str:
+def trust_show(document: dict[str, Any], *, root: str) -> str:
     if "profiles" in document:
         name = document["current_profile"]
         item = document["profiles"][name]
@@ -561,6 +576,7 @@ def trust_show(document: dict[str, Any]) -> str:
         item = document
     lines = [
         f"TRUST PROFILE  {name}",
+        _line("Repository", root),
         _line("Purpose", item["description"]),
         _line("Permissions", _names(item["permissions"])),
     ]
@@ -570,9 +586,12 @@ def trust_show(document: dict[str, Any]) -> str:
     lines += [
         "",
         "Next",
-        _item(
-            "Use agentic trust list to compare profiles. Changing the selected profile requires agentic trust set NAME."
-        ),
+        "  Compare profiles",
+        f"    agentic trust list --path {quote(root)}",
+        "  Select for this repository",
+        f"    agentic trust set NAME --repo --path {quote(root)}",
+        "  Change your user default",
+        "    agentic trust set NAME",
     ]
     return "\n".join(lines) + "\n"
 

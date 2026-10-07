@@ -9,7 +9,14 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from agentic_dev import human_output
-from agentic_dev.cli import build_parser, cmd_session_plan, cmd_session_prepare
+from agentic_dev.cli import (
+    build_parser,
+    cmd_doctor,
+    cmd_session_plan,
+    cmd_session_prepare,
+    cmd_trust_list,
+    cmd_trust_show,
+)
 from agentic_dev.session_prepare import DirtyWorkspaceError
 
 
@@ -145,22 +152,27 @@ class HumanOutputTests(unittest.TestCase):
 
     def test_inventory_views_separate_status_from_action(self):
         tools = {
-            "git": "/bin/git",
-            "rg": None,
-            "codex": "/bin/codex",
-            "claude": None,
-            "pi": None,
-            "opencode": None,
+            name: {"available": bool(path), "path": path}
+            for name, path in {
+                "git": "/bin/git",
+                "rg": None,
+                "codex": "/bin/codex",
+                "claude": None,
+                "pi": None,
+                "opencode": None,
+            }.items()
         }
         integration = [
-            SimpleNamespace(
-                name="codex",
-                available=True,
-                configured=False,
-                detail="marketplace not registered",
-            )
+            {
+                "name": "codex",
+                "available": True,
+                "configured": False,
+                "detail": "marketplace not registered",
+            }
         ]
-        output = human_output.doctor(tools, integration, {})
+        output = human_output.doctor(
+            {"tools": tools, "integrations": integration, "capabilities": {}}
+        )
         self.assertIn("ENVIRONMENT  1/2 workspace tools found", output)
         self.assertIn("Harnesses  1/4 installed", output)
         self.assertIn("Missing: rg", output)
@@ -214,8 +226,84 @@ class HumanOutputTests(unittest.TestCase):
                 },
             },
         }
-        self.assertIn("selected: safe", human_output.trust_list(trust))
-        self.assertIn("Other profiles: development", human_output.trust_show(trust))
+        self.assertIn("selected: safe", human_output.trust_list(trust, root="/repo"))
+        self.assertIn(
+            "Other profiles: development", human_output.trust_show(trust, root="/repo")
+        )
+
+    def test_recovery_commands_preserve_repository_and_trust_scope(self):
+        root = "/work/other repo"
+        repository = {
+            "repository": {"name": "other repo", "root": root, "facts": []},
+            "commands": {},
+            "skills": {"recommended": []},
+            "capabilities": {},
+        }
+        inspection = human_output.repository_inspection(repository)
+        self.assertIn("agentic ready plan '/work/other repo'", inspection)
+        self.assertIn("agentic verify plan --path '/work/other repo'", inspection)
+        found = {name: [] for name in ("claude", "codex", "pi", "opencode")}
+        self.assertIn(
+            "agentic skills add NAME --path '/work/other repo'",
+            human_output.skills_status(root, found),
+        )
+        trust = {
+            "current_profile": "safe",
+            "profiles": {
+                "safe": {
+                    "selected": True,
+                    "description": "Read access",
+                    "permissions": ["fs.read"],
+                }
+            },
+        }
+        for rendered in (
+            human_output.trust_list(trust, root=root),
+            human_output.trust_show(trust, root=root),
+        ):
+            self.assertIn(
+                "agentic trust set NAME --repo --path '/work/other repo'", rendered
+            )
+            self.assertIn(
+                "Change your user default\n    agentic trust set NAME", rendered
+            )
+
+    def test_trust_commands_pass_the_displayed_repository_to_renderer(self):
+        path = "/work/other repo"
+        trust = {
+            "current_profile": "safe",
+            "profiles": {
+                "safe": {
+                    "selected": True,
+                    "description": "Read access",
+                    "permissions": ["fs.read"],
+                }
+            },
+        }
+        with patch("agentic_dev.cli.trust_document", return_value=trust):
+            for command in (cmd_trust_list, cmd_trust_show):
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    self.assertEqual(
+                        command(Namespace(path=path, json=False, name=None)), 0
+                    )
+                self.assertIn("--repo --path '/work/other repo'", output.getvalue())
+
+    def test_doctor_text_uses_document_facts_for_output_and_exit(self):
+        from agentic_dev.inspection import CORE_TOOLS
+
+        tools = {
+            name: {"available": True, "path": f"/bin/{name}"}
+            for name in (*CORE_TOOLS, "claude", "codex", "pi", "opencode")
+        }
+        tools["rg"] = {"available": False, "path": None}
+        document = {"tools": tools, "integrations": [], "capabilities": {}}
+        with patch("agentic_dev.cli.doctor_document", return_value=document) as build:
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(cmd_doctor(Namespace(json=False)), 1)
+            build.assert_called_once_with()
+            self.assertIn("Missing: rg", output.getvalue())
 
     def test_infrastructure_status_summarizes_environment(self):
         document = {
@@ -294,7 +382,11 @@ class HumanOutputTests(unittest.TestCase):
                     ),
                     5,
                 )
-            self.assertIn("Commit or remove changes", human.getvalue())
+            self.assertIn(
+                "Revert, stash, or remove unapproved changes", human.getvalue()
+            )
+            self.assertIn("replan and approve a new digest", human.getvalue())
+            self.assertNotIn("Commit or remove changes", human.getvalue())
             machine = io.StringIO()
             with contextlib.redirect_stderr(machine):
                 self.assertEqual(
