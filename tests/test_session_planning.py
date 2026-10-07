@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import os
-import shutil
 import subprocess
 import tempfile
 import unittest
@@ -137,7 +136,11 @@ class SessionPlanningTests(unittest.TestCase):
 
     def test_semantic_digests_survive_equivalent_checkout_at_another_path(self):
         relocated = Path(self.tmp.name) / "another-place" / "repo"
-        shutil.copytree(self.root, relocated)
+        relocated.parent.mkdir()
+        subprocess.run(
+            ["git", "clone", "--no-local", "-q", str(self.root), str(relocated)],
+            check=True,
+        )
         first = self.plan()
         second = plan_session(relocated, self.request, harness_facts=self.facts)
         self.assertNotEqual(first["repository"], second["repository"])

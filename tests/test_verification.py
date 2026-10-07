@@ -222,8 +222,9 @@ class FullVerificationTests(unittest.TestCase):
         jsonschema.validate(json.loads(passed.stdout), self.schema)
         missing = self.cli(".", "--kind", "typecheck")
         self.assertEqual(missing.returncode, 1)
-        self.assertIn("no runnable command for required kind(s): typecheck", missing.stdout)
-        self.assertIn("verification: no-checks", missing.stdout)
+        self.assertIn("VERIFICATION  NO CHECKS", missing.stdout)
+        self.assertIn("Missing kinds: typecheck", missing.stdout)
+        self.assertIn("Add runnable checks", missing.stdout)
         self.assertEqual(self.cli(".").returncode, 1)  # change-aware, nothing changed
         self.assertEqual(self.cli(".", "--command", "exit 4").returncode, 1)
         self.assertEqual(self.cli(".", "--kind", "format").returncode, 2)
