@@ -1,5 +1,10 @@
 # Session permission probe — macOS, 2026-10-04
 
+The later real-agent Codex 0.154.0 probe is recorded in
+[`evidence/codex/0.154.0-darwin-arm64`](../evidence/codex/0.154.0-darwin-arm64/README.md).
+It launches both implementer and reviewer recipes, checks actual file and
+network effects, and still does not promote the planner's `unknown` facts.
+
 This report records narrower mechanisms observed on the installed CLIs. It does **not** promote a whole invocation to `enforceable`. `agentic session plan` continues to block every real harness permission as `unknown` while launch integration, all tool surfaces, and escalation denial remain unverified.
 
 ## Installed tools and evidence IDs
