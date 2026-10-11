@@ -1,0 +1,384 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/szaher/agentic-dev/schemas/readiness-comparison-v1.schema.json",
+  "title": "agentic readiness comparison v1",
+  "description": "Result of `agentic ready compare --json`: how readiness changed between two readiness-assessment v1 documents. Rules move along fail < unknown < pass; changes to or from not-applicable are neutral ('changed'). Exit codes: 0 no regression, 1 regression (maturity dropped or a rule got worse), 2 usage error (no document).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "document_type",
+    "before",
+    "after",
+    "spec_changed",
+    "scope_changed",
+    "outcome",
+    "exit_code",
+    "maturity",
+    "summary",
+    "levels",
+    "counts",
+    "changes",
+    "added",
+    "removed"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "document_type": {
+      "const": "agentic.readiness-comparison"
+    },
+    "before": {
+      "$ref": "#/$defs/side"
+    },
+    "after": {
+      "$ref": "#/$defs/side"
+    },
+    "spec_changed": {
+      "type": "boolean",
+      "description": "The assessments used specs with different sha256."
+    },
+    "scope_changed": {
+      "type": "boolean"
+    },
+    "outcome": {
+      "enum": [
+        "improved",
+        "regressed",
+        "mixed",
+        "unchanged"
+      ]
+    },
+    "exit_code": {
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "maturity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "before",
+        "after",
+        "delta"
+      ],
+      "properties": {
+        "before": {
+          "$ref": "#/$defs/level"
+        },
+        "after": {
+          "$ref": "#/$defs/level"
+        },
+        "delta": {
+          "type": "integer",
+          "description": "Change in maturity rank."
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "failed",
+        "unknown",
+        "not_applicable"
+      ],
+      "properties": {
+        "passed": {
+          "$ref": "#/$defs/count"
+        },
+        "failed": {
+          "$ref": "#/$defs/count"
+        },
+        "unknown": {
+          "$ref": "#/$defs/count"
+        },
+        "not_applicable": {
+          "$ref": "#/$defs/count"
+        }
+      }
+    },
+    "levels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "rank",
+          "title",
+          "before",
+          "after"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/level"
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "title": {
+            "type": "string"
+          },
+          "before": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "null when the level is new."
+          },
+          "after": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "improved",
+        "regressed",
+        "changed"
+      ],
+      "properties": {
+        "improved": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "regressed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "changed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "changes": {
+      "type": "array",
+      "description": "Rules present in both assessments whose status differs.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "pillar",
+          "severity",
+          "required_from",
+          "before",
+          "after",
+          "direction",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/ruleId"
+          },
+          "title": {
+            "type": "string"
+          },
+          "pillar": {
+            "enum": [
+              "context",
+              "conventions",
+              "constraints",
+              "feedback"
+            ]
+          },
+          "severity": {
+            "$ref": "#/$defs/severity"
+          },
+          "required_from": {
+            "$ref": "#/$defs/level"
+          },
+          "before": {
+            "$ref": "#/$defs/status"
+          },
+          "after": {
+            "$ref": "#/$defs/status"
+          },
+          "direction": {
+            "enum": [
+              "improved",
+              "regressed",
+              "changed"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "The after assessment's reason."
+          }
+        }
+      }
+    },
+    "added": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ruleId"
+      },
+      "description": "Rules only in after."
+    },
+    "removed": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ruleId"
+      },
+      "description": "Rules only in before."
+    }
+  },
+  "$defs": {
+    "assessor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "agentic-dev"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "sha256",
+        "source"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source": {
+          "enum": [
+            "builtin",
+            "path"
+          ]
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "revision"
+      ],
+      "description": "Identifies the checkout without exposing absolute paths.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40,64}$"
+        }
+      }
+    },
+    "level": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "ruleId": {
+      "type": "string",
+      "pattern": "^(context|conventions|constraints|feedback)(\\.[a-z][a-z0-9_]*)+$"
+    },
+    "severity": {
+      "enum": [
+        "required",
+        "recommended",
+        "advisory"
+      ]
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "fail",
+        "unknown",
+        "not-applicable"
+      ]
+    },
+    "side": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "spec",
+        "assessor",
+        "scope",
+        "maturity",
+        "maturity_rank"
+      ],
+      "properties": {
+        "repository": {
+          "$ref": "#/$defs/repository"
+        },
+        "spec": {
+          "$ref": "#/$defs/spec"
+        },
+        "assessor": {
+          "$ref": "#/$defs/assessor"
+        },
+        "scope": {
+          "enum": [
+            "local",
+            "ci"
+          ]
+        },
+        "maturity": {
+          "$ref": "#/$defs/level"
+        },
+        "maturity_rank": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "count": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "before",
+        "after",
+        "delta"
+      ],
+      "properties": {
+        "before": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "after": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delta": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

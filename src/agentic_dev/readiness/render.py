@@ -372,3 +372,64 @@ def make_run(document: dict[str, Any]) -> str:
         lines += [f"  - {item['rule_id']}: {item['reason']}" for item in remaining["unsupported"]]
     lines += ["", f"Exit code: {document['exit_code']}"]
     return "\n".join(lines)
+
+
+def _revision(side: dict[str, Any]) -> str:
+    revision = side["repository"]["revision"]
+    return revision[:12] if revision else "no revision"
+
+
+def _delta(value: int) -> str:
+    return f"+{value}" if value > 0 else str(value)
+
+
+def comparison(document: dict[str, Any]) -> str:
+    before, after = document["before"], document["after"]
+    state = document["maturity"]
+    moved = state["delta"]
+    levels = f"{_delta(moved)} level{'' if abs(moved) == 1 else 's'}" if moved else "unchanged"
+    lines = [
+        f"Agent Ready comparison — {after['repository']['name']}: {document['outcome']}",
+        f"Before: {_revision(before)} ({before['scope']}, {before['spec']['name']} {before['spec']['version']})",
+        f"After:  {_revision(after)} ({after['scope']}, {after['spec']['name']} {after['spec']['version']})",
+    ]
+    if document["spec_changed"]:
+        lines.append("Note: the two assessments used different specs; some changes may come from the spec.")
+    if document["scope_changed"]:
+        lines.append("Note: the two assessments used different evidence scopes (local vs ci).")
+    lines += ["", f"Maturity: {_title(state['before'])}  →  {_title(state['after'])}   ({levels})", ""]
+    labels = {"passed": "passed", "failed": "failed", "unknown": "unknown", "not_applicable": "n/a"}
+    width = max(len(label) for label in labels.values())
+    for key, label in labels.items():
+        item = document["summary"][key]
+        change = f"  ({_delta(item['delta'])})" if item["delta"] else ""
+        lines.append(f"  {label:<{width}}  {item['before']:>3} → {item['after']:<3}{change}".rstrip())
+
+    lines += ["", "Levels"]
+    for level in document["levels"]:
+        if level["rank"] == 0:
+            continue
+        mark = {True: "✓", False: "✗", None: "–"}
+        note = "" if level["before"] == level["after"] else ("  reached" if level["after"] else "  lost")
+        lines.append(f"  {mark[level['before']]} → {mark[level['after']]}  {level['rank']} {level['title']}{note}")
+
+    titles = {"improved": "Improved", "regressed": "Regressed", "changed": "No longer / newly applicable"}
+    for direction, title in titles.items():
+        group = [c for c in document["changes"] if c["direction"] == direction]
+        if not group:
+            continue
+        width = max(len(c["id"]) for c in group)
+        lines += ["", f"{title} ({len(group)})"]
+        for change in group:
+            lines.append(
+                f"  {SYMBOL[change['before']]} → {SYMBOL[change['after']]}  {change['id']:<{width}}  "
+                f"{change['severity']:<11}  {change['required_from']}"
+            )
+    if not document["changes"]:
+        lines += ["", "No rule changed status."]
+    if document["added"]:
+        lines += ["", "Only in after: " + ", ".join(document["added"])]
+    if document["removed"]:
+        lines += ["", "Only in before: " + ", ".join(document["removed"])]
+    lines += ["", f"Exit code: {document['exit_code']}"]
+    return "\n".join(lines)

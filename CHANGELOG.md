@@ -4,6 +4,10 @@
 
 Milestones are not releases (see `docs/RELEASING.md`): this section collects every milestone finished since 0.15.0 until the next public release. M16 (deep AgentFlow integration, #33) is complete.
 
+Measuring readiness change:
+
+- `agentic ready compare BEFORE [AFTER]` (`readiness-comparison` v1, feature `readiness.compare`) compares a saved `ready assess --json` baseline with the repository now, or with a second saved assessment. It reports the maturity change, count deltas, levels reached or lost, and every rule that improved, regressed, or changed applicability. Exit 0 means no regression, 1 means a regression, and 2 means a usage error.
+
 v0.16 slice 4 contracts (#68), for AgentFlow's pattern requirements:
 
 - `agentic metrics record --json` (`metric-record` v1, feature `metrics.record-report`) reports whether the event was stored: `recorded: false` when metrics are disabled (the default), otherwise the stored event.

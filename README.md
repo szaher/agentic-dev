@@ -325,6 +325,7 @@ agentic ready plan . --target optimized         # read-only remediation plan
 agentic ready apply . --target structured       # apply safe fixes as managed blocks
 agentic ready verify . --target structured      # CI gate on tracked files (exit 0/1/2/3)
 agentic ready make . --target structured        # safe fixes until met; stops on human decisions
+agentic ready compare before.json               # measure change since a saved `assess --json`
 ```
 
 ```text
