@@ -12,7 +12,7 @@ from pathlib import Path
 
 import jsonschema
 
-from agentic_dev import readiness
+from agentic_dev import readiness, style
 from agentic_dev.contracts import EXIT_CODES, schema
 from agentic_dev.readiness import compare as ready_compare
 from agentic_dev.readiness import render
@@ -113,6 +113,16 @@ class CompareTests(unittest.TestCase):
                    stdin=self.before_file.read_text())
         self.assertEqual(text.returncode, 0, text.stderr)
         self.assertIn("Improved (", text.stdout)
+
+    def test_styled_view_strips_to_the_plain_view(self):
+        after_file = self.root / "after.json"
+        after_file.write_text(json.dumps(self.after))
+        args = ("ready", "compare", str(self.before_file), str(after_file))
+        plain = run("--color", "never", *args, cwd=self.root)
+        styled = run("--color", "always", *args, cwd=self.root)
+        self.assertNotIn("\x1b[", plain.stdout)
+        self.assertIn("\x1b[", styled.stdout)
+        self.assertEqual(style.strip(styled.stdout), plain.stdout)
 
     def test_cli_exit_codes_match_the_contract(self):
         after_file = self.root / "after.json"

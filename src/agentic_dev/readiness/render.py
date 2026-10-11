@@ -430,37 +430,56 @@ def _delta(value: int) -> str:
     return f"+{value}" if value > 0 else str(value)
 
 
+_OUTCOME_TONE = {"improved": "ok", "regressed": "fail", "mixed": "warn", "unchanged": "muted"}
+_DIRECTION_TONE = {"improved": "ok", "regressed": "fail", "changed": "muted"}
+
+
 def comparison(document: dict[str, Any]) -> str:
     before, after = document["before"], document["after"]
     state = document["maturity"]
     moved = state["delta"]
     levels = f"{_delta(moved)} level{'' if abs(moved) == 1 else 's'}" if moved else "unchanged"
+    moved_tone = "ok" if moved > 0 else "fail" if moved < 0 else "muted"
     lines = [
-        f"Agent Ready comparison — {after['repository']['name']}: {document['outcome']}",
-        f"Before: {_revision(before)} ({before['scope']}, {before['spec']['name']} {before['spec']['version']})",
-        f"After:  {_revision(after)} ({after['scope']}, {after['spec']['name']} {after['spec']['version']})",
+        style.title(f"Agent Ready comparison — {after['repository']['name']}:") + " "
+        + style.badge(document["outcome"], _OUTCOME_TONE[document["outcome"]]),
+        style.muted(f"Before: {_revision(before)} ({before['scope']}, "
+                    f"{before['spec']['name']} {before['spec']['version']})"),
+        style.muted(f"After:  {_revision(after)} ({after['scope']}, "
+                    f"{after['spec']['name']} {after['spec']['version']})"),
     ]
     if document["spec_changed"]:
-        lines.append("Note: the two assessments used different specs; some changes may come from the spec.")
+        lines.append(style.warn("Note: the two assessments used different specs; some changes may come from the spec."))
     if document["scope_changed"]:
-        lines.append("Note: the two assessments used different evidence scopes (local vs ci).")
-    lines += ["", f"Maturity: {_title(state['before'])}  →  {_title(state['after'])}   ({levels})", ""]
+        lines.append(style.warn("Note: the two assessments used different evidence scopes (local vs ci)."))
+    lines += [
+        "",
+        f"{style.label('Maturity:')} {_title(state['before'])}  →  {style.accent(_title(state['after']))}   "
+        + style.tone(f"({levels})", moved_tone),
+        "",
+    ]
     labels = {"passed": "passed", "failed": "failed", "unknown": "unknown", "not_applicable": "n/a"}
+    better = {"passed": 1, "failed": -1, "unknown": -1, "not_applicable": 0}
     width = max(len(label) for label in labels.values())
     for key, label in labels.items():
         item = document["summary"][key]
-        change = f"  ({_delta(item['delta'])})" if item["delta"] else ""
-        lines.append(f"  {label:<{width}}  {item['before']:>3} → {item['after']:<3}{change}".rstrip())
+        sign = item["delta"] * better[key]
+        change = ""
+        if item["delta"]:
+            change = "  " + style.tone(f"({_delta(item['delta'])})", "ok" if sign > 0 else "fail" if sign < 0 else "muted")
+        row = f"  {style.label(label.ljust(width))}  {item['before']:>3} → {item['after']:<3}"
+        lines.append(row + change if change else row.rstrip())
 
-    lines += ["", "Levels"]
+    lines += ["", style.section("Levels")]
     mark = {True: "✓", False: "✗", None: "–"}
     title_width = max(len(level["title"]) for level in document["levels"])
     for level in document["levels"]:
         if level["rank"] == 0:
             continue
         note = "" if level["before"] == level["after"] else ("reached" if level["after"] else "lost")
-        lines.append(f"  {mark[level['before']]} → {mark[level['after']]}  {level['rank']} "
-                     f"{level['title']:<{title_width}}  {note}".rstrip())
+        row = (f"  {style.mark(mark[level['before']])} → {style.mark(mark[level['after']])}  {level['rank']} "
+               f"{level['title']:<{title_width}}")
+        lines.append(f"{row}  {style.ok(note) if level['after'] else style.fail(note)}" if note else row.rstrip())
 
     titles = {"improved": "Improved", "regressed": "Regressed", "changed": "No longer / newly applicable"}
     for direction, title in titles.items():
@@ -468,17 +487,17 @@ def comparison(document: dict[str, Any]) -> str:
         if not group:
             continue
         width = max(len(c["id"]) for c in group)
-        lines += ["", f"{title} ({len(group)})"]
+        lines += ["", style.tone(f"{title} ({len(group)})", _DIRECTION_TONE[direction])]
         for change in group:
             lines.append(
-                f"  {SYMBOL[change['before']]} → {SYMBOL[change['after']]}  {change['id']:<{width}}  "
-                f"{change['severity']:<11}  {change['required_from']}"
+                f"  {_mark(change['before'])} → {_mark(change['after'])}  {change['id']:<{width}}  "
+                f"{style.muted(change['severity'].ljust(11))}  {style.muted(change['required_from'])}"
             )
     if not document["changes"]:
-        lines += ["", "No rule changed status."]
+        lines += ["", style.muted("No rule changed status.")]
     if document["added"]:
-        lines += ["", "Only in after: " + ", ".join(document["added"])]
+        lines += ["", style.label("Only in after:") + " " + ", ".join(document["added"])]
     if document["removed"]:
-        lines += ["", "Only in before: " + ", ".join(document["removed"])]
-    lines += ["", f"Exit code: {document['exit_code']}"]
+        lines += ["", style.label("Only in before:") + " " + ", ".join(document["removed"])]
+    lines += ["", style.muted(f"Exit code: {document['exit_code']}")]
     return "\n".join(lines)

@@ -597,10 +597,11 @@ def cmd_ready_compare(args: argparse.Namespace) -> int:
         if args.after:
             after = readiness_compare.load_assessment(args.after)
         else:
-            after = readiness.assess(args.path, spec=args.spec, target=before["maturity"]["target"],
-                                     scope=before["scope"])
+            with style.spinner("Assessing repository readiness"):
+                after = readiness.assess(args.path, spec=args.spec, target=before["maturity"]["target"],
+                                         scope=before["scope"])
     except (readiness_compare.ComparisonError, readiness.SpecError, ScopeError, FileNotFoundError) as exc:
-        print(f"agentic ready: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic ready:')} {exc}", file=sys.stderr)
         return readiness_compare.EXIT_USAGE
     data = readiness_compare.compare(before, after)
     if args.json:
