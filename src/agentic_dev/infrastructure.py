@@ -4,7 +4,6 @@ import json
 import os
 import re
 import secrets
-import shlex
 import shutil
 import subprocess
 import tempfile
@@ -210,7 +209,7 @@ def database_schema(
         query = "SHOW TABLES"
     else:
         raise ValueError("engine must be sqlite, postgres, or mysql")
-    result = database_exec(
+    executed = database_exec(
         engine, query, path=path, database=database,
         profile=profile,
     )
@@ -218,10 +217,10 @@ def database_schema(
         "schema_version": "1",
         "document_type": "agentic.database-schema",
         "engine": engine,
-        "trust_profile": result["trust_profile"],
-        "success": result["success"],
-        "schema": result["stdout"],
-        "stderr": result["stderr"],
+        "trust_profile": executed["trust_profile"],
+        "success": executed["success"],
+        "schema": executed["stdout"],
+        "stderr": executed["stderr"],
     }
 
 

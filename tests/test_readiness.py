@@ -14,7 +14,7 @@ import jsonschema
 
 from agentic_dev.readiness import assess, explain_repository, explain_rule, load_spec, plan
 from agentic_dev.readiness.assess import describe, evaluate
-from agentic_dev.readiness.evidence import EvidenceCollector, Observation, compile_glob
+from agentic_dev.readiness.evidence import Observation, compile_glob
 from agentic_dev.readiness.maturity import compute
 from agentic_dev.readiness.spec import BuiltinSpecSource, PathSpecSource, SpecError
 

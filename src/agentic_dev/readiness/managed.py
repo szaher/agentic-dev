@@ -57,7 +57,9 @@ def locate(lines: list[str], fmt: str, block_id: str) -> Located | None | str:
         return f"duplicate or unbalanced markers for {block_id}"
     start, stop = begins[0], ends[0]
     body = "".join(line + "\n" for line in lines[start + 1:stop])
-    return Located(start, stop, begin.match(lines[start]).group(1), body)
+    matched = begin.match(lines[start])
+    assert matched is not None  # begins holds only matching lines
+    return Located(start, stop, matched.group(1), body)
 
 
 def plan(current: str | None, change: dict[str, Any]) -> Planned:

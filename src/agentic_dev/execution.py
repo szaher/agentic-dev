@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import shlex
 import shutil
 import subprocess
@@ -188,7 +187,7 @@ def _invoke(
         text=True,
         check=False,
     )
-    result.agentic_duration_ms = (time.perf_counter() - started) * 1000
+    setattr(result, "agentic_duration_ms", (time.perf_counter() - started) * 1000)
     return result
 
 

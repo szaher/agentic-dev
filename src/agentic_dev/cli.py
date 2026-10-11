@@ -78,6 +78,7 @@ from .providers import (
 from .providers import (
     update_all as update_all_providers,
 )
+from .readiness import compare as readiness_compare
 from .readiness import render as readiness_render
 from .readiness.apply import ApplyError
 from .readiness.apply import run as readiness_run
@@ -587,6 +588,27 @@ def cmd_ready_assess(args: argparse.Namespace) -> int:
         lambda: readiness.assess(args.path, spec=args.spec, target=args.target, scope=args.scope),
         lambda data: readiness_render.assessment(data, verbose=args.verbose),
     )
+
+
+def cmd_ready_compare(args: argparse.Namespace) -> int:
+    try:
+        stdin = sys.stdin.read() if args.before == "-" else None
+        before = readiness_compare.load_assessment(args.before, text=stdin)
+        if args.after:
+            after = readiness_compare.load_assessment(args.after)
+        else:
+            with style.spinner("Assessing repository readiness"):
+                after = readiness.assess(args.path, spec=args.spec, target=before["maturity"]["target"],
+                                         scope=before["scope"])
+    except (readiness_compare.ComparisonError, readiness.SpecError, ScopeError, FileNotFoundError) as exc:
+        print(f"{style.err('agentic ready:')} {exc}", file=sys.stderr)
+        return readiness_compare.EXIT_USAGE
+    data = readiness_compare.compare(before, after)
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+    else:
+        print(readiness_render.comparison(data))
+    return data["exit_code"]
 
 
 def cmd_ready_explain(args: argparse.Namespace) -> int:
@@ -1459,6 +1481,23 @@ def build_parser() -> argparse.ArgumentParser:
     rassess.add_argument("--verbose", action="store_true", help="also list not-applicable rules")
     ready_common(rassess)
     rassess.set_defaults(func=cmd_ready_assess)
+
+    rcompare = rsub.add_parser(
+        "compare",
+        help="Measure readiness change between a saved assessment and now (or a second assessment)",
+        description=("Compare two readiness assessments rule by rule. BEFORE is a saved "
+                     "`agentic ready assess --json` document (or - for stdin). AFTER is a second saved "
+                     "document; without it the repository at --path is assessed now, using BEFORE's scope. "
+                     "Exit codes: 0 no regression, 1 regression (maturity dropped or a rule got worse), "
+                     "2 usage error."),
+    )
+    rcompare.add_argument("before", help="baseline assessment JSON, or - for stdin")
+    rcompare.add_argument("after", nargs="?", default=None, help="second assessment JSON (default: assess --path now)")
+    rcompare.add_argument("--path", default=".", help="repository to assess when AFTER is omitted (default: .)")
+    rcompare.add_argument("--spec", default=None, metavar="PATH",
+                          help="explicit Agent Ready spec bundle for the live assessment; default: built-in")
+    rcompare.add_argument("--json", action="store_true")
+    rcompare.set_defaults(func=cmd_ready_compare)
 
     rexplain = rsub.add_parser("explain", help="Explain the maturity outcome or a single rule")
     rexplain.add_argument("subject", nargs="?", default=".", help="repository path or rule id")

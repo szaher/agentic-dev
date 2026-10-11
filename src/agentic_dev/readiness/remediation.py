@@ -27,7 +27,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Any, Callable
 
 from ..detect import repo_root
@@ -630,7 +630,7 @@ def _stale(ctx: Context, change: dict[str, Any]) -> bool:
 
 
 def propose(
-    path: str = ".",
+    path: str | Path = ".",
     *,
     spec: Spec | str | None = None,
     target: str | None = None,

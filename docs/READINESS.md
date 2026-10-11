@@ -35,6 +35,9 @@ agentic ready apply . --ci-check                # also add the readiness CI chec
 agentic ready verify . --target structured      # CI gate: tracked files only; exit 0/1/2/3
 agentic ready make . --target structured        # apply -> reassess until met or a decision is needed
 agentic ready assess . --scope ci               # what CI can see
+
+agentic ready compare before.json               # what changed since a saved assessment; exit 0/1/2
+agentic ready compare before.json after.json    # compare two saved assessments
 ```
 
 Every command accepts `--json` and `--spec PATH` (see [Spec source](#spec-source)).
@@ -162,6 +165,36 @@ Development builds such as `0.15.0+dev` refuse `--ci-check` generation with
 exit code 5 and write no workflow. Use a released build to generate the PyPI pin.
 See [REMEDIATION.md](REMEDIATION.md#maintenance-catalog).
 
+## Measuring change: `ready compare`
+
+`ready compare` measures how readiness moved between two points: save an
+assessment, change the repository, then compare.
+
+```bash
+agentic ready assess . --json > before.json     # baseline (commit it to keep the record)
+# ...improve the repository...
+agentic ready compare before.json               # assesses the repository now, with the baseline's scope
+agentic ready compare before.json after.json    # or compare two saved documents
+agentic ready compare - < before.json --json    # agentic.readiness-comparison v1
+```
+
+It reports the maturity change, the passed/failed/unknown/not-applicable counts
+before and after, which levels were reached or lost, and every rule whose status
+changed. Rules move along `fail < unknown < pass`: up is **improved**, down is
+**regressed**. A change to or from `not-applicable` is neutral, since the rule
+started or stopped applying. The outcome is `improved`, `regressed`, `mixed`, or
+`unchanged`, and the comparison notes when the two assessments used different
+specs or scopes.
+
+| Exit | Meaning |
+|---|---|
+| `0` | no regression (improved, unchanged, or neutral changes only) |
+| `1` | regression: maturity dropped or at least one rule got worse |
+| `2` | usage error: a document is missing, unreadable, or not a `readiness-assessment` v1 |
+
+Unlike `ready verify`, which checks a fixed target level, `compare` catches any
+rule that gets worse. That includes rules above the target and recommended rules.
+
 ## Spec source
 
 By default Agentic Dev uses the spec bundle pinned into the distribution:
@@ -224,6 +257,7 @@ CI regression gates use `ready verify` (above).
 | `ready assess --json` | `agentic.readiness-assessment` | `src/agentic_dev/schemas/readiness-assessment-v1.schema.json` |
 | `ready explain --json` | `agentic.readiness-explanation` | `src/agentic_dev/schemas/readiness-explanation-v1.schema.json` |
 | `ready plan --json` | `agentic.readiness-plan` | `src/agentic_dev/schemas/readiness-plan-v1.schema.json` |
+| `ready compare --json` | `agentic.readiness-comparison` | `src/agentic_dev/schemas/readiness-comparison-v1.schema.json` |
 
 See [API.md](API.md#agent-ready-assessment) for the stability rules shared by all
 contracts. External consumers such as AgentFlow should call the CLI and read

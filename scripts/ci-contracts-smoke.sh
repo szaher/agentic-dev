@@ -40,6 +40,7 @@ done
 cd "$repo"
 "$agentic" repo inspect --json > "$work/out/repo-inspection.json"
 "$agentic" ready assess . --json > "$work/out/readiness-assessment.json"
+expect_exit 0 "$work/out/readiness-comparison.json" -- "$agentic" ready compare "$work/out/readiness-assessment.json" --json
 expect_exit 0 "$work/out/verification-run.json" -- "$agentic" verify run . --kind test --json
 [[ -f ran-make-check ]] || fail "verify run --kind test did not run make check"
 expect_exit 1 "$work/out/verification-run-missing.json" -- "$agentic" verify run . --kind typecheck --json
@@ -172,7 +173,7 @@ for name, document in sorted(documents.items()):
 contracts = documents["contracts"]
 for feature in ("commands.canonical-discovery", "verification.full-kind-filter", "verification.no-checks-status",
                 "worktree.lifecycle", "instructions.managed-block", "skills.activation-dry-run",
-                "metrics.record-report", "readiness.scope-ci"):
+                "metrics.record-report", "readiness.scope-ci", "readiness.compare"):
     assert feature in contracts["features"], feature
 
 # R4: one discoverer; all three consumers agree on `make check`.

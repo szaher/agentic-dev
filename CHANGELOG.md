@@ -4,6 +4,10 @@
 
 Milestones are not releases (see `docs/RELEASING.md`): this section collects every milestone finished since 0.15.0 until the next public release. M16 (deep AgentFlow integration, #33) is complete.
 
+Measuring readiness change:
+
+- `agentic ready compare BEFORE [AFTER]` (`readiness-comparison` v1, feature `readiness.compare`) compares a saved `ready assess --json` baseline with the repository now, or with a second saved assessment. It reports the maturity change, count deltas, levels reached or lost, and every rule that improved, regressed, or changed applicability. Exit 0 means no regression, 1 means a regression, and 2 means a usage error.
+
 Terminal presentation:
 
 - Human text views are colored in interactive terminals using the brand palette, with status-colored marks, colored diffs, and a stderr spinner for slow steps (`doctor`, `repo inspect`, `ready`, `verify run`, `providers add`, `remote test`). Pipes, CI, coding-agent environments, `NO_COLOR`, and `--json` stay plain and byte-identical to before.

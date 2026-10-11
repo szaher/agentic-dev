@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import stat
 import subprocess
@@ -123,7 +122,7 @@ class InfrastructureTests(unittest.TestCase):
             subprocess.CompletedProcess(args=[], returncode=0, stdout="container-id\n", stderr=""),
             subprocess.CompletedProcess(args=[], returncode=0, stdout="127.0.0.1:49152\n", stderr=""),
         ]
-        with self.config() as config:
+        with self.config():
             self.enable("database-local", "development")
             result = database_local_start(
                 "postgres", "postgres:test",
