@@ -1,0 +1,1640 @@
+{
+  "assessor": {
+    "name": "agentic-dev",
+    "version": "0.15.0+dev"
+  },
+  "dimensions": {
+    "performance": {
+      "failed": 0,
+      "not_applicable": 0,
+      "passed": 2,
+      "unknown": 0
+    },
+    "security": {
+      "failed": 2,
+      "not_applicable": 1,
+      "passed": 3,
+      "unknown": 1
+    }
+  },
+  "document_type": "agentic.readiness-assessment",
+  "maturity": {
+    "current": "structured",
+    "current_rank": 2,
+    "levels": [
+      {
+        "achieved": true,
+        "blocking": [],
+        "failed": 0,
+        "id": "unaware",
+        "not_applicable": 0,
+        "passed": 0,
+        "rank": 0,
+        "required": 0,
+        "title": "Unaware",
+        "unknown": 0
+      },
+      {
+        "achieved": true,
+        "blocking": [],
+        "failed": 0,
+        "id": "foundational",
+        "not_applicable": 0,
+        "passed": 5,
+        "rank": 1,
+        "required": 5,
+        "title": "Foundational",
+        "unknown": 0
+      },
+      {
+        "achieved": true,
+        "blocking": [],
+        "failed": 0,
+        "id": "structured",
+        "not_applicable": 1,
+        "passed": 10,
+        "rank": 2,
+        "required": 11,
+        "title": "Structured",
+        "unknown": 0
+      },
+      {
+        "achieved": false,
+        "blocking": [
+          "constraints.architecture_boundaries"
+        ],
+        "failed": 0,
+        "id": "optimized",
+        "not_applicable": 1,
+        "passed": 1,
+        "rank": 3,
+        "required": 3,
+        "title": "Optimized",
+        "unknown": 1
+      },
+      {
+        "achieved": false,
+        "blocking": [
+          "context.contribution_workflow",
+          "feedback.agent_effectiveness",
+          "feedback.ci.security"
+        ],
+        "failed": 2,
+        "id": "autonomous",
+        "not_applicable": 0,
+        "passed": 2,
+        "rank": 4,
+        "required": 5,
+        "title": "Autonomous",
+        "unknown": 1
+      }
+    ],
+    "next": "optimized",
+    "target": "optimized",
+    "target_blockers": [
+      "constraints.architecture_boundaries"
+    ],
+    "target_met": false,
+    "target_rank": 3
+  },
+  "pillars": {
+    "constraints": {
+      "failed": 1,
+      "not_applicable": 1,
+      "passed": 4,
+      "unknown": 2
+    },
+    "context": {
+      "failed": 4,
+      "not_applicable": 1,
+      "passed": 8,
+      "unknown": 0
+    },
+    "conventions": {
+      "failed": 1,
+      "not_applicable": 0,
+      "passed": 4,
+      "unknown": 0
+    },
+    "feedback": {
+      "failed": 3,
+      "not_applicable": 0,
+      "passed": 5,
+      "unknown": 1
+    }
+  },
+  "repository": {
+    "name": "agentic-dev",
+    "revision": "85ce476b232e7eac6f18c5c843a517cef1ae3ec3"
+  },
+  "requirements": [
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": "security",
+      "evidence": [],
+      "id": "constraints.agent_permissions",
+      "missing_evidence": [
+        "agent.permissions"
+      ],
+      "pillar": "constraints",
+      "reason": "Agent permissions may be enforced at user or organization scope, outside the repository, so their absence here does not show they are missing. Expected evidence was not found: any(agent.permissions).",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which tools, commands, and paths agents may use in this repository.",
+        "summary": "Commit a project-level agent permission configuration with least-privilege defaults."
+      },
+      "required_for": [],
+      "required_from": "optimized",
+      "severity": "recommended",
+      "status": "unknown",
+      "title": "Agent permissions are configured in the repository",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [
+        "context.agent_instructions"
+      ],
+      "dimension": "security",
+      "evidence": [
+        {
+          "line": 48,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.secrets_policy",
+          "value": "- Never commit secrets or `.env` files, and never print credentials in command output."
+        }
+      ],
+      "id": "constraints.agent_secrets_policy",
+      "missing_evidence": [],
+      "pillar": "constraints",
+      "reason": "Satisfied by agent.instructions.secrets_policy.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Add a secrets rule to the instruction file, for example never read or print `.env` files or credentials."
+      },
+      "required_for": [],
+      "required_from": "structured",
+      "severity": "advisory",
+      "status": "pass",
+      "title": "Instructions address secrets handling",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.language)",
+        "observed": [
+          "project.language"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [],
+      "id": "constraints.architecture_boundaries",
+      "missing_evidence": [
+        "config.architecture_boundaries",
+        "config.architecture_boundaries_declared"
+      ],
+      "pillar": "constraints",
+      "reason": "Architecture boundaries are project/team policy. The absence of an enforcement configuration does not show that a repository has no boundaries, and they cannot be inferred safely from code. Expected evidence was not found: any(config.architecture_boundaries, config.architecture_boundaries_declared).",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which modules or layers may depend on which, and which dependencies are forbidden.",
+        "summary": "Declare the boundaries in a dependency-enforcement tool so agents get feedback when they cross them."
+      },
+      "required_for": [
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "optimized",
+      "severity": "required",
+      "status": "unknown",
+      "title": "Important architecture boundaries are explicit and machine-checkable",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [
+        "context.agent_instructions"
+      ],
+      "dimension": null,
+      "evidence": [
+        {
+          "line": 41,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.constraints",
+          "value": "Do not"
+        },
+        {
+          "line": 43,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.prohibitions",
+          "value": "- Do not add runtime dependencies to `pyproject.toml`; dev and test extras are fine."
+        },
+        {
+          "line": 44,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.prohibitions",
+          "value": "- Do not run `ruff format` on the repository. Formatting is not adopted, and it would rewrite most files."
+        },
+        {
+          "line": 45,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.prohibitions",
+          "value": "- Never remove or rename a contract field, document type, or listed exit code. That breaks"
+        },
+        {
+          "line": 47,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.prohibitions",
+          "value": "- Never edit `src/agentic_dev/readiness/specs/` by hand. Use `scripts/sync-agent-ready-spec.py`."
+        },
+        {
+          "line": 48,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.prohibitions",
+          "value": "- Never commit secrets or `.env` files, and never print credentials in command output."
+        },
+        {
+          "line": 49,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.prohibitions",
+          "value": "- Do not let tests touch the real `~/.config` or a real repository; use temporary directories."
+        },
+        {
+          "line": 50,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.prohibitions",
+          "value": "- Do not change the version in `pyproject.toml` or `src/agentic_dev/__init__.py` outside a release"
+        }
+      ],
+      "id": "constraints.documented",
+      "missing_evidence": [],
+      "pillar": "constraints",
+      "reason": "Satisfied by agent.instructions.constraints, agent.instructions.prohibitions.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which files, areas, dependencies, and actions are off-limits for agents.",
+        "summary": "Add a \"Do / Do NOT\" section to the agent instruction file."
+      },
+      "required_for": [
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "structured",
+      "severity": "required",
+      "status": "pass",
+      "title": "Off-limits areas and prohibitions are stated",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(file.mcp_config)",
+        "observed": [],
+        "result": "not-applicable"
+      },
+      "depends_on": [],
+      "dimension": "security",
+      "evidence": [],
+      "id": "constraints.mcp.no_inline_secrets",
+      "missing_evidence": [],
+      "pillar": "constraints",
+      "reason": "Not applicable: requires any(file.mcp_config).",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which credentials were exposed and how to rotate them.",
+        "summary": "Replace literal credentials with environment-variable references and rotate the exposed values."
+      },
+      "required_for": [
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "structured",
+      "severity": "required",
+      "status": "not-applicable",
+      "title": "Committed MCP configuration has no inline secrets",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.language)",
+        "observed": [
+          "project.language"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [],
+      "dimension": "security",
+      "evidence": [
+        {
+          "line": 2,
+          "source": ".gitignore",
+          "type": "security.env_ignored",
+          "value": "<redacted>"
+        },
+        {
+          "line": 3,
+          "source": ".gitignore",
+          "type": "security.env_ignored",
+          "value": "<redacted>"
+        }
+      ],
+      "id": "constraints.secrets.ignored",
+      "missing_evidence": [],
+      "pillar": "constraints",
+      "reason": "Satisfied by security.env_ignored.",
+      "remediation": {
+        "classification": "automatable",
+        "summary": "Add `.env` and `.env.*` (keeping example templates) to `.gitignore`."
+      },
+      "required_for": [
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "structured",
+      "severity": "required",
+      "status": "pass",
+      "title": "Environment files are ignored",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": "security",
+      "evidence": [],
+      "id": "constraints.secrets.scanning",
+      "missing_evidence": [
+        "ci.runs_security",
+        "config.secret_scanning",
+        "config.secret_scanning_hook"
+      ],
+      "pillar": "constraints",
+      "reason": "Expected evidence was not found: any(config.secret_scanning, config.secret_scanning_hook, ci.runs_security).",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Add a secret-scanning pre-commit hook or CI job."
+      },
+      "required_for": [],
+      "required_from": "optimized",
+      "severity": "recommended",
+      "status": "fail",
+      "title": "Secret scanning is configured",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": "security",
+      "evidence": [],
+      "id": "constraints.secrets.untracked",
+      "missing_evidence": [],
+      "pillar": "constraints",
+      "reason": "Satisfied: no security.tracked_secret_files observed.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Whether each file holds real secrets, and how exposed values are rotated.",
+        "summary": "Stop tracking the files, rotate any exposed secrets, and consider purging them from history."
+      },
+      "required_for": [
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "structured",
+      "severity": "required",
+      "status": "pass",
+      "title": "No secret-bearing files are tracked",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [
+        {
+          "source": "AGENTS.md",
+          "type": "file.agents_md",
+          "value": "AGENTS.md"
+        },
+        {
+          "source": "CLAUDE.md",
+          "type": "file.claude_md",
+          "value": "CLAUDE.md"
+        }
+      ],
+      "id": "context.agent_instructions",
+      "missing_evidence": [],
+      "pillar": "context",
+      "reason": "Satisfied by file.agents_md, file.claude_md.",
+      "remediation": {
+        "classification": "automatable",
+        "summary": "Generate a managed AGENTS.md (or equivalent) section from discovered repository facts."
+      },
+      "required_for": [
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "structured",
+      "severity": "required",
+      "status": "pass",
+      "title": "Agent instructions available",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [
+        "context.agent_instructions"
+      ],
+      "dimension": null,
+      "evidence": [
+        {
+          "line": 11,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.commands",
+          "value": "make check                     # everything CI runs: syntax, lint, typecheck, tests, smoke"
+        },
+        {
+          "line": 12,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.commands",
+          "value": "make lint                      # python3 -m ruff check src tests scripts"
+        },
+        {
+          "line": 13,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.commands",
+          "value": "make typecheck                 # python3 -m mypy"
+        },
+        {
+          "line": 14,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.commands",
+          "value": "make python-test               # PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py'"
+        },
+        {
+          "line": 15,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.commands",
+          "value": "PYTHONPATH=src python3 -m unittest tests/test_readiness_compare.py   # one module"
+        },
+        {
+          "line": 44,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.commands",
+          "value": "ruff format"
+        },
+        {
+          "line": 59,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.commands",
+          "value": "make check"
+        }
+      ],
+      "id": "context.agent_instructions.commands",
+      "missing_evidence": [],
+      "pillar": "context",
+      "reason": "Satisfied by agent.instructions.commands.",
+      "remediation": {
+        "classification": "automatable",
+        "summary": "Generate a commands section from the repository's discovered build, test, lint, and typecheck commands."
+      },
+      "required_for": [
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "structured",
+      "severity": "required",
+      "status": "pass",
+      "title": "Instructions document build and test commands",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [
+        "context.agent_instructions"
+      ],
+      "dimension": "performance",
+      "evidence": [
+        {
+          "source": "AGENTS.md",
+          "type": "agent.instructions.concise",
+          "value": "48 non-blank lines"
+        },
+        {
+          "source": "CLAUDE.md",
+          "type": "agent.instructions.concise",
+          "value": "1 non-blank lines"
+        }
+      ],
+      "id": "context.agent_instructions.concise",
+      "missing_evidence": [],
+      "pillar": "context",
+      "reason": "Satisfied by agent.instructions.concise.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Move low-frequency guidance into scoped instruction files or linked documents."
+      },
+      "required_for": [],
+      "required_from": "optimized",
+      "severity": "recommended",
+      "status": "pass",
+      "title": "Root instructions are concise",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [
+        "context.agent_instructions"
+      ],
+      "dimension": "performance",
+      "evidence": [
+        {
+          "line": 21,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.file_pointers",
+          "value": "src/agentic_dev/cli.py"
+        },
+        {
+          "line": 22,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.file_pointers",
+          "value": "src/agentic_dev/human_output.py"
+        },
+        {
+          "line": 22,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.file_pointers",
+          "value": "src/agentic_dev/readiness/render.py"
+        },
+        {
+          "line": 23,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.file_pointers",
+          "value": "src/agentic_dev/readiness"
+        },
+        {
+          "line": 24,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.file_pointers",
+          "value": "src/agentic_dev/contracts.py"
+        },
+        {
+          "line": 24,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.file_pointers",
+          "value": "src/agentic_dev/schemas"
+        },
+        {
+          "line": 26,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.file_pointers",
+          "value": "docs/API.md"
+        },
+        {
+          "line": 26,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.file_pointers",
+          "value": "docs/ARCHITECTURE.md"
+        },
+        {
+          "line": 34,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.file_pointers",
+          "value": "tests/test_contracts.py"
+        },
+        {
+          "line": 39,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.file_pointers",
+          "value": "CHANGELOG.md"
+        }
+      ],
+      "id": "context.agent_instructions.file_pointers",
+      "missing_evidence": [],
+      "pillar": "context",
+      "reason": "Satisfied by agent.instructions.file_pointers.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Reference the key directories and entry-point files by path in the instruction file."
+      },
+      "required_for": [],
+      "required_from": "optimized",
+      "severity": "recommended",
+      "status": "pass",
+      "title": "Instructions point to concrete paths",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.workspace_manifest, project.workspace_declared)",
+        "observed": [],
+        "result": "not-applicable"
+      },
+      "depends_on": [
+        "context.agent_instructions"
+      ],
+      "dimension": null,
+      "evidence": [],
+      "id": "context.agent_instructions.hierarchical",
+      "missing_evidence": [],
+      "pillar": "context",
+      "reason": "Not applicable: requires any(project.workspace_manifest, project.workspace_declared).",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Scaffold per-package instruction files. Package owners supply their package-specific guidance."
+      },
+      "required_for": [
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "optimized",
+      "severity": "required",
+      "status": "not-applicable",
+      "title": "Scoped instructions for multi-package repositories",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [
+        {
+          "line": 19,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.architecture",
+          "value": "Layout"
+        },
+        {
+          "source": "docs/ARCHITECTURE.md",
+          "type": "documentation.architecture",
+          "value": "docs/ARCHITECTURE.md"
+        }
+      ],
+      "id": "context.architecture",
+      "missing_evidence": [],
+      "pillar": "context",
+      "reason": "Satisfied by agent.instructions.architecture, documentation.architecture.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Tooling can scaffold a structure map from the directory layout. A human must describe components, data flow, and key decisions."
+      },
+      "required_for": [
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "structured",
+      "severity": "required",
+      "status": "pass",
+      "title": "Architecture is described",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [],
+      "id": "context.codeowners",
+      "missing_evidence": [
+        "file.codeowners"
+      ],
+      "pillar": "context",
+      "reason": "Expected evidence was not found: any(file.codeowners).",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which people or teams own which paths.",
+        "summary": "Add a CODEOWNERS file."
+      },
+      "required_for": [],
+      "required_from": "optimized",
+      "severity": "advisory",
+      "status": "fail",
+      "title": "Code ownership is mapped",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [],
+      "id": "context.contribution_workflow",
+      "missing_evidence": [
+        "documentation.contributing_workflow",
+        "file.pull_request_template"
+      ],
+      "pillar": "context",
+      "reason": "Expected evidence was not found: any(documentation.contributing_workflow, file.pull_request_template).",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Scaffold a pull request template and a CONTRIBUTING workflow section. Maintainers confirm the actual process."
+      },
+      "required_for": [
+        "autonomous"
+      ],
+      "required_from": "autonomous",
+      "severity": "required",
+      "status": "fail",
+      "title": "End-to-end contribution workflow is documented",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [],
+      "id": "context.decisions",
+      "missing_evidence": [
+        "documentation.adr"
+      ],
+      "pillar": "context",
+      "reason": "Expected evidence was not found: any(documentation.adr).",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which past and future decisions are significant enough to record.",
+        "summary": "Start a docs/adr/ directory and record significant decisions."
+      },
+      "required_for": [],
+      "required_from": "optimized",
+      "severity": "recommended",
+      "status": "fail",
+      "title": "Architecture decisions are recorded",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [],
+      "id": "context.issue_templates",
+      "missing_evidence": [
+        "file.issue_templates"
+      ],
+      "pillar": "context",
+      "reason": "Expected evidence was not found: any(file.issue_templates).",
+      "remediation": {
+        "classification": "automatable",
+        "summary": "Add bug-report and feature-request issue templates."
+      },
+      "required_for": [],
+      "required_from": "autonomous",
+      "severity": "recommended",
+      "status": "fail",
+      "title": "Structured issue templates",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [
+        {
+          "source": "README.md",
+          "type": "file.readme",
+          "value": "README.md"
+        }
+      ],
+      "id": "context.readme",
+      "missing_evidence": [],
+      "pillar": "context",
+      "reason": "Satisfied by file.readme.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Scaffold a README skeleton. A human writes the project's purpose."
+      },
+      "required_for": [
+        "foundational",
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "foundational",
+      "severity": "required",
+      "status": "pass",
+      "title": "README present",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [
+        "context.readme"
+      ],
+      "dimension": null,
+      "evidence": [
+        {
+          "line": 64,
+          "source": "README.md",
+          "type": "documentation.readme_setup",
+          "value": "Quick start"
+        },
+        {
+          "line": 66,
+          "source": "README.md",
+          "type": "documentation.readme_setup",
+          "value": "1. Install Agentic Dev"
+        },
+        {
+          "line": 201,
+          "source": "README.md",
+          "type": "documentation.readme_setup",
+          "value": "5. Install native agent integrations"
+        },
+        {
+          "line": 576,
+          "source": "README.md",
+          "type": "documentation.readme_setup",
+          "value": "Development"
+        },
+        {
+          "line": 610,
+          "source": "README.md",
+          "type": "documentation.readme_setup",
+          "value": "Linux / WSL and remote development"
+        }
+      ],
+      "id": "context.readme.setup",
+      "missing_evidence": [],
+      "pillar": "context",
+      "reason": "Satisfied by documentation.readme_setup.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Add a setup section built from discovered install, build, and test commands. A human verifies it."
+      },
+      "required_for": [
+        "foundational",
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "foundational",
+      "severity": "required",
+      "status": "pass",
+      "title": "README explains setup and usage",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [
+        {
+          "line": 53,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.workflows",
+          "value": "Common tasks"
+        }
+      ],
+      "id": "context.task_workflows",
+      "missing_evidence": [],
+      "pillar": "context",
+      "reason": "Satisfied by agent.instructions.workflows.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which tasks are common enough to document, and the steps the team actually follows.",
+        "summary": "Document the most common development tasks as step-by-step workflows or repository skills."
+      },
+      "required_for": [
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "optimized",
+      "severity": "required",
+      "status": "pass",
+      "title": "Common tasks are documented as workflows",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.language)",
+        "observed": [
+          "project.language"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [
+        "conventions.tooling"
+      ],
+      "dimension": null,
+      "evidence": [
+        {
+          "line": 16,
+          "source": ".github/workflows/ci.yml",
+          "type": "ci.runs_lint",
+          "value": "run: python -m pip install 'jsonschema>=4.23' 'ruff==0.17.0' 'mypy==2.4.0'"
+        },
+        {
+          "line": 18,
+          "source": ".github/workflows/ci.yml",
+          "type": "ci.runs_lint",
+          "value": "run: make check"
+        }
+      ],
+      "id": "conventions.ci_enforced",
+      "missing_evidence": [],
+      "pillar": "conventions",
+      "reason": "Satisfied by ci.runs_lint.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Add the repository's existing lint and format checks to CI."
+      },
+      "required_for": [
+        "autonomous"
+      ],
+      "required_from": "autonomous",
+      "severity": "required",
+      "status": "pass",
+      "title": "CI enforces conventions",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [
+        {
+          "line": 28,
+          "source": "AGENTS.md",
+          "type": "agent.instructions.conventions",
+          "value": "Conventions"
+        }
+      ],
+      "id": "conventions.documented",
+      "missing_evidence": [],
+      "pillar": "conventions",
+      "reason": "Satisfied by agent.instructions.conventions.",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which conventions the team actually expects (naming, structure, error handling, testing patterns).",
+        "summary": "Document the team's most important coding conventions explicitly."
+      },
+      "required_for": [
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "structured",
+      "severity": "required",
+      "status": "pass",
+      "title": "Coding conventions are documented",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.language)",
+        "observed": [
+          "project.language"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [
+        {
+          "line": 16,
+          "source": ".github/workflows/ci.yml",
+          "type": "ci.runs_lint",
+          "value": "run: python -m pip install 'jsonschema>=4.23' 'ruff==0.17.0' 'mypy==2.4.0'"
+        },
+        {
+          "line": 18,
+          "source": ".github/workflows/ci.yml",
+          "type": "ci.runs_lint",
+          "value": "run: make check"
+        }
+      ],
+      "id": "conventions.enforced",
+      "missing_evidence": [],
+      "pillar": "conventions",
+      "reason": "Satisfied by ci.runs_lint.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Wire the existing lint and format commands into pre-commit hooks or CI."
+      },
+      "required_for": [
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "structured",
+      "severity": "required",
+      "status": "pass",
+      "title": "Conventions are enforced automatically",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [],
+      "id": "conventions.exemplars",
+      "missing_evidence": [
+        "agent.instructions.examples"
+      ],
+      "pillar": "conventions",
+      "reason": "Expected evidence was not found: any(agent.instructions.examples).",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which existing files represent the patterns the team wants repeated.",
+        "summary": "Add an examples section that points at well-written files to imitate."
+      },
+      "required_for": [],
+      "required_from": "optimized",
+      "severity": "recommended",
+      "status": "fail",
+      "title": "Exemplar code is referenced",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.language)",
+        "observed": [
+          "project.language"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [
+        {
+          "source": "pyproject.toml",
+          "type": "command.format",
+          "value": "uv run ruff format ."
+        },
+        {
+          "source": "Makefile",
+          "type": "command.lint",
+          "value": "make lint"
+        },
+        {
+          "source": "pyproject.toml",
+          "type": "command.lint",
+          "value": "uv run ruff check ."
+        },
+        {
+          "line": 49,
+          "source": "pyproject.toml",
+          "type": "config.linter_declared",
+          "value": "[tool.ruff]"
+        },
+        {
+          "line": 53,
+          "source": "pyproject.toml",
+          "type": "config.linter_declared",
+          "value": "[tool.ruff.lint]"
+        }
+      ],
+      "id": "conventions.tooling",
+      "missing_evidence": [],
+      "pillar": "conventions",
+      "reason": "Satisfied by command.format, command.lint, config.linter_declared.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Adopt the ecosystem's standard linter or formatter."
+      },
+      "required_for": [
+        "foundational",
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "foundational",
+      "severity": "required",
+      "status": "pass",
+      "title": "Linting or formatting configured",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": null,
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [],
+      "id": "feedback.agent_effectiveness",
+      "missing_evidence": [
+        "metrics.evaluation_declared",
+        "metrics.evaluation_suite"
+      ],
+      "pillar": "feedback",
+      "reason": "Teams may track agent effectiveness outside the repository (dashboards, issue trackers, local metrics), so its absence here does not show that it is not tracked. Expected evidence was not found: any(metrics.evaluation_declared, metrics.evaluation_suite).",
+      "remediation": {
+        "classification": "human-required",
+        "decision": "Which metrics the team tracks, where they live, and how often they are reviewed.",
+        "summary": "Document how agent effectiveness is measured and reviewed, or add an evaluation suite."
+      },
+      "required_for": [
+        "autonomous"
+      ],
+      "required_from": "autonomous",
+      "severity": "required",
+      "status": "unknown",
+      "title": "Agent effectiveness is tracked",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.language.go, project.language.rust, project.language.jvm, project.language.cpp, project.language.swift, all(project.language.javascript, config.tsconfig))",
+        "observed": [
+          "config.tsconfig",
+          "project.language.javascript"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [
+        {
+          "source": "pyproject.toml",
+          "type": "command.build",
+          "value": "python -m build"
+        }
+      ],
+      "id": "feedback.build.available",
+      "missing_evidence": [],
+      "pillar": "feedback",
+      "reason": "Satisfied by command.build.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Expose a single build command (for example a `build` script or Makefile target)."
+      },
+      "required_for": [
+        "foundational",
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "foundational",
+      "severity": "required",
+      "status": "pass",
+      "title": "Build command available",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.language)",
+        "observed": [
+          "project.language"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [],
+      "dimension": "security",
+      "evidence": [],
+      "id": "feedback.ci.security",
+      "missing_evidence": [
+        "ci.runs_security"
+      ],
+      "pillar": "feedback",
+      "reason": "Expected evidence was not found: any(ci.runs_security).",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Add a security scanning job (for example CodeQL, Semgrep, Trivy, or a dependency audit) to CI."
+      },
+      "required_for": [
+        "autonomous"
+      ],
+      "required_from": "autonomous",
+      "severity": "required",
+      "status": "fail",
+      "title": "CI runs security checks",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.language)",
+        "observed": [
+          "project.language"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [
+        "feedback.tests.available"
+      ],
+      "dimension": null,
+      "evidence": [
+        {
+          "line": 8,
+          "source": ".github/workflows/ci.yml",
+          "type": "ci.runs_tests",
+          "value": "test:"
+        },
+        {
+          "line": 15,
+          "source": ".github/workflows/ci.yml",
+          "type": "ci.runs_tests",
+          "value": "- name: Install test dependencies"
+        },
+        {
+          "line": 18,
+          "source": ".github/workflows/ci.yml",
+          "type": "ci.runs_tests",
+          "value": "run: make check"
+        },
+        {
+          "line": 35,
+          "source": ".github/workflows/ci.yml",
+          "type": "ci.runs_tests",
+          "value": "- name: Smoke test installed wheel"
+        },
+        {
+          "line": 87,
+          "source": ".github/workflows/ci.yml",
+          "type": "ci.runs_tests",
+          "value": "- name: Smoke test installed source distribution"
+        }
+      ],
+      "id": "feedback.ci.tests",
+      "missing_evidence": [],
+      "pillar": "feedback",
+      "reason": "Satisfied by ci.runs_tests.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Run the repository's test command in CI."
+      },
+      "required_for": [
+        "autonomous"
+      ],
+      "required_from": "autonomous",
+      "severity": "required",
+      "status": "pass",
+      "title": "CI runs tests",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.package_manifest)",
+        "observed": [
+          "project.package_manifest"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [],
+      "id": "feedback.dependencies.locked",
+      "missing_evidence": [
+        "project.lockfile"
+      ],
+      "pillar": "feedback",
+      "reason": "Expected evidence was not found: any(project.lockfile).",
+      "remediation": {
+        "classification": "automatable",
+        "summary": "Generate and commit the package manager's lockfile."
+      },
+      "required_for": [],
+      "required_from": "structured",
+      "severity": "recommended",
+      "status": "fail",
+      "title": "Dependencies are locked",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.language)",
+        "observed": [
+          "project.language"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [
+        {
+          "source": "Makefile",
+          "type": "command.test",
+          "value": "make check"
+        }
+      ],
+      "id": "feedback.tests.available",
+      "missing_evidence": [],
+      "pillar": "feedback",
+      "reason": "Satisfied by command.test.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Expose the test suite through one command (for example a `test` script or Makefile target)."
+      },
+      "required_for": [
+        "foundational",
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "foundational",
+      "severity": "required",
+      "status": "pass",
+      "title": "Runnable test suite",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.language)",
+        "observed": [
+          "project.language"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [
+        "feedback.tests.available"
+      ],
+      "dimension": null,
+      "evidence": [
+        {
+          "source": "tests/readiness_fixtures.py",
+          "type": "project.test_files",
+          "value": "tests/readiness_fixtures.py"
+        },
+        {
+          "source": "tests/smoke.sh",
+          "type": "project.test_files",
+          "value": "tests/smoke.sh"
+        },
+        {
+          "source": "tests/test_capabilities.py",
+          "type": "project.test_files",
+          "value": "tests/test_capabilities.py"
+        },
+        {
+          "source": "tests/test_cli.py",
+          "type": "project.test_files",
+          "value": "tests/test_cli.py"
+        },
+        {
+          "source": "tests/test_commands.py",
+          "type": "project.test_files",
+          "value": "tests/test_commands.py"
+        },
+        {
+          "source": "tests/test_contract_documents.py",
+          "type": "project.test_files",
+          "value": "tests/test_contract_documents.py"
+        },
+        {
+          "source": "tests/test_contracts.py",
+          "type": "project.test_files",
+          "value": "tests/test_contracts.py"
+        },
+        {
+          "source": "tests/test_execution.py",
+          "type": "project.test_files",
+          "value": "tests/test_execution.py"
+        },
+        {
+          "source": "tests/test_human_output.py",
+          "type": "project.test_files",
+          "value": "tests/test_human_output.py"
+        },
+        {
+          "source": "tests/test_infrastructure.py",
+          "type": "project.test_files",
+          "value": "tests/test_infrastructure.py"
+        }
+      ],
+      "id": "feedback.tests.present",
+      "missing_evidence": [],
+      "pillar": "feedback",
+      "reason": "Satisfied by project.test_files.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Add tests for the critical paths, following the ecosystem's conventional test layout."
+      },
+      "required_for": [
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "structured",
+      "severity": "required",
+      "status": "pass",
+      "title": "Tests exist",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.language.python, project.language.javascript, project.language.go, project.language.rust, project.language.jvm, project.language.swift, project.language.cpp)",
+        "observed": [
+          "project.language.javascript",
+          "project.language.python"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [],
+      "dimension": null,
+      "evidence": [
+        {
+          "source": "Makefile",
+          "type": "command.typecheck",
+          "value": "make typecheck"
+        },
+        {
+          "source": "pyproject.toml",
+          "type": "command.typecheck",
+          "value": "uv run mypy ."
+        },
+        {
+          "line": 57,
+          "source": "pyproject.toml",
+          "type": "config.python_typecheck_declared",
+          "value": "[tool.mypy]"
+        },
+        {
+          "source": "tsconfig.json",
+          "type": "config.tsconfig",
+          "value": "tsconfig.json"
+        },
+        {
+          "source": "package.json",
+          "type": "project.language.javascript",
+          "value": "package.json"
+        },
+        {
+          "source": "tsconfig.json",
+          "type": "project.language.javascript",
+          "value": "tsconfig.json"
+        },
+        {
+          "source": "pyproject.toml",
+          "type": "project.language.python",
+          "value": "pyproject.toml"
+        },
+        {
+          "source": "scripts/probe_claude_session_permissions.py",
+          "type": "project.language.python",
+          "value": "scripts/probe_claude_session_permissions.py"
+        },
+        {
+          "source": "scripts/probe_codex_session_permissions.py",
+          "type": "project.language.python",
+          "value": "scripts/probe_codex_session_permissions.py"
+        },
+        {
+          "source": "scripts/sync-agent-ready-spec.py",
+          "type": "project.language.python",
+          "value": "scripts/sync-agent-ready-spec.py"
+        },
+        {
+          "source": "src/agentic_dev/__init__.py",
+          "type": "project.language.python",
+          "value": "src/agentic_dev/__init__.py"
+        },
+        {
+          "source": "src/agentic_dev/capabilities.py",
+          "type": "project.language.python",
+          "value": "src/agentic_dev/capabilities.py"
+        },
+        {
+          "source": "src/agentic_dev/cli.py",
+          "type": "project.language.python",
+          "value": "src/agentic_dev/cli.py"
+        },
+        {
+          "source": "src/agentic_dev/commands.py",
+          "type": "project.language.python",
+          "value": "src/agentic_dev/commands.py"
+        },
+        {
+          "source": "src/agentic_dev/contracts.py",
+          "type": "project.language.python",
+          "value": "src/agentic_dev/contracts.py"
+        },
+        {
+          "source": "src/agentic_dev/detect.py",
+          "type": "project.language.python",
+          "value": "src/agentic_dev/detect.py"
+        }
+      ],
+      "id": "feedback.typecheck",
+      "missing_evidence": [],
+      "pillar": "feedback",
+      "reason": "Satisfied by command.typecheck, config.python_typecheck_declared, config.tsconfig.",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Configure the ecosystem's type checker (mypy/pyright, TypeScript) and expose a typecheck command."
+      },
+      "required_for": [
+        "structured",
+        "optimized",
+        "autonomous"
+      ],
+      "required_from": "structured",
+      "severity": "required",
+      "status": "pass",
+      "title": "Type checking enabled",
+      "unsupported_evidence": []
+    },
+    {
+      "applicability": {
+        "expression": "any(project.language.python, project.language.javascript)",
+        "observed": [
+          "project.language.javascript",
+          "project.language.python"
+        ],
+        "result": "applicable"
+      },
+      "depends_on": [
+        "feedback.typecheck"
+      ],
+      "dimension": null,
+      "evidence": [
+        {
+          "line": 7,
+          "source": "tsconfig.json",
+          "type": "config.tsconfig_strict",
+          "value": "\"strict\": true,"
+        },
+        {
+          "source": "package.json",
+          "type": "project.language.javascript",
+          "value": "package.json"
+        },
+        {
+          "source": "tsconfig.json",
+          "type": "project.language.javascript",
+          "value": "tsconfig.json"
+        },
+        {
+          "source": "pyproject.toml",
+          "type": "project.language.python",
+          "value": "pyproject.toml"
+        },
+        {
+          "source": "scripts/probe_claude_session_permissions.py",
+          "type": "project.language.python",
+          "value": "scripts/probe_claude_session_permissions.py"
+        },
+        {
+          "source": "scripts/probe_codex_session_permissions.py",
+          "type": "project.language.python",
+          "value": "scripts/probe_codex_session_permissions.py"
+        },
+        {
+          "source": "scripts/sync-agent-ready-spec.py",
+          "type": "project.language.python",
+          "value": "scripts/sync-agent-ready-spec.py"
+        },
+        {
+          "source": "src/agentic_dev/__init__.py",
+          "type": "project.language.python",
+          "value": "src/agentic_dev/__init__.py"
+        },
+        {
+          "source": "src/agentic_dev/capabilities.py",
+          "type": "project.language.python",
+          "value": "src/agentic_dev/capabilities.py"
+        },
+        {
+          "source": "src/agentic_dev/cli.py",
+          "type": "project.language.python",
+          "value": "src/agentic_dev/cli.py"
+        },
+        {
+          "source": "src/agentic_dev/commands.py",
+          "type": "project.language.python",
+          "value": "src/agentic_dev/commands.py"
+        },
+        {
+          "source": "src/agentic_dev/contracts.py",
+          "type": "project.language.python",
+          "value": "src/agentic_dev/contracts.py"
+        },
+        {
+          "source": "src/agentic_dev/detect.py",
+          "type": "project.language.python",
+          "value": "src/agentic_dev/detect.py"
+        }
+      ],
+      "id": "feedback.typecheck.strict",
+      "missing_evidence": [
+        "config.python_typecheck_strict"
+      ],
+      "pillar": "feedback",
+      "reason": "Expected evidence was not found: project.language.python requires any(config.python_typecheck_strict).",
+      "remediation": {
+        "classification": "assisted",
+        "summary": "Enable strict mode incrementally and fix the reported issues."
+      },
+      "required_for": [],
+      "required_from": "optimized",
+      "severity": "advisory",
+      "status": "fail",
+      "title": "Strict type checking",
+      "unsupported_evidence": []
+    }
+  ],
+  "schema_version": "1",
+  "scope": "local",
+  "spec": {
+    "name": "agent-ready",
+    "sha256": "d9c0e83af4caaabb09dbe8130cf04b74917576086e22a7443f0a59d5ff2a16fd",
+    "source": "builtin",
+    "version": "1.0.1"
+  },
+  "summary": {
+    "failed": 9,
+    "not_applicable": 2,
+    "passed": 21,
+    "unknown": 3
+  }
+}

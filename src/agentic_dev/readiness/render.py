@@ -406,12 +406,14 @@ def comparison(document: dict[str, Any]) -> str:
         lines.append(f"  {label:<{width}}  {item['before']:>3} → {item['after']:<3}{change}".rstrip())
 
     lines += ["", "Levels"]
+    mark = {True: "✓", False: "✗", None: "–"}
+    title_width = max(len(level["title"]) for level in document["levels"])
     for level in document["levels"]:
         if level["rank"] == 0:
             continue
-        mark = {True: "✓", False: "✗", None: "–"}
-        note = "" if level["before"] == level["after"] else ("  reached" if level["after"] else "  lost")
-        lines.append(f"  {mark[level['before']]} → {mark[level['after']]}  {level['rank']} {level['title']}{note}")
+        note = "" if level["before"] == level["after"] else ("reached" if level["after"] else "lost")
+        lines.append(f"  {mark[level['before']]} → {mark[level['after']]}  {level['rank']} "
+                     f"{level['title']:<{title_width}}  {note}".rstrip())
 
     titles = {"improved": "Improved", "regressed": "Regressed", "changed": "No longer / newly applicable"}
     for direction, title in titles.items():
