@@ -4,6 +4,11 @@
 
 Milestones are not releases (see `docs/RELEASING.md`): this section collects every milestone finished since 0.15.0 until the next public release. M16 (deep AgentFlow integration, #33) is complete.
 
+Terminal presentation:
+
+- Human text views are colored in interactive terminals using the brand palette, with status-colored marks, colored diffs, and a stderr spinner for slow steps (`doctor`, `repo inspect`, `ready`, `verify run`, `providers add`, `remote test`). Pipes, CI, coding-agent environments, `NO_COLOR`, and `--json` stay plain and byte-identical to before.
+- New global `--color auto|always|never` flag and `AGENTIC_COLOR` variable; `FORCE_COLOR`/`CLICOLOR_FORCE` are honored.
+
 v0.16 slice 4 contracts (#68), for AgentFlow's pattern requirements:
 
 - `agentic metrics record --json` (`metric-record` v1, feature `metrics.record-report`) reports whether the event was stored: `recorded: false` when metrics are disabled (the default), otherwise the stored event.

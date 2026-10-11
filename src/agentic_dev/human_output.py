@@ -11,12 +11,14 @@ from shlex import quote
 from textwrap import fill
 from typing import Any
 
+from . import style
+
 WIDTH = 88
 
 
-def _line(label: str, value: object, *, indent: int = 2) -> str:
-    prefix = " " * indent + label + ": "
-    return fill(
+def _wrap(prefix: str, value: object, styled_prefix: str) -> str:
+    # Wrap the plain text first so escape codes never affect line width.
+    text = fill(
         str(value),
         width=WIDTH,
         initial_indent=prefix,
@@ -24,30 +26,31 @@ def _line(label: str, value: object, *, indent: int = 2) -> str:
         break_long_words=False,
         break_on_hyphens=False,
     )
+    if style.enabled() and text.startswith(prefix):
+        return styled_prefix + text[len(prefix):]
+    return text
+
+
+def _line(label: str, value: object, *, indent: int = 2) -> str:
+    pad = " " * indent
+    return _wrap(f"{pad}{label}: ", value, f"{pad}{style.label(label + ':')} ")
 
 
 def _item(value: str, *, indent: int = 2) -> str:
-    prefix = " " * indent + "- "
-    return fill(
-        value,
-        width=WIDTH,
-        initial_indent=prefix,
-        subsequent_indent=" " * len(prefix),
-        break_long_words=False,
-        break_on_hyphens=False,
-    )
+    pad = " " * indent
+    return _wrap(f"{pad}- ", value, f"{pad}{style.bullet()} ")
 
 
 def _numbered(number: int, value: str) -> str:
-    prefix = f"  {number}. "
-    return fill(
-        value,
-        width=WIDTH,
-        initial_indent=prefix,
-        subsequent_indent=" " * len(prefix),
-        break_long_words=False,
-        break_on_hyphens=False,
-    )
+    return _wrap(f"  {number}. ", value, f"  {style.accent(f'{number}.')} ")
+
+
+def _command(text: str, *, indent: int = 4) -> str:
+    return " " * indent + style.command(text)
+
+
+def _none() -> str:
+    return "  " + style.muted("none")
 
 
 def _names(values: list[str]) -> str:
@@ -90,14 +93,14 @@ def _blocker_title(code: str) -> str:
 def session_plan(document: dict[str, Any]) -> str:
     blocked = document["status"] == "blocked"
     lines = [
-        f"SESSION PLAN  {'BLOCKED' if blocked else 'READY'}",
+        style.heading("SESSION PLAN", "BLOCKED" if blocked else "READY", "fail" if blocked else "ok"),
         _line("Task", document["task"]),
         _line("Repository", document["repository"]),
         _line("Plan digest", document["plan_digest"]),
-        "  Planning made no changes.",
+        "  " + style.muted("Planning made no changes."),
     ]
     if blocked:
-        lines += ["", f"Needs attention ({len(document['blockers'])})"]
+        lines += ["", style.section(f"Needs attention ({len(document['blockers'])})")]
         for number, blocker in enumerate(document["blockers"], 1):
             where = f" · {blocker['invocation']}" if blocker.get("invocation") else ""
             lines.append(
@@ -113,11 +116,11 @@ def session_plan(document: dict[str, Any]) -> str:
                 for item in document["blockers"]
             )
         )
-        lines += ["", "Next"] + [_item(action) for action in actions]
+        lines += ["", style.section("Next")] + [_item(action) for action in actions]
     else:
         lines += [
             "",
-            "Next",
+            style.section("Next"),
             _item(
                 "Review and approve this plan digest. Save the --json plan for "
                 "agentic session prepare in a linked worktree."
@@ -127,7 +130,7 @@ def session_plan(document: dict[str, Any]) -> str:
     readiness = document["readiness"]
     lines += [
         "",
-        "Environment",
+        style.section("Environment"),
         _line("Readiness", f"{readiness['current']} (minimum {readiness['minimum']})"),
         _line(
             "Skills selected",
@@ -140,13 +143,9 @@ def session_plan(document: dict[str, Any]) -> str:
     for tool in document["tools"]:
         state = "available" if tool["available"] else "unavailable"
         configured = "configured" if tool["configured"] else "not configured"
-        lines.append(
-            _line(
-                tool["name"],
-                f"{state}, {configured}; version {tool['version'] or 'unknown'}",
-            )
-        )
-    lines += ["", "Harness permissions"]
+        line = _line(tool["name"], f"{state}, {configured}; version {tool['version'] or 'unknown'}")
+        lines.append(style.paint(line, state, style.status))
+    lines += ["", style.section("Harness permissions")]
     for invocation in document["invocations"]:
         lines.append(
             _item(
@@ -168,23 +167,23 @@ def session_plan(document: dict[str, Any]) -> str:
 def session_record(document: dict[str, Any]) -> str:
     paths = document["prepared"]["skill_paths"]
     lines = [
-        "SESSION PREPARED",
+        style.heading("SESSION PREPARED"),
         _line("Workspace", document["workspace"]),
         _line("Commit", document["commit"]),
         _line("Plan digest", document["plan_digest"]),
         "",
-        f"Skills placed ({len(paths)})",
+        style.section(f"Skills placed ({len(paths)})"),
     ]
-    lines += [_item(path) for path in paths] if paths else ["  none"]
-    lines += ["", "Harness visibility"]
+    lines += [_item(path) for path in paths] if paths else [_none()]
+    lines += ["", style.section("Harness visibility")]
     for item in document["visibility"]:
         state = "undetermined" if item["undetermined"] else "inspected"
-        lines.append(_item(f"{item['harness']}: {state}"))
+        lines.append(style.paint(_item(f"{item['harness']}: {state}"), state, style.status))
         for external in item["detected_external"]:
             lines.append(_line(external["kind"], external["path"], indent=6))
     lines += [
         "",
-        "Next",
+        style.section("Next"),
         _item(
             "Review the session record and any undetermined external visibility before launch. "
             "Use --json for the full evidence."
@@ -204,12 +203,16 @@ def session_error(kind: str, message: str) -> str:
         "placement": "Resolve the conflicting skill path or filesystem error, then retry.",
         "invalid": "Provide an intact session-plan@1 and a linked worktree of its repository.",
     }
-    return f"SESSION PREPARE  FAILED\n{_line('Reason', message)}\n\nNext\n{_item(actions[kind])}\n"
+    return (
+        f"{style.heading('SESSION PREPARE', 'FAILED', 'fail')}\n{_line('Reason', message)}\n\n"
+        f"{style.section('Next')}\n{_item(actions[kind])}\n"
+    )
 
 
 def session_plan_error(message: str) -> str:
     return (
-        f"SESSION PLAN  FAILED\n{_line('Reason', message)}\n\nNext\n"
+        f"{style.heading('SESSION PLAN', 'FAILED', 'fail')}\n{_line('Reason', message)}\n\n"
+        f"{style.section('Next')}\n"
         f"{_item('Check the session-request@1 document and repository path, then replan.')}\n"
     )
 
@@ -225,43 +228,43 @@ def repository_inspection(document: dict[str, Any]) -> str:
         name for name, item in document["capabilities"].items() if item["enabled"]
     ]
     lines = [
-        f"REPOSITORY  {repo['name']}",
+        style.heading("REPOSITORY", repo["name"], "info"),
         _line("Root", repo["root"]),
         "",
-        "Detected facts",
+        style.section("Detected facts"),
     ]
-    lines += [_item(fact) for fact in repo["facts"]] if repo["facts"] else ["  none"]
-    lines += ["", "Verification commands"]
+    lines += [_item(fact) for fact in repo["facts"]] if repo["facts"] else [_none()]
+    lines += ["", style.section("Verification commands")]
     for kind, commands in document["commands"].items():
         lines.append(_line(kind, _names(commands)))
     lines += [
         "",
-        "Environment suggestions",
+        style.section("Environment suggestions"),
         _line("Skills", _names(recommended)),
         _line("Enabled capabilities", _names(enabled)),
         "",
-        "Next",
-        "  Repository improvements",
-        f"    agentic ready plan {quote(repo['root'])}",
-        "  Verification checks",
-        f"    agentic verify plan --path {quote(repo['root'])}",
+        style.section("Next"),
+        "  " + style.muted("Repository improvements"),
+        _command(f"agentic ready plan {quote(repo['root'])}"),
+        "  " + style.muted("Verification checks"),
+        _command(f"agentic verify plan --path {quote(repo['root'])}"),
     ]
     return "\n".join(lines) + "\n"
 
 
 def verification_plan(document: dict[str, Any]) -> str:
     lines = [
-        f"VERIFICATION PLAN  {len(document['checks'])} check(s)",
+        style.heading("VERIFICATION PLAN", f"{len(document['checks'])} check(s)", "info"),
         _line("Repository", document["repository"]),
         "",
-        "Changed files",
+        style.section("Changed files"),
     ]
     lines += (
         [_item(path) for path in document["changed_files"]]
         if document["changed_files"]
-        else ["  none"]
+        else [_none()]
     )
-    lines += ["", "Checks"]
+    lines += ["", style.section("Checks")]
     for check in document["checks"]:
         label = (
             check.get("command")
@@ -274,28 +277,32 @@ def verification_plan(document: dict[str, Any]) -> str:
     if not document["checks"]:
         lines.append("  none detected")
     if document["skipped_checks"]:
-        lines += ["", f"Skipped ({len(document['skipped_checks'])})"]
+        lines += ["", style.section(f"Skipped ({len(document['skipped_checks'])})")]
         for check in document["skipped_checks"]:
             lines.append(
                 _item(f"[{check['kind']}] {check['command']}: {check['reason']}")
             )
-    lines += ["", "Next"]
+    lines += ["", style.section("Next")]
     if document["checks"]:
         lines += [
-            "  Run these checks",
-            f"    agentic verify run --path {quote(document['repository'])}",
+            "  " + style.muted("Run these checks"),
+            _command(f"agentic verify run --path {quote(document['repository'])}"),
         ]
     else:
         lines += [
-            "  Add a discoverable verification command, then plan again",
-            f"    agentic verify plan --path {quote(document['repository'])}",
+            "  " + style.muted("Add a discoverable verification command, then plan again"),
+            _command(f"agentic verify plan --path {quote(document['repository'])}"),
         ]
     return "\n".join(lines) + "\n"
 
 
 def verification_run(document: dict[str, Any]) -> str:
     status = document["status"]
-    lines = [f"VERIFICATION  {status.upper().replace('-', ' ')}", "", "Checks"]
+    lines = [
+        style.heading("VERIFICATION", status.upper().replace("-", " "), style.STATUS_TONE.get(status, "warn")),
+        "",
+        style.section("Checks"),
+    ]
     for result in document["results"]:
         state = (
             "PASS"
@@ -308,7 +315,7 @@ def verification_run(document: dict[str, Any]) -> str:
             or result.get("capability")
             or "unknown"
         )
-        lines.append(_item(f"{state} [{result['kind']}] {label}"))
+        lines.append(style.paint(_item(f"{state} [{result['kind']}] {label}"), state, style.status))
         if result.get("success") is False:
             reason = (
                 result.get("error")
@@ -330,7 +337,7 @@ def verification_run(document: dict[str, Any]) -> str:
     if status != "passed":
         lines += [
             "",
-            "Next",
+            style.section("Next"),
             _item(
                 "Add runnable checks for the missing kinds and retry."
                 if document["missing_kinds"] or status == "no-checks"
@@ -341,17 +348,17 @@ def verification_run(document: dict[str, Any]) -> str:
 
 
 def skills_status(root: str, found: dict[str, list[str]]) -> str:
-    lines = ["PROJECT SKILLS", _line("Repository", root), ""]
+    lines = [style.heading("PROJECT SKILLS"), _line("Repository", root), ""]
     for harness in ("claude", "codex", "pi", "opencode"):
         label = "OpenCode" if harness == "opencode" else harness.title()
         lines.append(_line(label, _names(found[harness])))
     lines += [
         "",
-        "Next",
-        "  Browse skills",
-        "    agentic skills list",
-        "  Activate a skill in this repository",
-        f"    agentic skills add NAME --path {quote(root)}",
+        style.section("Next"),
+        "  " + style.muted("Browse skills"),
+        _command("agentic skills list"),
+        "  " + style.muted("Activate a skill in this repository"),
+        _command(f"agentic skills add NAME --path {quote(root)}"),
     ]
     return "\n".join(lines) + "\n"
 
@@ -360,25 +367,25 @@ def capabilities_status(document: dict[str, dict[str, Any]]) -> str:
     enabled = [(name, item) for name, item in document.items() if item["enabled"]]
     disabled = [(name, item) for name, item in document.items() if not item["enabled"]]
     lines = [
-        f"CAPABILITIES  {len(enabled)} enabled / {len(document)} available",
+        style.heading("CAPABILITIES", f"{len(enabled)} enabled / {len(document)} available", "info"),
         "",
-        "Enabled",
+        style.section("Enabled"),
     ]
     for name, item in enabled:
         config = item["configuration"] or {}
         suffix = f" ({config.get('target')}, {config.get('mode')})" if config else ""
         lines.append(_item(f"{name} · {item['provider']}{suffix}"))
     if not enabled:
-        lines.append("  none")
-    lines += ["", "Available to enable"]
+        lines.append(_none())
+    lines += ["", style.section("Available to enable")]
     lines += (
         [_item(f"{name} · {item['provider']}") for name, item in disabled]
         if disabled
-        else ["  none"]
+        else [_none()]
     )
     lines += [
         "",
-        "Next",
+        style.section("Next"),
         _item(
             "Use agentic capabilities list for requirements, then agentic capabilities enable NAME."
         ),
@@ -387,16 +394,16 @@ def capabilities_status(document: dict[str, dict[str, Any]]) -> str:
 
 
 def skills_list(items: list[Any]) -> str:
-    lines = [f"SKILLS  {len(items)} available"]
+    lines = [style.heading("SKILLS", f"{len(items)} available", "info")]
     categories = sorted({item.category for item in items})
     for category in categories:
-        lines += ["", category.title()]
+        lines += ["", style.section(category.title())]
         for item in items:
             if item.category == category:
                 lines.append(_item(f"{item.name}: {item.description}"))
     lines += [
         "",
-        "Next",
+        style.section("Next"),
         _item(
             "Use agentic skills explain NAME for details, then agentic skills add NAME to activate it."
         ),
@@ -405,10 +412,10 @@ def skills_list(items: list[Any]) -> str:
 
 
 def capabilities_list(items: Sequence[Any], *, verbose: bool = False) -> str:
-    lines = [f"CAPABILITIES  {len(items)} available"]
+    lines = [style.heading("CAPABILITIES", f"{len(items)} available", "info")]
     for category in sorted({item.category for item in items}):
         group = [item for item in items if item.category == category]
-        lines += ["", f"{category.title()} ({len(group)})"]
+        lines += ["", style.section(f"{category.title()} ({len(group)})")]
         for item in group:
             lines.append(_item(f"{item.name} — {item.description}"))
             if verbose:
@@ -422,7 +429,7 @@ def capabilities_list(items: Sequence[Any], *, verbose: bool = False) -> str:
                 lines.append(_line("Risk", item.risk, indent=6))
     lines += [
         "",
-        "Next",
+        style.section("Next"),
         _item(
             "Run agentic capabilities list --verbose to review access and risk, then "
             "agentic capabilities status before enabling a capability."
@@ -454,27 +461,31 @@ def doctor(document: dict[str, Any]) -> str:
         item for item in integrations if item["available"] and not item["configured"]
     ]
     lines = [
-        f"ENVIRONMENT  {len(found)}/{len(core)} workspace tools found",
+        style.heading(
+            "ENVIRONMENT",
+            f"{len(found)}/{len(core)} workspace tools found",
+            "warn" if missing else "ok",
+        ),
         _line("Available", _names(found)),
         _line("Missing", _names(missing)),
         "",
-        f"Harnesses  {len(harnesses)}/4 installed",
+        style.section(f"Harnesses  {len(harnesses)}/4 installed"),
         _line("Installed", _names(harnesses)),
         _line("Not installed", _names(absent_harnesses)),
     ]
-    lines += ["", f"Native integrations  {len(configured)} configured"]
+    lines += ["", style.section(f"Native integrations  {len(configured)} configured")]
     lines += (
         [_item(f"{item['name']}: {item['detail']}") for item in configured]
         if configured
-        else ["  none"]
+        else [_none()]
     )
     if needs_setup:
-        lines += ["", "Available but not configured"]
+        lines += ["", style.section("Available but not configured")]
         lines += [_item(f"{item['name']}: {item['detail']}") for item in needs_setup]
     enabled = [name for name, item in capabilities.items() if item["enabled"]]
     lines += ["", _line("Enabled capabilities", _names(enabled))]
     if missing or needs_setup:
-        lines += ["", "Next"]
+        lines += ["", style.section("Next")]
         if missing:
             lines.append(
                 _item(
@@ -486,7 +497,7 @@ def doctor(document: dict[str, Any]) -> str:
     else:
         lines += [
             "",
-            "Next",
+            style.section("Next"),
             _item("Run agentic repo inspect to review a repository's context."),
         ]
     return "\n".join(lines) + "\n"
@@ -495,13 +506,13 @@ def doctor(document: dict[str, Any]) -> str:
 def worktree_list(document: dict[str, Any]) -> str:
     entries = document["worktrees"]
     root = document["repository"]
-    lines = [f"WORKTREES  {len(entries)}", _line("Repository", root)]
+    lines = [style.heading("WORKTREES", str(len(entries)), "info"), _line("Repository", root)]
     for item in entries:
         role = "primary" if item["worktree"] == root else "linked"
         state = "dirty" if item.get("dirty") else "clean"
         lines += [
             "",
-            f"{role.upper()}  {state}",
+            f"{style.section(role.upper())}  {style.status(state)}",
             _line("Path", item["worktree"]),
             _line("Branch", item.get("branch", "detached")),
         ]
@@ -512,9 +523,9 @@ def worktree_list(document: dict[str, Any]) -> str:
             lines.append(_line("Task", session["task"]))
     lines += [
         "",
-        "Next",
-        "  Inspect a worktree before cleanup or preparation",
-        f"    agentic worktree status NAME --path {quote(root)}",
+        style.section("Next"),
+        "  " + style.muted("Inspect a worktree before cleanup or preparation"),
+        _command(f"agentic worktree status NAME --path {quote(root)}"),
     ]
     return "\n".join(lines) + "\n"
 
@@ -522,7 +533,7 @@ def worktree_list(document: dict[str, Any]) -> str:
 def worktree_status(document: dict[str, Any]) -> str:
     state = "DIRTY" if document.get("dirty") else "CLEAN"
     lines = [
-        f"WORKTREE  {state}",
+        style.heading("WORKTREE", state, style.STATUS_TONE[state.lower()]),
         _line("Path", document["worktree"]),
         _line("Branch", document.get("branch", "detached")),
         _line("Commit", document.get("head") or "unknown"),
@@ -534,7 +545,7 @@ def worktree_status(document: dict[str, Any]) -> str:
         lines.append(_line("Task", session["task"]))
     lines += [
         "",
-        "Next",
+        style.section("Next"),
         _item(
             "Inspect uncommitted changes in this worktree with git status before preparation or cleanup."
             if document.get("dirty")
@@ -546,26 +557,26 @@ def worktree_status(document: dict[str, Any]) -> str:
 
 def trust_list(document: dict[str, Any], *, root: str) -> str:
     lines = [
-        f"TRUST PROFILES  selected: {document['current_profile']}",
+        style.heading("TRUST PROFILES", f"selected: {document['current_profile']}", "info"),
         _line("Repository", root),
     ]
     for name, item in document["profiles"].items():
         mark = "SELECTED" if item["selected"] else "AVAILABLE"
         lines += [
             "",
-            f"{name}  {mark}",
+            f"{style.section(name)}  {style.status(mark)}",
             _line("Purpose", item["description"]),
             _line("Permissions", _names(item["permissions"])),
         ]
     lines += [
         "",
-        "Next",
-        "  Show profile details",
-        f"    agentic trust show NAME --path {quote(root)}",
-        "  Select for this repository",
-        f"    agentic trust set NAME --repo --path {quote(root)}",
-        "  Change your user default",
-        "    agentic trust set NAME",
+        style.section("Next"),
+        "  " + style.muted("Show profile details"),
+        _command(f"agentic trust show NAME --path {quote(root)}"),
+        "  " + style.muted("Select for this repository"),
+        _command(f"agentic trust set NAME --repo --path {quote(root)}"),
+        "  " + style.muted("Change your user default"),
+        _command("agentic trust set NAME"),
     ]
     return "\n".join(lines) + "\n"
 
@@ -578,7 +589,7 @@ def trust_show(document: dict[str, Any], *, root: str) -> str:
         name = document["name"]
         item = document
     lines = [
-        f"TRUST PROFILE  {name}",
+        style.heading("TRUST PROFILE", name, "info"),
         _line("Repository", root),
         _line("Purpose", item["description"]),
         _line("Permissions", _names(item["permissions"])),
@@ -588,13 +599,13 @@ def trust_show(document: dict[str, Any], *, root: str) -> str:
         lines.append(_line("Other profiles", _names(others)))
     lines += [
         "",
-        "Next",
-        "  Compare profiles",
-        f"    agentic trust list --path {quote(root)}",
-        "  Select for this repository",
-        f"    agentic trust set NAME --repo --path {quote(root)}",
-        "  Change your user default",
-        "    agentic trust set NAME",
+        style.section("Next"),
+        "  " + style.muted("Compare profiles"),
+        _command(f"agentic trust list --path {quote(root)}"),
+        "  " + style.muted("Select for this repository"),
+        _command(f"agentic trust set NAME --repo --path {quote(root)}"),
+        "  " + style.muted("Change your user default"),
+        _command("agentic trust set NAME"),
     ]
     return "\n".join(lines) + "\n"
 
@@ -606,18 +617,18 @@ def infrastructure_status(document: dict[str, Any]) -> str:
     cloud = document["cloud"]
     observability = document["observability"]
     lines = [
-        "INFRASTRUCTURE",
+        style.heading("INFRASTRUCTURE"),
         _line("Repository", document["repository"]),
         "",
-        "Tools",
+        style.section("Tools"),
         _line("Available", _names(available)),
         _line("Not installed", _names(absent)),
         "",
-        "Cluster",
+        style.section("Cluster"),
         _line("Context", cluster["context"] or "none selected"),
         _line("Namespace", cluster["namespace"] or "none selected"),
         "",
-        "Cloud",
+        style.section("Cloud"),
         _line("AWS profile", cloud["aws_profile"] or "none selected"),
         _line(
             "Azure CLI", "available" if cloud["azure_configured"] else "not installed"
@@ -627,14 +638,14 @@ def infrastructure_status(document: dict[str, Any]) -> str:
             "available" if cloud["gcp_configured"] else "not installed",
         ),
         "",
-        "Observability",
+        style.section("Observability"),
         _line(
             "Collector",
             "available" if observability["collector_available"] else "not installed",
         ),
         _line("Config files", _names(observability["config_files"])),
         "",
-        "Next",
+        style.section("Next"),
         _item(
             "Use --json for all detected paths and environment details. Choose an infra subcommand for a specific operation."
         ),
