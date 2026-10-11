@@ -114,6 +114,8 @@ agentic doctor --json
 
 The default text view groups results and shows a **Next** action when attention is needed. This applies to session planning and preparation, repository inspection, verification, skills, capabilities, worktrees, trust, infrastructure status, and the environment check. `agentic capabilities list --verbose` shows provider, access, and risk details when you need them. Use `--json` where offered for the complete structured document; text formatting does not change contract fields or exit codes.
 
+In an interactive terminal the text view is colored (brand orange titles, green/red/amber status, cyan commands, colored diffs) and slow steps show a spinner on stderr. Output stays plain, with no escape codes or animation, when it is piped, in CI, under a coding agent (`CLAUDECODE`, `CODEX_SANDBOX`, `GEMINI_CLI`, or `AGENTIC_AUTOMATION` set), with `NO_COLOR` or `TERM=dumb`, and always for `--json`. Override with `agentic --color auto|always|never <command>` or `AGENTIC_COLOR`; `FORCE_COLOR`/`CLICOLOR_FORCE` are honored. Forcing color never forces the spinner, and styled text minus its escape codes is identical to the plain view.
+
 ### 2. Bootstrap the Mac once
 
 Recommended for a workstation that already contains multiple repositories:

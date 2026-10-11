@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from . import __version__, human_output, readiness
+from . import __version__, human_output, readiness, style
 from . import instructions as instruction_blocks
 from .capabilities import disable as disable_capability
 from .capabilities import enable as enable_capability
@@ -162,7 +162,7 @@ def _print_recommendations(path: str, task: str, max_skills: int, as_json: bool)
     for i, r in enumerate(recs, 1):
         mark = "✓" if r.recommended else " "
         why = "; ".join(r.reasons[:3]) or "general workflow skill"
-        print(f"  {i:>2}. [{mark}] {r.skill.name:<32} {r.skill.description}")
+        print(f"  {i:>2}. [{style.mark(mark)}] {r.skill.name:<32} {r.skill.description}")
         print(f"      why: {why}")
     return context, recs
 
@@ -226,7 +226,7 @@ def cmd_skills_suggest(args: argparse.Namespace) -> int:
     )
     print("\nActivated:")
     for p in paths:
-        print(f"  ✓ {p.relative_to(context.root)}")
+        print(f"  {style.mark('✓')} {p.relative_to(context.root)}")
     if not args.shared:
         print("  Local mode: generated skill directories are excluded via .git/info/exclude.")
     return 0
@@ -283,7 +283,7 @@ def cmd_skills_add(args: argparse.Namespace) -> int:
     else:
         for o in outcomes:
             mark = "!" if o["status"] == "skipped-unmanaged" else "✓"
-            print(f"{mark} {o['path']} ({o['status']})")
+            print(f"{style.mark(mark)} {o['path']} ({o['status']})")
         if args.dry_run:
             print("(dry run, nothing written)")
     return exit_code
@@ -292,7 +292,7 @@ def cmd_skills_add(args: argparse.Namespace) -> int:
 def cmd_skills_remove(args: argparse.Namespace) -> int:
     root = repo_root(args.path)
     for p in remove(root, args.names, target=args.target):
-        print(f"✓ removed {p.relative_to(root)}")
+        print(f"{style.mark('✓')} removed {p.relative_to(root)}")
     return 0
 
 
@@ -363,7 +363,8 @@ def cmd_repo_init(args: argparse.Namespace) -> int:
 
 
 def cmd_repo_inspect(args: argparse.Namespace) -> int:
-    document = inspect_repository(args.path, task=args.task or "")
+    with style.spinner("Inspecting repository"):
+        document = inspect_repository(args.path, task=args.task or "")
     if args.json:
         print(json.dumps(document, indent=2, sort_keys=True))
         return 0
@@ -387,7 +388,7 @@ def cmd_instructions_block(args: argparse.Namespace) -> int:
             data = instruction_blocks.remove(args.path, file=args.file, owner=args.owner, block=args.id,
                                              dry_run=args.dry_run)
     except (instruction_blocks.UsageError, OSError, UnicodeDecodeError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return instruction_blocks.EXIT_USAGE
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
@@ -432,7 +433,7 @@ def cmd_contracts_schema(args: argparse.Namespace) -> int:
     try:
         data = contract_schema(args.name, args.version)
     except UnknownContract as exc:
-        print(f"agentic: {exc.args[0]}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc.args[0]}", file=sys.stderr)
         return 2
     print(json.dumps(data, indent=2, sort_keys=True))
     return 0
@@ -443,9 +444,10 @@ def cmd_session_plan(args: argparse.Namespace) -> int:
         result = plan_session(args.path, load_session_request(args.request))
     except (ValueError, TypeError, KeyError, OSError) as exc:
         if args.json:
-            print(f"session plan: {exc}", file=sys.stderr)
+            print(f"{style.err('session plan:')} {exc}", file=sys.stderr)
         else:
-            print(human_output.session_plan_error(str(exc)), file=sys.stderr, end="")
+            with style.target(sys.stderr):
+                print(human_output.session_plan_error(str(exc)), file=sys.stderr, end="")
         return 2
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
@@ -456,9 +458,10 @@ def cmd_session_plan(args: argparse.Namespace) -> int:
 
 def _session_prepare_error(args: argparse.Namespace, kind: str, exc: Exception) -> None:
     if args.json:
-        print(f"session prepare: {exc}", file=sys.stderr)
+        print(f"{style.err('session prepare:')} {exc}", file=sys.stderr)
     else:
-        print(human_output.session_error(kind, str(exc)), file=sys.stderr, end="")
+        with style.target(sys.stderr):
+            print(human_output.session_error(kind, str(exc)), file=sys.stderr, end="")
 
 
 def cmd_session_prepare(args: argparse.Namespace) -> int:
@@ -487,7 +490,8 @@ def cmd_session_prepare(args: argparse.Namespace) -> int:
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
-    document = doctor_document()
+    with style.spinner("Checking workstation tools"):
+        document = doctor_document()
     if args.json:
         print(json.dumps(document, indent=2, sort_keys=True))
         return 0
@@ -508,12 +512,12 @@ def cmd_worktree_create(args: argparse.Namespace) -> int:
             worktree_root=args.root,
         )
     except (ValueError, FileExistsError, subprocess.CalledProcessError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
     else:
-        print(f"✓ worktree: {data['worktree']}")
+        print(f"{style.mark('✓')} worktree: {data['worktree']}")
         print(f"  branch: {data['branch']}")
         if data["session"].get("agent"):
             print(f"  agent: {data['session']['agent']}")
@@ -535,7 +539,7 @@ def cmd_worktree_status(args: argparse.Namespace) -> int:
     try:
         data = worktree_status(args.name, args.path)
     except KeyError as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
@@ -552,12 +556,12 @@ def cmd_worktree_clean(args: argparse.Namespace) -> int:
             delete_branch=args.delete_branch,
         )
     except (KeyError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
     else:
-        print(f"✓ removed {data['worktree']}")
+        print(f"{style.mark('✓')} removed {data['worktree']}")
         if args.delete_branch:
             print(f"  branch deleted: {data['deleted_branch']}")
     return 0
@@ -565,10 +569,11 @@ def cmd_worktree_clean(args: argparse.Namespace) -> int:
 
 def _ready(args: argparse.Namespace, build, render) -> int:
     try:
-        data = build()
+        with style.spinner("Assessing repository readiness"):
+            data = build()
     except (readiness.SpecError, ScopeError, KeyError, FileNotFoundError) as exc:
         message = exc.args[0] if isinstance(exc, KeyError) and exc.args else str(exc)
-        print(f"agentic ready: {message}", file=sys.stderr)
+        print(f"{style.err('agentic ready:')} {message}", file=sys.stderr)
         return 2
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
@@ -637,13 +642,13 @@ def _ready_change(args: argparse.Namespace, *, dry_run: bool, show_diff: bool) -
         data = readiness_run(args.path, spec=args.spec, target=args.target, dry_run=dry_run,
                              maintenance=(CI_CHECK,) if args.ci_check else ())
     except UnreleasedBuildError as exc:
-        print(f"agentic ready: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic ready:')} {exc}", file=sys.stderr)
         return 5
     except (readiness.SpecError, ContractError, FileNotFoundError) as exc:
-        print(f"agentic ready: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic ready:')} {exc}", file=sys.stderr)
         return 2
     except ApplyError as exc:
-        print(f"agentic ready: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic ready:')} {exc}", file=sys.stderr)
         return 3
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
@@ -657,7 +662,7 @@ def cmd_ready_verify(args: argparse.Namespace) -> int:
         data = readiness_verify(args.path, target=args.target, spec=args.spec, scope=args.scope,
                                 spec_version=args.spec_version, spec_sha256=args.spec_sha256)
     except (readiness.SpecError, ScopeError, FileNotFoundError) as exc:
-        print(f"agentic ready: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic ready:')} {exc}", file=sys.stderr)
         return EXIT_USAGE
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
@@ -668,13 +673,14 @@ def cmd_ready_verify(args: argparse.Namespace) -> int:
 
 def cmd_ready_make(args: argparse.Namespace) -> int:
     try:
-        data = readiness_make(args.path, target=args.target, spec=args.spec, dry_run=args.dry_run,
-                              maintenance=(CI_CHECK,) if args.ci_check else (), max_rounds=args.max_rounds)
+        with style.spinner("Raising repository readiness"):
+            data = readiness_make(args.path, target=args.target, spec=args.spec, dry_run=args.dry_run,
+                                  maintenance=(CI_CHECK,) if args.ci_check else (), max_rounds=args.max_rounds)
     except UnreleasedBuildError as exc:
-        print(f"agentic ready: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic ready:')} {exc}", file=sys.stderr)
         return 5
     except (readiness.SpecError, ScopeError, ContractError, FileNotFoundError) as exc:
-        print(f"agentic ready: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic ready:')} {exc}", file=sys.stderr)
         return EXIT_USAGE
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
@@ -722,14 +728,16 @@ def cmd_verify_run(args: argparse.Namespace) -> int:
         return 2
     else:
         plan = verification_plan(path, base=base, symbols=symbols)
-    data = execute_verification(
-        plan,
-        continue_on_failure=getattr(args, "continue_on_failure", False),
-        backend=getattr(args, "backend", None),
-        image=getattr(args, "image", None),
-        network=getattr(args, "network", None),
-        profile=getattr(args, "profile", None),
-    )
+    count = len(plan["checks"])
+    with style.spinner(f"Running {count} verification check{'' if count == 1 else 's'}"):
+        data = execute_verification(
+            plan,
+            continue_on_failure=getattr(args, "continue_on_failure", False),
+            backend=getattr(args, "backend", None),
+            image=getattr(args, "image", None),
+            network=getattr(args, "network", None),
+            profile=getattr(args, "profile", None),
+        )
     if getattr(args, "json", False):
         print(json.dumps(data, indent=2, sort_keys=True))
     else:
@@ -748,7 +756,7 @@ def cmd_execution_status(args: argparse.Namespace) -> int:
         print(f"network: {selected.get('network') or 'none'}")
         for name, item in data["backends"].items():
             mark = "✓" if item["available"] else "·"
-            print(f"{mark} {name:<14} {item.get('binary') or 'built-in'}")
+            print(f"{style.mark(mark)} {name:<14} {item.get('binary') or 'built-in'}")
     return 0
 
 
@@ -762,9 +770,9 @@ def cmd_execution_configure(args: argparse.Namespace) -> int:
             repo_scope=args.repo,
         )
     except ValueError as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
-    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"✓ {data['scope']} backend={data['backend']}")
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"{style.mark('✓')} {data['scope']} backend={data['backend']}")
     return 0
 
 
@@ -779,7 +787,7 @@ def cmd_execution_run(args: argparse.Namespace) -> int:
             profile=args.profile,
         )
     except (ValueError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
@@ -816,7 +824,7 @@ def cmd_infra_database_schema(args: argparse.Namespace) -> int:
             sqlite_file=args.sqlite_file, profile=args.profile,
         )
     except (ValueError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     return _print_json_or_summary(data, args.json)
 
@@ -830,7 +838,7 @@ def cmd_infra_database_exec(args: argparse.Namespace) -> int:
             profile=args.profile,
         )
     except (ValueError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     return _print_json_or_summary(data, args.json)
 
@@ -841,7 +849,7 @@ def cmd_infra_database_migration_check(args: argparse.Namespace) -> int:
             args.path, profile=args.profile, backend=args.backend,
         )
     except (ValueError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     return _print_json_or_summary(data, args.json)
 
@@ -853,7 +861,7 @@ def cmd_infra_database_local_start(args: argparse.Namespace) -> int:
             name=args.name, profile=args.profile,
         )
     except (ValueError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     return _print_json_or_summary(data, args.json)
 
@@ -866,7 +874,7 @@ def cmd_infra_database_local_show(args: argparse.Namespace) -> int:
     try:
         data = database_local_show(args.name, show_secret=args.show_secret)
     except KeyError as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     return _print_json_or_summary(data, args.json)
 
@@ -875,7 +883,7 @@ def cmd_infra_database_local_stop(args: argparse.Namespace) -> int:
     try:
         data = database_local_stop(args.name, profile=args.profile)
     except (KeyError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     return _print_json_or_summary(data, args.json)
 
@@ -888,7 +896,7 @@ def cmd_infra_cluster_run(args: argparse.Namespace) -> int:
             namespace=args.namespace, profile=args.profile,
         )
     except (ValueError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     return _print_json_or_summary(data, args.json)
 
@@ -897,7 +905,7 @@ def cmd_infra_cloud_identity(args: argparse.Namespace) -> int:
     try:
         data = cloud_identity(args.provider, profile=args.profile)
     except (ValueError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     return _print_json_or_summary(data, args.json)
 
@@ -906,7 +914,7 @@ def cmd_infra_cloud_write(args: argparse.Namespace) -> int:
     try:
         data = cloud_write(args.provider, args.args, profile=args.profile)
     except (ValueError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     return _print_json_or_summary(data, args.json)
 
@@ -915,7 +923,7 @@ def cmd_infra_observability_status(args: argparse.Namespace) -> int:
     try:
         data = observability_status(args.path, profile=args.profile)
     except (RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     return _print_json_or_summary(data, args.json)
 
@@ -923,7 +931,7 @@ def cmd_infra_observability_status(args: argparse.Namespace) -> int:
 def cmd_integrations_status(args: argparse.Namespace) -> int:
     for item in integration_status():
         mark = "✓" if item.configured else ("·" if not item.available else "!")
-        print(f"{mark} {item.name:<8} {item.detail}")
+        print(f"{style.mark(mark)} {item.name:<8} {item.detail}")
     return 0
 
 
@@ -968,7 +976,7 @@ def cmd_capabilities_suggest(args: argparse.Namespace) -> int:
         print("No optional capability strongly recommended.")
         return 0
     for r in recs:
-        print(f"✓ {r.name} via {r.provider}")
+        print(f"{style.mark('✓')} {r.name} via {r.provider}")
         print(f"  {r.description}")
         print(f"  why: {'; '.join(r.reasons)}")
     print("\nNothing was enabled. Use 'agentic capabilities enable <name>' explicitly.")
@@ -985,7 +993,7 @@ def cmd_capabilities_enable(args: argparse.Namespace) -> int:
             path=args.path,
         )
     except (KeyError, ValueError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
 
 
@@ -998,7 +1006,7 @@ def cmd_capabilities_run(args: argparse.Namespace) -> int:
             profile=args.profile,
         )
     except (KeyError, ValueError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
@@ -1016,7 +1024,7 @@ def cmd_capabilities_disable(args: argparse.Namespace) -> int:
     try:
         return disable_capability(args.name)
     except (KeyError, ValueError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
 
 
@@ -1043,7 +1051,7 @@ def cmd_trust_show(args: argparse.Namespace) -> int:
         else:
             data = trust_document(args.path)
     except KeyError as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
@@ -1058,10 +1066,10 @@ def cmd_trust_set(args: argparse.Namespace) -> int:
     try:
         set_current(args.name, root=args.path if args.repo else None)
     except KeyError as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     scope = f"repo {Path(args.path).resolve()}" if args.repo else "user"
-    print(f"✓ trust profile '{args.name}' selected for {scope}")
+    print(f"{style.mark('✓')} trust profile '{args.name}' selected for {scope}")
     return 0
 
 
@@ -1069,9 +1077,9 @@ def cmd_trust_define(args: argparse.Namespace) -> int:
     try:
         define_profile(args.name, args.permission, args.description)
     except ValueError as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
-    print(f"✓ defined trust profile '{args.name}'")
+    print(f"{style.mark('✓')} defined trust profile '{args.name}'")
     return 0
 
 
@@ -1099,23 +1107,24 @@ def cmd_providers_list(args: argparse.Namespace) -> int:
         for item in data["providers"]:
             mark = "✓" if item.get("verified") and item.get("compatible") else "!"
             source = item.get("commit_sha") or item.get("content_digest", "")[:12]
-            print(f"{mark} {item['name']:<24} {item.get('version','?'):<10} {source}")
+            print(f"{style.mark(mark)} {item['name']:<24} {item.get('version','?'):<10} {source}")
     return 0
 
 
 def cmd_providers_add(args: argparse.Namespace) -> int:
     try:
-        data = add_provider(
-            args.source,
-            ref=args.ref,
-            expected_sha256=args.sha256,
-            require_signed_commit=args.require_signed_commit,
-        )
+        with style.spinner(f"Installing provider from {args.source}"):
+            data = add_provider(
+                args.source,
+                ref=args.ref,
+                expected_sha256=args.sha256,
+                require_signed_commit=args.require_signed_commit,
+            )
     except (ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     data = {"schema_version": "1", "document_type": "agentic.provider-install", **data}
-    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"✓ installed provider {data['name']} {data['version']}")
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"{style.mark('✓')} installed provider {data['name']} {data['version']}")
     return 0
 
 
@@ -1123,7 +1132,7 @@ def cmd_providers_inspect(args: argparse.Namespace) -> int:
     try:
         data = inspect_provider(args.source, ref=args.ref)
     except (ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     data = {"schema_version": "1", "document_type": "agentic.provider-source", **data}
     if args.json:
@@ -1139,7 +1148,7 @@ def cmd_providers_verify(args: argparse.Namespace) -> int:
     try:
         data = verify_provider(args.name)
     except (KeyError, ValueError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     print(json.dumps(data, indent=2, sort_keys=True) if args.json else (
         f"{'✓' if data['valid'] else '!'} {data['name']} " + ("verified" if data["valid"] else "; ".join(data["reasons"]))
@@ -1154,9 +1163,9 @@ def cmd_providers_remove(args: argparse.Namespace) -> int:
     try:
         remove_provider(args.name)
     except KeyError as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
-    print(f"✓ removed provider {args.name}")
+    print(f"{style.mark('✓')} removed provider {args.name}")
     return 0
 
 
@@ -1171,10 +1180,10 @@ def cmd_providers_update(args: argparse.Namespace) -> int:
                 require_signed_commit=args.require_signed_commit,
             )]
     except (KeyError, ValueError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     print(json.dumps(data, indent=2, sort_keys=True) if args.json else "\n".join(
-        f"✓ {item['name']} {item.get('previous_version','?')} -> {item['version']} changed={item.get('changed', False)}"
+        f"{style.mark('✓')} {item['name']} {item.get('previous_version','?')} -> {item['version']} changed={item.get('changed', False)}"
         for item in data
     ))
     return 0
@@ -1184,7 +1193,7 @@ def cmd_providers_migrate(args: argparse.Namespace) -> int:
     try:
         data = migrate_provider(args.name, yes=args.yes)
     except (KeyError, ValueError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     print(json.dumps(data, indent=2, sort_keys=True) if args.json else (
         "\n".join(f"{'✓' if x['returncode'] == 0 else '!'} migration {x['version']}" for x in data)
@@ -1201,7 +1210,7 @@ def cmd_providers_doctor(args: argparse.Namespace) -> int:
         print(f"platform: {data['platform']} agentic={data['agentic_version']}")
         for item in data["providers"]:
             mark = "✓" if item.get("verified") and item.get("requirements_ok") else "!"
-            print(f"{mark} {item['name']:<24} version={item.get('version','?')}")
+            print(f"{style.mark(mark)} {item['name']:<24} version={item.get('version','?')}")
             for group, reqs in (item.get("requirements") or {}).items():
                 missing = [name for name, ok in reqs.items() if not ok]
                 if missing:
@@ -1213,10 +1222,10 @@ def cmd_update(args: argparse.Namespace) -> int:
     try:
         data = update_all_providers(yes=args.yes)
     except (ValueError, RuntimeError, PermissionError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     print(json.dumps(data, indent=2, sort_keys=True) if args.json else (
-        "\n".join(f"✓ provider {x['name']} changed={x.get('changed', False)}" for x in data)
+        "\n".join(f"{style.mark('✓')} provider {x['name']} changed={x.get('changed', False)}" for x in data)
         or "No external providers installed."
     ))
     return 0
@@ -1245,9 +1254,9 @@ def cmd_remote_add(args: argparse.Namespace) -> int:
             workdir=args.workdir,
         )
     except ValueError as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
-    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"✓ remote {args.name} configured")
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"{style.mark('✓')} remote {args.name} configured")
     return 0
 
 
@@ -1255,7 +1264,7 @@ def cmd_remote_show(args: argparse.Namespace) -> int:
     try:
         data = get_remote(args.name)
     except KeyError:
-        print(f"agentic: unknown remote {args.name}", file=sys.stderr)
+        print(f"{style.err('agentic:')} unknown remote {args.name}", file=sys.stderr)
         return 2
     print(json.dumps(data, indent=2, sort_keys=True))
     return 0
@@ -1265,20 +1274,21 @@ def cmd_remote_remove(args: argparse.Namespace) -> int:
     try:
         remove_remote(args.name)
     except KeyError:
-        print(f"agentic: unknown remote {args.name}", file=sys.stderr)
+        print(f"{style.err('agentic:')} unknown remote {args.name}", file=sys.stderr)
         return 2
-    print(f"✓ removed remote {args.name}")
+    print(f"{style.mark('✓')} removed remote {args.name}")
     return 0
 
 
 def cmd_remote_test(args: argparse.Namespace) -> int:
     try:
-        data = test_remote(args.name)
+        with style.spinner(f"Connecting to {args.name}"):
+            data = test_remote(args.name)
     except (KeyError, RuntimeError) as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     print(json.dumps(data, indent=2, sort_keys=True) if args.json else (
-        f"{'✓' if data['success'] else '!'} {args.name}: {data['host']}"
+        f"{style.mark('✓' if data['success'] else '!')} {args.name}: {data['host']}"
     ))
     return 0 if data["success"] else 1
 
@@ -1333,7 +1343,7 @@ def cmd_metrics_summary(args: argparse.Namespace) -> int:
             repository=args.path if args.path else None,
         )
     except ValueError as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     if args.json:
         print(json.dumps(data, indent=2, sort_keys=True))
@@ -1359,9 +1369,9 @@ def cmd_metrics_export(args: argparse.Namespace) -> int:
             repository=args.path if args.path else None,
         )
     except ValueError as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
-    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"✓ exported {data['event_count']} events to {data['output']}")
+    print(json.dumps(data, indent=2, sort_keys=True) if args.json else f"{style.mark('✓')} exported {data['event_count']} events to {data['output']}")
     return 0
 
 
@@ -1369,7 +1379,7 @@ def cmd_metrics_clear(args: argparse.Namespace) -> int:
     try:
         clear_metrics(yes=args.yes)
     except PermissionError as exc:
-        print(f"agentic: {exc}", file=sys.stderr)
+        print(f"{style.err('agentic:')} {exc}", file=sys.stderr)
         return 2
     print("✓ local metric events cleared")
     return 0
@@ -1379,7 +1389,7 @@ def cmd_metrics_record(args: argparse.Namespace) -> int:
     fields = {}
     for field in args.field:
         if "=" not in field:
-            print(f"agentic: --field must be key=value: {field}", file=sys.stderr)
+            print(f"{style.err('agentic:')} --field must be key=value: {field}", file=sys.stderr)
             return 2
         key, value = field.split("=", 1)
         if not key.strip():
@@ -1399,13 +1409,19 @@ def cmd_metrics_record(args: argparse.Namespace) -> int:
     if not recorded:
         print("metrics disabled; event not recorded")
         return 0
-    print(f"✓ recorded {args.event}")
+    print(f"{style.mark('✓')} recorded {args.event}")
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="agentic", description="Agentic development environment manager")
     p.add_argument("--version", action="version", version=__version__)
+    p.add_argument(
+        "--color",
+        choices=style.MODES,
+        default="auto",
+        help="colorize human output (default: auto; plain when piped, in CI, or under a coding agent)",
+    )
     sub = p.add_subparsers(dest="command", required=True)
 
     setup = sub.add_parser("setup", help="Run the workstation bootstrap")
@@ -2075,6 +2091,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+    style.configure(args.color)
     if args.func not in {cmd_session_plan, cmd_session_prepare}:
         prepare_runtime_state()
     raise SystemExit(args.func(args))

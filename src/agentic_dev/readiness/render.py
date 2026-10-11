@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .. import style
 from .remediation import CI_CHECK
 
 SYMBOL = {"pass": "✓", "fail": "✗", "unknown": "?", "not-applicable": "–"}
@@ -21,13 +22,39 @@ PILLAR_TITLES = {
 }
 
 
+def _mark(status: str) -> str:
+    return style.status(SYMBOL[status], status)
+
+
+def _next(*commands: str) -> str:
+    return style.section("Next:") + " " + style.muted("   ·   ").join(style.command(c) for c in commands)
+
+
+def _diff(text: str) -> str:
+    if not style.enabled():
+        return text
+    lines = []
+    for line in text.split("\n"):
+        if line.startswith(("+++", "---")):
+            lines.append(style.section(line))
+        elif line.startswith("+"):
+            lines.append(style.ok(line))
+        elif line.startswith("-"):
+            lines.append(style.fail(line))
+        elif line.startswith("@@"):
+            lines.append(style.command(line))
+        else:
+            lines.append(line)
+    return "\n".join(lines)
+
+
 def _title(level_id: str) -> str:
     return level_id.replace("-", " ").title()
 
 
 def _spec_line(document: dict[str, Any]) -> str:
     spec = document["spec"]
-    return f"Spec: {spec['name']} {spec['version']} ({spec['source']}, sha256 {spec['sha256'][:12]})"
+    return style.muted(f"Spec: {spec['name']} {spec['version']} ({spec['source']}, sha256 {spec['sha256'][:12]})")
 
 
 def _counts(counts: dict[str, int]) -> str:
@@ -55,50 +82,52 @@ def assessment(document: dict[str, Any], *, verbose: bool = False) -> str:
     state = document["maturity"]
     top = max(level["rank"] for level in state["levels"])
     lines = [
-        f"Agent Ready assessment — {document['repository']['name']}",
+        style.title(f"Agent Ready assessment — {document['repository']['name']}"),
         _spec_line(document),
         "",
-        f"Maturity: {_title(state['current'])} (level {state['current_rank']} of {top})",
-        f"Target:   {_title(state['target'])} — {'met' if state['target_met'] else 'not met'}",
+        f"{style.label('Maturity:')} {style.accent(_title(state['current']))} (level {state['current_rank']} of {top})",
+        f"{style.label('Target:')}   {_title(state['target'])} — "
+        f"{style.ok('met') if state['target_met'] else style.fail('not met')}",
         "",
-        "Levels",
+        style.section("Levels"),
     ]
     for level in state["levels"]:
-        mark = "✓" if level["achieved"] else "✗"
+        mark = style.mark("✓" if level["achieved"] else "✗")
         detail = f"  {_level_counts(level)}" if level["rank"] else ""
         lines.append(f"  {mark} {level['rank']} {level['title']:<13}{detail}".rstrip())
         if level["blocking"]:
-            lines.append(f"      blocking: {', '.join(level['blocking'])}")
-    lines += ["", "Requirements"]
+            lines.append(f"      {style.fail('blocking:')} {', '.join(level['blocking'])}")
+    lines += ["", style.section("Requirements")]
     width = max(len(r["id"]) for r in document["requirements"])
     for pillar, title in PILLAR_TITLES.items():
         rules = [r for r in document["requirements"] if r["pillar"] == pillar]
         if not rules:
             continue
-        lines.append(f"  {title}")
+        lines.append(f"  {style.section(title)}")
         for rule in rules:
             if not verbose and rule["status"] == "not-applicable":
                 continue
             lines.append(
-                f"    {SYMBOL[rule['status']]} {rule['id']:<{width}}  {rule['severity']:<11}  "
-                f"{rule['required_from']:<12}  {rule['reason']}"
+                f"    {_mark(rule['status'])} {rule['id']:<{width}}  "
+                f"{style.muted(rule['severity'].ljust(11))}  "
+                f"{style.muted(rule['required_from'].ljust(12))}  {rule['reason']}"
             )
     hidden = document["summary"]["not_applicable"]
     lines += ["", f"Summary: {_counts(document['summary'])}"]
     if hidden and not verbose:
-        lines.append(f"({hidden} not-applicable rule(s) hidden; use --verbose to show them)")
+        lines.append(style.muted(f"({hidden} not-applicable rule(s) hidden; use --verbose to show them)"))
     lines += [
-        "Maturity is requirement-based: a level is reached only when all of its required rules,",
-        "and those of every lower level, pass or are not applicable.",
+        style.muted("Maturity is requirement-based: a level is reached only when all of its required rules,"),
+        style.muted("and those of every lower level, pass or are not applicable."),
         "",
-        "Next: agentic ready plan <path>   ·   agentic ready explain <rule-id>",
+        _next("agentic ready plan <path>", "agentic ready explain <rule-id>"),
     ]
     return "\n".join(lines)
 
 
 def repository_explanation(document: dict[str, Any]) -> str:
     lines = [
-        f"Why {document['repository']['name']} is {_title(document['maturity']['current'])}",
+        style.title(f"Why {document['repository']['name']} is {_title(document['maturity']['current'])}"),
         _spec_line(document),
         "",
         document["conclusion"],
@@ -112,9 +141,11 @@ def repository_explanation(document: dict[str, Any]) -> str:
             state = f"blocked by {len(level['blocking'])} required rule(s)"
         else:
             state = "not reached (a lower level is blocked)"
-        lines += ["", f"Level {level['rank']} — {level['title']}: {state}"]
+        heading = style.section(f"Level {level['rank']} — {level['title']}")
+        lines += ["", f"{heading}: "
+                      f"{style.ok(state) if level['achieved'] else style.warn(state)}"]
         for requirement in level["requirements"]:
-            lines.append(f"  {SYMBOL[requirement['status']]} {requirement['id']} — {requirement['reason']}")
+            lines.append(f"  {_mark(requirement['status'])} {requirement['id']} — {requirement['reason']}")
     lines += ["", f"Summary: {_counts(document['summary'])}"]
     return "\n".join(lines)
 
@@ -138,44 +169,46 @@ def rule_explanation(document: dict[str, Any]) -> str:
              else "does not gate maturity")
     dimension = f"   Dimension: {rule['dimension']}" if rule.get("dimension") else ""
     lines = [
-        f"{rule['id']} — {rule['title']}",
+        style.title(f"{rule['id']} — {rule['title']}"),
         f"Pillar: {rule['pillar']}{dimension}   Severity: {rule['severity']}   "
         f"Required from: {rule['required_from']} ({gates})",
         _spec_line(document),
         "",
         rule["description"].strip(),
         "",
-        "Why it matters:",
+        style.section("Why it matters:"),
         f"  {rule['rationale'].strip()}",
         "",
-        f"Status in {document['repository']['name']}: {LABEL[result['status']]}",
+        style.section(f"Status in {document['repository']['name']}:") + " "
+        + style.status(LABEL[result["status"]], result["status"]),
         f"  {result['reason']}",
     ]
     if result.get("applicability"):
         applicability = result["applicability"]
         lines.append(f"  Applies when: {applicability['expression']} → {applicability['result']}")
     if result["evidence"]:
-        lines += ["", "Observed evidence:"] + [f"  - {_evidence(item)}" for item in result["evidence"]]
+        lines += ["", style.section("Observed evidence:")] + [f"  - {_evidence(item)}" for item in result["evidence"]]
     definitions = {item["id"]: item for item in document["evidence_definitions"]}
     if result["missing_evidence"]:
-        lines += ["", "Missing evidence:"] + [
+        lines += ["", style.section("Missing evidence:")] + [
             f"  - {ref} — {definitions[ref]['title']}" if ref in definitions else f"  - {ref}"
             for ref in result["missing_evidence"]
         ]
     if result["unsupported_evidence"]:
-        lines += ["", "Not supported by this assessor:"] + [f"  - {ref}" for ref in result["unsupported_evidence"]]
-    lines += ["", "How evidence is detected:"] + [
+        lines += ["", style.section("Not supported by this assessor:")] + [f"  - {ref}" for ref in result["unsupported_evidence"]]
+    lines += ["", style.section("How evidence is detected:")] + [
         f"  - {item['id']}: {_detection(item)}" for item in document["evidence_definitions"]
     ]
     remediation = rule["remediation"]
-    lines += ["", f"Remediation: {remediation['classification']}", f"  {remediation['summary'].strip()}"]
+    lines += ["", f"{style.section('Remediation:')} {style.accent(remediation['classification'])}",
+              f"  {remediation['summary'].strip()}"]
     if remediation.get("decision"):
         lines.append(f"  Decision required: {remediation['decision'].strip()}")
     if document["dependencies"]:
-        lines += ["", "Depends on:"] + [
-            f"  {SYMBOL[dep['status']]} {dep['id']}" for dep in document["dependencies"]
+        lines += ["", style.section("Depends on:")] + [
+            f"  {_mark(dep['status'])} {dep['id']}" for dep in document["dependencies"]
         ]
-    lines += ["", "Sources (Agent Ready course):"] + [f"  - {source}" for source in rule["sources"]]
+    lines += ["", style.section("Sources (Agent Ready course):")] + [f"  - {source}" for source in rule["sources"]]
     return "\n".join(lines)
 
 
@@ -184,17 +217,18 @@ def _plan_steps(steps: list[dict[str, Any]], *, start: int = 1) -> list[str]:
     for offset, step in enumerate(steps):
         status = " (unknown)" if step["status"] == "unknown" else ""
         lines += [
-            f"{start + offset}. {step['id']} — {step['title']}{status}",
-            f"   Level: {step['required_from']}   Classification: {step['classification']}",
-            f"   Why: {step['reason']}",
+            f"{style.accent(f'{start + offset}.')} {style.section(step['id'])} — {step['title']}{style.warn(status)}",
+            f"   {style.label('Level:')} {step['required_from']}   "
+            f"{style.label('Classification:')} {step['classification']}",
+            f"   {style.label('Why:')} {step['reason']}",
         ]
         if step["classification"] == "human-required":
-            lines.append(f"   Required decision: {step['decision']}")
-            lines.append(f"   Then: {step['action']}")
+            lines.append(f"   {style.warn('Required decision:')} {step['decision']}")
+            lines.append(f"   {style.label('Then:')} {step['action']}")
         else:
-            lines.append(f"   Suggested remediation: {step['action']}")
+            lines.append(f"   {style.label('Suggested remediation:')} {step['action']}")
         if step["depends_on"]:
-            lines.append(f"   After: {', '.join(step['depends_on'])}")
+            lines.append(f"   {style.label('After:')} {', '.join(step['depends_on'])}")
         lines.append("")
     return lines
 
@@ -202,22 +236,23 @@ def _plan_steps(steps: list[dict[str, Any]], *, start: int = 1) -> list[str]:
 def plan(document: dict[str, Any]) -> str:
     state = document["maturity"]
     lines = [
-        f"Agent Ready plan — {document['repository']['name']} (read-only; nothing was modified)",
+        style.title(f"Agent Ready plan — {document['repository']['name']}") + " "
+        + style.muted("(read-only; nothing was modified)"),
         _spec_line(document),
         "",
-        f"Current: {_title(state['current'])}",
-        f"Target:  {_title(state['target'])}",
+        f"{style.label('Current:')} {style.accent(_title(state['current']))}",
+        f"{style.label('Target:')}  {_title(state['target'])}",
         "",
     ]
     if state["target_met"] and not document["steps"]:
-        lines.append("The target level is already met. No required steps.")
+        lines.append(style.ok("The target level is already met. No required steps."))
         lines.append("")
     else:
-        lines += ["Missing requirements:", ""] + _plan_steps(document["steps"])
+        lines += [style.section("Missing requirements:"), ""] + _plan_steps(document["steps"])
     if document["recommended"]:
-        lines += ["Recommended (does not gate maturity):", ""] + _plan_steps(document["recommended"])
+        lines += [style.section("Recommended (does not gate maturity):"), ""] + _plan_steps(document["recommended"])
     if document["optional"]:
-        lines += ["Optional (advisory):"] + [
+        lines += [style.section("Optional (advisory):")] + [
             f"  - {step['id']} — {step['action']}" for step in document["optional"]
         ] + [""]
     summary = document["summary"]
@@ -225,8 +260,9 @@ def plan(document: dict[str, Any]) -> str:
         f"Summary: {summary['required_steps']} required step(s) — {summary['automatable']} automatable, "
         f"{summary['assisted']} assisted, {summary['human_required']} human-required."
     )
-    lines.append("Next: agentic ready diff <path> to preview safe changes   ·   "
-                 "agentic ready make <path> --target LEVEL")
+    lines.append(style.section("Next:") + " " + style.command("agentic ready diff <path>")
+                 + " to preview safe changes" + style.muted("   ·   ")
+                 + style.command("agentic ready make <path> --target LEVEL"))
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -249,48 +285,52 @@ def remediation_run(document: dict[str, Any], *, show_diff: bool) -> str:
     }[result["status"]]
     state = document["maturity"]
     lines = [
-        f"Agent Ready remediation — {document['repository']['name']} ({header})",
+        style.title(f"Agent Ready remediation — {document['repository']['name']}") + " "
+        + style.status(f"({header})", result["status"]),
         _spec_line(document),
         "",
-        f"Current: {_title(state['current'])}" + (
-            f"  →  {_title(result['maturity_after'])}" if result["maturity_after"] else ""),
-        f"Target:  {_title(state['target'])}",
+        f"{style.label('Current:')} {style.accent(_title(state['current']))}" + (
+            f"  →  {style.ok(_title(result['maturity_after']))}" if result["maturity_after"] else ""),
+        f"{style.label('Target:')}  {_title(state['target'])}",
     ]
     if document["outcomes"]:
-        lines += ["", "Changes (managed blocks only):"]
+        lines += ["", style.section("Changes (managed blocks only):")]
         for outcome in document["outcomes"]:
             note = f" — {outcome['reason']}" if outcome["reason"] else ""
-            lines.append(f"  {outcome['outcome']:<9} {outcome['path']:<28} {_owner(outcome['owner'])}{note}")
+            change = style.status(outcome["outcome"].ljust(9), outcome["outcome"])
+            lines.append(f"  {change} {outcome['path']:<28} {_owner(outcome['owner'])}{note}")
     if show_diff:
         diffs = [o["diff"] for o in document["outcomes"] if o["diff"]]
         if diffs:
-            lines += [""] + [diff.rstrip("\n") for diff in diffs]
+            lines += [""] + [_diff(diff.rstrip("\n")) for diff in diffs]
     local_only = sorted({o["path"] for o in document["outcomes"]
                          if o["ci_visible"] is False and o["outcome"] not in {"conflict", "refused"}})
     if local_only:
-        lines += ["", "Not tracked by Git (local readiness only until committed; check it is not git-excluded):"]
+        lines += ["", style.warn("Not tracked by Git (local readiness only until committed; check it is not git-excluded):")]
         lines += [f"  - {path}" for path in local_only]
     decisions = [r for r in document["remediations"] if r["remediation_class"] == "human-decision"]
     if decisions:
-        lines += ["", "Needs a human decision (never applied automatically):"]
+        lines += ["", style.warn("Needs a human decision (never applied automatically):")]
         for item in decisions:
             lines.append(f"  - {item['rule_id']} [{item['severity']}]: {item['decision']['question']}")
             for candidate in item["decision"]["candidates"][:5]:
                 lines.append(f"      candidate: {candidate['value']} ({candidate['basis']})")
     unsupported = [r for r in document["remediations"] if r["remediation_class"] == "unsupported"]
     if unsupported:
-        lines += ["", "Unsupported (no safe automatic change in this version):"]
+        lines += ["", style.section("Unsupported (no safe automatic change in this version):")]
         lines += [f"  - {item['rule_id']}: {item['reason']}" for item in unsupported]
     lines.append("")
     if result["status"] == "conflict":
-        lines.append("Resolve the conflicts above, then run again. Hand-edited managed blocks are never overwritten.")
+        lines.append(style.fail("Resolve the conflicts above, then run again.")
+                     + " Hand-edited managed blocks are never overwritten.")
     elif applied:
-        lines.append(f"Wrote: {', '.join(result['written'])}. Review with `git diff`; nothing was committed.")
+        lines.append(f"{style.ok('Wrote:')} {', '.join(result['written'])}. "
+                     f"Review with {style.command('`git diff`')}; nothing was committed.")
     elif result["status"] == "planned":
         flags = [f"--target {state['target']}"] if state["target"] else []
         if any(a["id"] == CI_CHECK for a in document["maintenance_actions"]):
             flags.append("--ci-check")
-        lines.append(" ".join(["Apply with: agentic ready apply <path>", *flags]))
+        lines.append(style.section("Apply with:") + " " + style.command(" ".join(["agentic ready apply <path>", *flags])))
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -299,33 +339,35 @@ def verification(document: dict[str, Any]) -> str:
     verdict = "PASSED" if document["passed"] else ("SPEC PIN MISMATCH" if not document["pin"]["matched"] else "FAILED")
     view = "CI-visible (tracked files only)" if document["scope"] == "ci" else "local working tree"
     lines = [
-        f"Agent Ready verify — {document['repository']['name']}: {verdict}",
+        style.title(f"Agent Ready verify — {document['repository']['name']}:") + " "
+        + style.badge(verdict, "ok" if document["passed"] else "fail"),
         _spec_line(document),
     ]
     pin = document["pin"]
     if pin["spec_version"] or pin["spec_sha256"]:
-        lines.append(f"Pinned spec: {'matches' if pin['matched'] else 'DOES NOT MATCH'}")
+        lines.append(f"Pinned spec: {style.ok('matches') if pin['matched'] else style.fail('DOES NOT MATCH')}")
         lines += [f"  - {problem}" for problem in pin["problems"]]
     lines += [
         "",
         f"Scope:   {view}",
-        f"Target:  {_title(state['target'])} — {'met' if state['target_met'] else 'not met'}",
-        f"Current: {_title(state['current'])}",
+        f"{style.label('Target:')}  {_title(state['target'])} — "
+        f"{style.ok('met') if state['target_met'] else style.fail('not met')}",
+        f"{style.label('Current:')} {style.accent(_title(state['current']))}",
     ]
     if document["blockers"]:
-        lines += ["", "Blocking:"]
-        lines += [f"  {SYMBOL[b['status']]} {b['id']} ({b['required_from']}) — {b['reason']}" for b in document["blockers"]]
+        lines += ["", style.fail("Blocking:")]
+        lines += [f"  {_mark(b['status'])} {b['id']} ({b['required_from']}) — {b['reason']}" for b in document["blockers"]]
     local = document["local"]
     if local is not None:
         lines += ["", f"Local readiness:      {_title(local['maturity'])}",
                   f"CI-visible readiness: {_title(state['current'])}"]
         if local["differences"]:
-            lines += ["", "Difference (local evidence CI cannot see):"]
+            lines += ["", style.warn("Difference (local evidence CI cannot see):")]
             for diff in local["differences"]:
                 lines.append(f"  {diff['rule_id']}: local {diff['local_status']}, CI {diff['ci_status']}")
                 if diff["local_only_evidence"]:
                     lines.append(f"    local evidence: {', '.join(diff['local_only_evidence'])} (not tracked by Git)")
-    lines += ["", f"Exit code: {document['exit_code']}"]
+    lines += ["", style.muted(f"Exit code: {document['exit_code']}")]
     return "\n".join(lines)
 
 
@@ -341,36 +383,41 @@ def make_run(document: dict[str, Any]) -> str:
     }[document["status"]]
     mode = " — dry run, nothing was written" if document["dry_run"] else ""
     lines = [
-        f"Agent Ready make — {document['repository']['name']}: {headline}{mode}",
+        style.title(f"Agent Ready make — {document['repository']['name']}:") + " "
+        + (style.ok(headline) if document["status"] == "target-met" else style.warn(headline))
+        + style.muted(mode),
         _spec_line(document),
         "",
-        f"Maturity: {_title(state['before'])}  →  {_title(state['after'])}   (target {_title(state['target'])})",
+        f"{style.label('Maturity:')} {_title(state['before'])}  →  {style.accent(_title(state['after']))}   "
+        + style.muted(f"(target {_title(state['target'])})"),
     ]
     if state["ci_visible"]:
         lines.append(f"CI-visible (tracked files): {_title(state['ci_visible'])}")
     for round_ in document["rounds"]:
         written = ", ".join(round_["written"]) or "nothing"
-        lines.append(f"  round {round_['round']}: {round_['status']:<8} wrote {written}  → {_title(round_['maturity_after'])}")
+        number = style.muted(f"round {round_['round']}:")
+        result = style.status(round_["status"].ljust(8), round_["status"])
+        lines.append(f"  {number} {result} wrote {written}  → {_title(round_['maturity_after'])}")
         for change in round_["changes"]:
             if change["outcome"] in {"conflict", "refused"}:
-                lines.append(f"      {change['outcome']}: {change['path']} — {change['reason']}")
+                lines.append(f"      {style.fail(change['outcome'] + ':')} {change['path']} — {change['reason']}")
     if document["error"]:
-        lines.append(f"  error: {document['error']}")
+        lines.append(f"  {style.fail('error:')} {document['error']}")
     if document["diffs"]:
-        lines += [""] + [diff.rstrip("\n") for diff in document["diffs"] if diff]
+        lines += [""] + [_diff(diff.rstrip("\n")) for diff in document["diffs"] if diff]
     if document["uncommitted"] and not document["dry_run"]:
         lines += ["", "Not tracked by Git yet (commit so CI sees them): " + ", ".join(document["uncommitted"])]
     remaining = document["remaining"]
     if remaining["human_decision"]:
-        lines += ["", "Needs a human decision (make never guesses these):"]
+        lines += ["", style.warn("Needs a human decision (make never guesses these):")]
         for item in remaining["human_decision"]:
             lines.append(f"  - {item['rule_id']} [{item['severity']}, {item['required_from']}]: {item['question']}")
             for candidate in item["candidates"][:5]:
                 lines.append(f"      candidate: {candidate['value']} ({candidate['basis']})")
     if remaining["unsupported"]:
-        lines += ["", "Unsupported (no safe automatic change):"]
+        lines += ["", style.section("Unsupported (no safe automatic change):")]
         lines += [f"  - {item['rule_id']}: {item['reason']}" for item in remaining["unsupported"]]
-    lines += ["", f"Exit code: {document['exit_code']}"]
+    lines += ["", style.muted(f"Exit code: {document['exit_code']}")]
     return "\n".join(lines)
 
 
