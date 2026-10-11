@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -587,8 +585,8 @@ def run_capability(
     root = Path(path).resolve()
     command = _security_command(name, root, image=image)
     result = _capture(command, cwd=root)
-    payload: Any = None
-    parse_error: str | None = None
+    payload = None
+    parse_error = None
     try:
         payload = json.loads(result.stdout) if result.stdout.strip() else None
     except json.JSONDecodeError as exc:

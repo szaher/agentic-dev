@@ -7,7 +7,7 @@ import re
 from collections import Counter, defaultdict
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .paths import config_dir
 
@@ -232,8 +232,8 @@ def summary(
         default=None,
     )
 
-    context_counts = Counter()
-    useful_context = Counter()
+    context_counts: Counter[str] = Counter()
+    useful_context: Counter[str] = Counter()
     for event in events:
         if event["event_type"] == "context.used":
             source = str(event["data"].get("source") or "unknown")
@@ -241,17 +241,17 @@ def summary(
             if event["data"].get("useful") is True:
                 useful_context[source] += 1
 
-    agentflow = defaultdict(Counter)
+    agentflow: defaultdict[str, Counter[str]] = defaultdict(Counter)
     for event in events:
         if event["event_type"] == "agentflow.stage":
             stage = str(event["data"].get("stage") or "unknown")
             outcome = str(event["data"].get("outcome") or "unknown")
             agentflow[stage][outcome] += 1
 
-    skill_suggested_names = Counter()
-    skill_activated_names = Counter()
-    cap_suggested_names = Counter()
-    cap_enabled_names = Counter()
+    skill_suggested_names: Counter[str] = Counter()
+    skill_activated_names: Counter[str] = Counter()
+    cap_suggested_names: Counter[str] = Counter()
+    cap_enabled_names: Counter[str] = Counter()
     for event in events:
         if event["event_type"] == "skills.suggested":
             for name in event["data"].get("recommended_names") or event["data"].get("names") or []:

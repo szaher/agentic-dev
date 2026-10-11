@@ -9,7 +9,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agentic_dev.capabilities import (
-    disable,
     enable,
     status,
     suggest_for_repo,

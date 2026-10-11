@@ -146,7 +146,7 @@ class MetricsTests(unittest.TestCase):
             repo = self.make_repo()
             with patch.dict(os.environ, {"AGENTIC_DEV_CONFIG_DIR": config}):
                 set_enabled(True)
-                created = create_worktree(
+                create_worktree(
                     "metrics-session", repo,
                     agent="codex", task="do something",
                     worktree_root=wtroot,

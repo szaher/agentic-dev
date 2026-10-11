@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import shlex
 import shutil
 import subprocess
 import time
@@ -83,8 +82,8 @@ def _codegraph_affected(root: Path, files: list[str]) -> dict[str, Any]:
     try:
         payload = json.loads(raw)
     except json.JSONDecodeError:
-        tests = [line.strip() for line in raw.splitlines() if line.strip()]
-        return {"available": True, "tests": tests, "raw": raw}
+        lines = [line.strip() for line in raw.splitlines() if line.strip()]
+        return {"available": True, "tests": lines, "raw": raw}
     tests: list[str] = []
     if isinstance(payload, list):
         tests = [str(x) for x in payload if isinstance(x, (str, int))]
@@ -303,8 +302,8 @@ def full_plan(
         for command in found:
             checks.append({"kind": kind, "command": command.command, "source": command.source,
                            "origin": "discovered", "reason": f"full-project {kind} verification"})
-    for command in commands:
-        checks.append({"kind": "custom", "command": command, "origin": "explicit",
+    for explicit in commands:
+        checks.append({"kind": "custom", "command": explicit, "origin": "explicit",
                        "reason": "explicitly requested command"})
 
     files: list[str] = []

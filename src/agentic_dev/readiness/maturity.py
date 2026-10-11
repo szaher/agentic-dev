@@ -33,8 +33,8 @@ def compute(spec: Spec, statuses: Mapping[str, str], target: str | None = None) 
         try:
             spec.level(target)
         except SpecError:
-            levels = ", ".join(level.id for level in spec.levels)
-            raise SpecError(f"unknown target level {target!r}; choose one of: {levels}") from None
+            choices = ", ".join(level.id for level in spec.levels)
+            raise SpecError(f"unknown target level {target!r}; choose one of: {choices}") from None
 
     blockers = blockers_by_level(spec, statuses)
     levels: list[dict[str, Any]] = []

@@ -5,6 +5,7 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -98,7 +99,7 @@ def detect_repo(path: str | Path = ".") -> RepoContext:
             data = json.loads(_text(package))
         except json.JSONDecodeError:
             data = {}
-        deps = {}
+        deps: dict[str, Any] = {}
         deps.update(data.get("dependencies") or {})
         deps.update(data.get("devDependencies") or {})
         scripts = data.get("scripts") or {}

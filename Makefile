@@ -1,8 +1,8 @@
 SHELL := /bin/bash
 
-.PHONY: check syntax smoke python-test
+.PHONY: check syntax lint typecheck smoke python-test
 
-check: syntax python-test smoke
+check: syntax lint typecheck python-test smoke
 
 syntax:
 	bash -n install.sh
@@ -13,6 +13,12 @@ syntax:
 	bash -n scripts/ci-readiness-smoke.sh
 	PYTHONPATH=src python3 -m py_compile src/agentic_dev/*.py src/agentic_dev/readiness/*.py scripts/sync-agent-ready-spec.py
 	python3 scripts/sync-agent-ready-spec.py --check
+
+lint:
+	python3 -m ruff check src tests scripts
+
+typecheck:
+	python3 -m mypy
 
 python-test:
 	PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v

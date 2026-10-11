@@ -14,7 +14,7 @@ from typing import Any
 from .. import __version__
 from ..detect import repo_root
 from . import maturity
-from .evidence import EvidenceCollector, Observation
+from .evidence import EvidenceCollector
 from .spec import Spec, load_spec
 
 SCHEMA_VERSION = "1"
@@ -145,7 +145,7 @@ class Assessor:
             observed_items.extend(observe(ref).items)
         missing = sorted(ref for ref, negated in refs if not negated and observe(ref).satisfied is False)
         unsupported = sorted(ref for ref, _ in refs if observe(ref).satisfied is None)
-        notes = [observe(ref).note for ref, _ in refs if observe(ref).note and observe(ref).satisfied is not None]
+        notes = [note for ref, _ in refs if (note := observe(ref).note) and observe(ref).satisfied is not None]
 
         if outcome is True:
             positive = sorted(ref for ref, negated in refs if not negated and observe(ref).satisfied)
